@@ -219,7 +219,7 @@ export function App() {
             className="bg-black/50 border border-white/15 rounded-xl px-3 py-1.5 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:border-sky-400 transition hover:border-white/30"
           >
             {customSite && (
-              <option value="custom">🎯 {site.name}</option>
+              <option value="custom">{site.name}</option>
             )}
             <optgroup label="Candidate Sites">
               {sites.map(s => (
@@ -271,7 +271,9 @@ export function App() {
                 : 'bg-black/55 hover:bg-black/75 text-amber-300 backdrop-blur-2xl'
             }`}
           >
-            <span>📊</span>
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 20V10M12 20V4M6 20v-6" />
+            </svg>
             <span>{showResultCards ? 'Hide Report' : 'Report'}</span>
           </button>
 
@@ -280,7 +282,9 @@ export function App() {
             onClick={handleRunSimulation}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black text-xs font-mono font-bold transition-all shadow-[0_0_20px_rgba(56,189,248,0.4)] cursor-pointer border-0"
           >
-            <span>▶</span>
+            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z" />
+            </svg>
             <span>Record</span>
           </button>
 
@@ -289,7 +293,9 @@ export function App() {
             onClick={() => setShowCompareModal(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/45 hover:bg-black/60 backdrop-blur-2xl text-slate-200 text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer border-0"
           >
-            <span>⚖️</span>
+            <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+              <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+            </svg>
             <span className="hidden sm:inline">Compare</span>
           </button>
 
@@ -298,7 +304,11 @@ export function App() {
             onClick={() => setShowIntro(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-2xl text-white text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer border-0"
           >
-            <span>🚀</span>
+            <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
             <span>Orbit View</span>
           </button>
         </div>
@@ -310,10 +320,10 @@ export function App() {
           {/* LEFT COLUMN: INDIVIDUAL BORDERLESS CARDS */}
           <div className="absolute top-20 left-6 z-20 w-80 space-y-4 pointer-events-auto animate-in slide-in-from-left duration-400">
             {/* CARD 1: SOLAR ILLUMINATION & HORIZON ANGLES */}
-            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+            <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base text-amber-400">☀️</span>
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
                   <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
                     Solar Illumination
                   </span>
@@ -348,10 +358,10 @@ export function App() {
             </div>
 
             {/* CARD 2: POWER GENERATION POTENTIAL */}
-            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+            <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base text-yellow-400">⚡</span>
+                  <span className="w-2 h-2 rounded-full bg-yellow-400 shadow-[0_0_8px_#facc15]"></span>
                   <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
                     Power Generation
                   </span>
@@ -391,10 +401,10 @@ export function App() {
           {/* RIGHT COLUMN: INDIVIDUAL BORDERLESS CARDS */}
           <div className="absolute top-20 right-6 z-20 w-80 space-y-4 pointer-events-auto animate-in slide-in-from-right duration-400">
             {/* CARD 3: DIRECT-TO-EARTH COMMUNICATION */}
-            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+            <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base text-cyan-400">🌍</span>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
                   <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
                     Direct-To-Earth Comms
                   </span>
@@ -433,10 +443,10 @@ export function App() {
             </div>
 
             {/* CARD 4: MISSION FLIGHT VERDICT */}
-            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+            <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
               <div className="flex items-center justify-between pb-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-base text-emerald-400">🎯</span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
                   <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
                     Flight Verdict
                   </span>
@@ -464,13 +474,13 @@ export function App() {
                   onClick={() => setShowResultCards(false)}
                   className="flex-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono transition cursor-pointer text-center border-0"
                 >
-                  ✕ Dismiss
+                  Dismiss
                 </button>
                 <button
                   onClick={handleRunSimulation}
                   className="py-1.5 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-mono transition cursor-pointer border-0"
                 >
-                  ↺ Re-run
+                  Re-run
                 </button>
               </div>
             </div>
@@ -574,9 +584,13 @@ export function App() {
       {showCompareModal && (
         <div className="fixed inset-0 z-40 bg-black/85 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-300 flex flex-col">
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
-            <div className="flex items-center justify-between border-b border-white/15 pb-4 mb-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">⚖️</span>
+                <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400">
+                  <svg className="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                    <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+                  </svg>
+                </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-display font-bold text-white">
                     Side-by-Side Lunar Landing Trade Study
@@ -588,9 +602,9 @@ export function App() {
               </div>
               <button
                 onClick={() => setShowCompareModal(false)}
-                className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition cursor-pointer"
+                className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition cursor-pointer border-0"
               >
-                ✕ Close Comparison
+                Close Comparison
               </button>
             </div>
 
@@ -630,9 +644,16 @@ export function App() {
       {showTimelineModal && (
         <div className="fixed inset-0 z-40 bg-black/85 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-300 flex flex-col">
           <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col space-y-6">
-            <div className="flex items-center justify-between border-b border-white/15 pb-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">▦</span>
+                <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400">
+                  <svg className="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                  </svg>
+                </div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-display font-bold text-white">
                     14-Day Celestial Horizon Curves & Launch Windows
@@ -644,9 +665,9 @@ export function App() {
               </div>
               <button
                 onClick={() => setShowTimelineModal(false)}
-                className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition cursor-pointer"
+                className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition cursor-pointer border-0"
               >
-                ✕ Close Timeline
+                Close Timeline
               </button>
             </div>
 

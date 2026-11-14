@@ -715,14 +715,14 @@ export function SpaceIntroScene({
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
                 onClick={handleInitiateApproach}
-                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-sm tracking-wide transition-all transform hover:scale-[1.03] shadow-[0_0_30px_rgba(56,189,248,0.55)] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs tracking-wider uppercase font-mono transition-all transform hover:scale-[1.02] shadow-[0_0_30px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2 border-0"
               >
-                <span>🚀</span>
-                <span>EXPLORE LUNAR SOUTH POLE</span>
+                <span>Enter Lunar Orbit</span>
+                <span className="text-sm">&rarr;</span>
               </button>
               <button
                 onClick={onSkipIntro}
-                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono transition cursor-pointer"
+                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono transition cursor-pointer border-0"
               >
                 Direct to Surface
               </button>
@@ -735,30 +735,30 @@ export function SpaceIntroScene({
       {phase === 'moon-orbit' && (
         <div className="absolute inset-0 z-20 flex items-center justify-between p-6 sm:p-10 pointer-events-none">
           {/* Left Side Options Panel (Does NOT cover the Moon!) */}
-          <div className="max-w-md w-full bg-black/55 backdrop-blur-2xl border-0 rounded-3xl p-6 space-y-4 shadow-[0_15px_60px_rgba(0,0,0,0.85)] pointer-events-auto animate-in slide-in-from-left duration-400">
+          <div className="max-w-md w-full bg-slate-950/70 backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-6 space-y-4 shadow-[0_20px_60px_rgba(0,0,0,0.85)] pointer-events-auto animate-in slide-in-from-left duration-400">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
                 <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold block">
-                  LUNAR ORBIT SELECTION
+                  ORBITAL TARGETING
                 </span>
                 <h2 className="text-lg font-display font-bold text-white mt-0.5">
                   Point Landing Spot & Date
                 </h2>
               </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
             </div>
 
             {/* Interactive Instructions */}
-            <div className="bg-sky-500/10 rounded-2xl p-3 text-[11px] font-mono text-sky-300 flex items-center gap-2.5">
-              <span className="text-lg">👆</span>
-              <span><strong>Interactive:</strong> Drag to spin Moon 360°. Click <em>any spot on the Moon</em> to set your custom landing point!</span>
+            <div className="bg-sky-500/10 border border-sky-400/20 rounded-2xl p-3 text-[11px] font-mono text-sky-300 flex items-center gap-2.5">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping shrink-0"></span>
+              <span><strong>Interactive:</strong> Drag to rotate Moon 360°. Click any spot on the Moon to designate landing coordinates.</span>
             </div>
 
             {/* Target Site Selector */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-[10px] font-mono">
-                <span className="text-slate-400 uppercase font-semibold">Selected Spot:</span>
+                <span className="text-slate-400 uppercase font-semibold">Selected Coordinates:</span>
                 <span className="text-sky-400 font-bold">{activeSite.lat > 0 ? `+${activeSite.lat.toFixed(1)}°` : `${activeSite.lat.toFixed(1)}°`} S, {activeSite.lon > 0 ? `+${activeSite.lon.toFixed(1)}°` : `${activeSite.lon.toFixed(1)}°`} E</span>
               </div>
               <select
@@ -771,10 +771,10 @@ export function SpaceIntroScene({
                     if (onSelectSite) onSelectSite(e.target.value);
                   }
                 }}
-                className="w-full bg-black/60 border-0 rounded-xl px-3 py-2 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-400"
+                className="w-full bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:border-sky-400 transition"
               >
                 {customPointedCoords && (
-                  <option value="custom">🎯 {activeSite.name}</option>
+                  <option value="custom">{activeSite.name}</option>
                 )}
                 {sites.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -796,7 +796,7 @@ export function SpaceIntroScene({
                   max="2028-01-10"
                   value={typeof launchDate === 'string' ? launchDate.slice(0, 10) : '2027-03-08'}
                   onChange={(e) => onLaunchDateChange && onLaunchDateChange(`${e.target.value}T00:00:00Z`)}
-                  className="w-full bg-black/60 border-0 rounded-xl px-2.5 py-1.5 text-slate-200 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-400"
+                  className="w-full bg-black/60 border border-white/10 rounded-xl px-2.5 py-1.5 text-slate-200 text-xs font-mono focus:outline-none focus:border-sky-400"
                 />
               </div>
 
@@ -823,13 +823,13 @@ export function SpaceIntroScene({
             <div className="pt-2 space-y-2">
               <button
                 onClick={handleDescendToSite}
-                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs font-mono tracking-wide transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs font-mono tracking-wider uppercase transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2 border-0"
               >
-                <span>🚀</span>
-                <span>DESCENT TO LANDING SPOT</span>
+                <span>Initiate Powered Descent</span>
+                <span className="text-sm">&rarr;</span>
               </button>
               <div className="text-[10px] text-slate-400 font-mono text-center">
-                Dives smoothly into {activeSite.name}
+                Target touchdown: {activeSite.name}
               </div>
             </div>
           </div>

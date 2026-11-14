@@ -160,9 +160,13 @@ export function Compare({
       </div>
 
       {/* 2. APPROACHABLE EXECUTIVE SUMMARY CARD (BORDERLESS) */}
-      <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center gap-3.5">
-        <div className="w-10 h-10 rounded-2xl bg-sky-500/15 flex items-center justify-center shrink-0 text-xl">
-          💡
+      <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center gap-3.5">
+        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center shrink-0 text-sky-400">
+          <svg className="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
         </div>
         <div>
           <div className="text-[10px] text-sky-400 font-mono font-bold uppercase tracking-wider">
@@ -314,10 +318,10 @@ export function Compare({
       {/* 5. CORE MISSION COMPARISON CARDS (ASPECT BY ASPECT - BORDERLESS) */}
       <div className="space-y-5">
         {/* ASPECT 1: SOLAR ILLUMINATION & POWER */}
-        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <span className="text-xl">☀️</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
               <div>
                 <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
                   Aspect 1: Solar Illumination & Power Generation
@@ -328,7 +332,7 @@ export function Compare({
               </div>
             </div>
             <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">
-              {statsA.sunlitFraction >= statsB.sunlitFraction ? `Winner: ${siteA.name}` : `Winner: ${siteB.name}`}
+              {statsA.sunlitFraction >= statsB.sunlitFraction ? `Optimal: ${siteA.name}` : `Optimal: ${siteB.name}`}
             </span>
           </div>
 
@@ -386,10 +390,10 @@ export function Compare({
         </div>
 
         {/* ASPECT 2: DIRECT-TO-EARTH COMMUNICATION */}
-        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <span className="text-xl">🌍</span>
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]"></span>
               <div>
                 <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
                   Aspect 2: Direct-To-Earth Communication
@@ -400,7 +404,7 @@ export function Compare({
               </div>
             </div>
             <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-cyan-400/15 text-cyan-300">
-              {statsA.earthVisibleFraction >= statsB.earthVisibleFraction ? `Winner: ${siteA.name}` : `Winner: ${siteB.name}`}
+              {statsA.earthVisibleFraction >= statsB.earthVisibleFraction ? `Optimal: ${siteA.name}` : `Optimal: ${siteB.name}`}
             </span>
           </div>
 
@@ -462,9 +466,9 @@ export function Compare({
         </div>
 
         {/* ASPECT 3: FLIGHT VERDICT & MISSION RECOMMENDATION */}
-        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+        <div className="border border-white/[0.08] bg-slate-950/70 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           <div className="flex items-center gap-2.5 mb-4">
-            <span className="text-xl">🎯</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]"></span>
             <div>
               <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
                 Aspect 3: Flight Viability Verdict & Recommendation
