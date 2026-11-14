@@ -1,9 +1,10 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
 import { buildLander } from './lander.js'
 import { buildRocks } from './rocks.js'
 import { buildSky } from './sky.js'
+import { buildCompassRing } from './compass.js'
 import { createCameraController } from './cameraModes.js'
 
 /**
@@ -40,6 +41,7 @@ export default function Scene3D({
 }) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
+  const [notification, setNotification] = useState('')
 
   const getResolution = (q) => {
     if (q === 'low') return 129
@@ -47,7 +49,7 @@ export default function Scene3D({
     return 257
   }
 
-  // (a) Initialize Three.js scene, renderer, camera & controls
+  // (a) Initialize Three.js scene, renderer, camera & controllers
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -122,6 +124,10 @@ export default function Scene3D({
     const sky = buildSky({ quality })
     scene.add(sky.group)
 
+    // Compass ring at 190m radius
+    const compass = buildCompassRing()
+    scene.add(compass.group)
+
     // Invalidate function for on-demand rendering
     const invalidate = () => {
       if (isDisposed || renderRequested) return
@@ -133,7 +139,7 @@ export default function Scene3D({
       })
     }
 
-    // Camera controller
+    // Camera controller supporting Orbit and Astronaut modes
     const cameraController = createCameraController({
       camera,
       domElement: canvas,
@@ -141,6 +147,10 @@ export default function Scene3D({
       getPadY: () => ctxRef.current?.originPadHeight ?? 0,
       getHeightAt: (x, z) => ctxRef.current?.heightAt(x, z) ?? 0,
       quality,
+      onNotification: (msg) => {
+        setNotification(msg)
+        setTimeout(() => setNotification(''), 3000)
+      },
     })
 
     const handleResize = () => {
@@ -168,6 +178,7 @@ export default function Scene3D({
       earthLight,
       lander,
       sky,
+      compass,
       rocksData: null,
       cameraController,
       terrainData: null,
@@ -186,6 +197,7 @@ export default function Scene3D({
 
         lander.dispose()
         sky.dispose()
+        compass.dispose()
 
         if (ctxRef.current?.rocksData) {
           ctxRef.current.rocksData.dispose()
@@ -210,7 +222,7 @@ export default function Scene3D({
     }
   }, [quality])
 
-  // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, and sky bodies
+  // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, sky bodies, and viewMode
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
@@ -276,6 +288,15 @@ export default function Scene3D({
       ctx.lander.setHeight(landerHeight)
     }
 
+    if (ctx.cameraController) {
+      ctx.cameraController.setMode(viewMode, {
+        sunEl: safeSunEl,
+        sunAz: safeSunAz,
+        earthEl: safeEarthEl,
+        earthAz: safeEarthAz,
+      })
+    }
+
     ctx.invalidate()
   }, [sunEl, sunAz, earthEl, earthAz, landerHeight, viewMode])
 
@@ -315,6 +336,11 @@ export default function Scene3D({
     ctx.rocksData = rocks
     ctx.scene.add(rocks.mesh)
 
+    // Update compass ring elevation
+    if (ctx.compass) {
+      ctx.compass.updatePadY(terrain.originPadHeight)
+    }
+
     // Update camera controls focus to lander
     if (ctx.cameraController) {
       ctx.cameraController.updateTarget(terrain.originPadHeight)
@@ -349,6 +375,7 @@ export default function Scene3D({
         background: '#000000',
       }}
     >
+      {/* Top watermark tags */}
       <div
         style={{
           position: 'absolute',
@@ -364,7 +391,7 @@ export default function Scene3D({
           border: '1px solid #334155',
         }}
       >
-        {label || siteId} · {terrainType} · H={landerHeight}m
+        {label || siteId} · {terrainType} · {viewMode === 'astronaut' ? 'Astronaut 1.7m view' : 'Orbit view'}
       </div>
 
       <div
@@ -384,6 +411,95 @@ export default function Scene3D({
       >
         Illustrative terrain
       </div>
+
+      {/* Astronaut view quick-look action bar */}
+      {viewMode === 'astronaut' && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '16px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            gap: '8px',
+            background: 'rgba(15, 23, 42, 0.85)',
+            padding: '6px 12px',
+            borderRadius: '24px',
+            border: '1px solid #334155',
+            backdropFilter: 'blur(4px)',
+            zIndex: 10,
+          }}
+        >
+          <button
+            onClick={() => ctxRef.current?.cameraController?.lookAtSun(sunEl, sunAz)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '16px',
+              border: '1px solid #eab308',
+              background: 'rgba(234, 179, 8, 0.15)',
+              color: '#fef08a',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            ☀️ Look at Sun
+          </button>
+          <button
+            onClick={() => ctxRef.current?.cameraController?.lookAtEarth(earthEl, earthAz)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '16px',
+              border: '1px solid #38bdf8',
+              background: 'rgba(56, 189, 248, 0.15)',
+              color: '#bae6fd',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            🌍 Look at Earth
+          </button>
+          <button
+            onClick={() => ctxRef.current?.cameraController?.lookNorth()}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '16px',
+              border: '1px solid #94a3b8',
+              background: 'rgba(148, 163, 184, 0.15)',
+              color: '#f1f5f9',
+              fontSize: '12px',
+              fontWeight: '600',
+              cursor: 'pointer',
+            }}
+          >
+            🧭 Look North
+          </button>
+        </div>
+      )}
+
+      {/* Toast Notification message */}
+      {notification && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '56px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: '#b91c1c',
+            color: '#ffffff',
+            padding: '6px 14px',
+            borderRadius: '6px',
+            fontSize: '12px',
+            fontWeight: '600',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            zIndex: 20,
+          }}
+        >
+          ⚠️ {notification}
+        </div>
+      )}
     </div>
   )
 }

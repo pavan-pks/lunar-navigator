@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 65 / 100**
+**Current score: 75 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** P-09: Astronaut camera
+**Currently working on:** P-10: HUD overlay and compass
 
 ## Core tasks
 
@@ -21,7 +21,8 @@
 | P-06 | Sun light and shadows | 12 | Done | 100 | 12 | Harsh DirectionalLight (intensity 3.0), sub-2° grazing shadow coverage, -0.27° lunar horizon cutoff, 0.02 ambient & faint Earthshine |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Done | 100 | 10 | sky.js: 800-2500 stars Points with day/night dimming, emissive Sun disk (0.53° angular size), procedural canvas textured Earth (1.9°) & text sprite |
 | P-08 | Orbit camera | 5 | Done | 100 | 5 | cameraModes.js: fov 50, (70,40,90) start, maxPolarAngle 1.45 rad, min/max distance 10-300m, high-tier damping & terrain collision prevention |
-| P-09 | Astronaut camera | 10 | Not started | 0 | 0 | |
+| P-09 | Astronaut camera | 10 | Done | 100 | 10 | First-person surface view (fov 70, 1.7m eye height), pitch ±60° drag look, arrow keys, Look at Sun/Earth/North buttons, compass ring (R=190m) |
+| P-10 | HUD overlay and compass | 6 | Not started | 0 | 0 | |
 | P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
 | P-06 | Sun light and shadows | 12 | Not started | 0 | 0 | |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |

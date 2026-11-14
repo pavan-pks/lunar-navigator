@@ -13,8 +13,9 @@
 - `src/components/scene/lander.js`: Detailed procedural lunar lander model (octagonal cabin, gold foil descent stage, 4 articulated legs with footpads, descent engine bell, solar panel wings, steerable dish antenna, and height-scale reactivity).
 - `src/components/scene/rocks.js`: Procedural rock and boulder scatter utilizing a single `InstancedMesh` with vertex-jittered icosahedrons, tier scaling (40/120/250), 3-5 landmark boulders, and terrain grounding.
 - `src/components/scene/sky.js`: Deep space procedural sky system with starfield Points (radius 900, 800-2500 by tier) dimming to 0.35 during daytime, emissive white Sun disk (angular size 0.53°), procedural canvas textured Earth sphere (angular size 1.9°), and callout text sprite.
-- `src/components/scene/cameraModes.js`: Formalized OrbitControls camera controller with starting offset `(70, 40, 90)`, target `(0, padY + 2, 0)`, polar angle clamp `1.45 rad`, distance limits `10-300m`, high-tier damping loop, and dynamic terrain height collision avoidance.
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
+- `src/components/scene/compass.js`: Procedural 3D compass ring at 190m radius with circular baseline and cardinal sprites (N at -Z, E at +X, S at +Z, W at -X).
+- `src/components/scene/cameraModes.js`: Dual-mode camera controller supporting OrbitControls (fov 50, limits, terrain clamping) and Astronaut mode (fov 70, 1.7m eye height, pitch ±60° drag look, arrow keys, smooth look-at animation to Sun, Earth, and North).
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
@@ -31,6 +32,7 @@
 - Hard vacuum lunar illumination: Sun intensity 3.0 when `sunEl > -0.27°` with a 0.1° fade preventing pop-in, 0.02 baseline ambient, and 0.04 faint bluish Earthshine active only when `earthEl > 0°`.
 - Sun disk and Earth marker placed at distance 800 with realistic physical angular diameters (Sun ~0.53°, Earth ~1.9°, ratio ~3.5:1).
 - Camera clamped above local terrain `y >= heightAt(x, z) + 1.0` and max polar angle set to `1.45 rad` so camera never penetrates lunar surface or clips beneath ground.
+- Astronaut camera mode places user 8-11m from lander at 1.7m eye height with fov 70; includes quick-look helpers with ease-out cubic transitions.
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -42,7 +44,7 @@
 - Stars rendered as single `THREE.Points` draw call with zero texture overhead.
 
 ## Known issues
-- First-person Astronaut camera mode (with HUD quick-look buttons and compass ring) arrives in P-09.
+- Modular HUD overlay extraction (`Hud.jsx` with real-time shadow ratio computation and responsive layout) is up next in P-10.
 
 ## Requests to the other member / human
 - None at this time.
