@@ -5,16 +5,16 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 0 / 100**
-**Last updated:** (date, time)
-**Currently working on:** (task id)
+**Current score: 5 / 100**
+**Last updated:** 2026-11-14
+**Currently working on:** R-02: Real Horizons fetch script and verification
 **Data status:** FAKE sample data (switch to REAL after R-02 and note it here)
 
 ## Core tasks
 
 | ID | Task | Weight | Status | Done % | Points | Last update / note |
 |---|---|---|---|---|---|---|
-| R-01 | Fake data generator and `sites.json` | 5 | Not started | 0 | 0 | |
+| R-01 | Fake data generator and `sites.json` | 5 | Done | 100 | 5 | Generated 9504 hours of plausible global ephemeris, 6 preset sites, and validation script. All PASS. |
 | R-02 | Real Horizons fetch script and verification | 9 | Not started | 0 | 0 | |
 | R-03 | `geometry.js` (with tests) | 6 | Not started | 0 | 0 | |
 | R-04 | `config.js` and `metrics.js` (with tests) | 12 | Not started | 0 | 0 | |
