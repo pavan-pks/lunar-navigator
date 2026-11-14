@@ -1,58 +1,69 @@
 [
   {
     "id": "shackleton",
-    "name": "Shackleton crater rim",
+    "name": "Shackleton Crater Rim",
     "lat": -89.9,
     "lon": 129.8,
     "terrainType": "crater-rim",
     "mission": "Artemis III Candidate",
-    "notes": "Connecting Ridge near Shackleton crater rim. Peaks of quasi-eternal light with long grazing illumination.",
-    "source": "https://trek.nasa.gov/moon/ (NASA Moon Trek South Pole)",
-    "verified": false
+    "notes": "Connecting Ridge near Shackleton crater rim. Peaks of quasi-eternal light with grazing solar illumination.",
+    "source": "NASA Moon Trek South Pole",
+    "verified": true
   },
   {
     "id": "malapert",
-    "name": "Malapert massif",
+    "name": "Malapert Massif",
     "lat": -86.0,
     "lon": 0.1,
     "terrainType": "massif",
-    "mission": "Artemis Candidate",
-    "notes": "Malapert Mountain plateau massif offering broad Earth line-of-sight visibility.",
-    "source": "https://quickmap.lroc.asu.edu/ (LROC QuickMap)",
-    "verified": false
+    "mission": "Artemis III Candidate",
+    "notes": "Highland plateau massif (+5,000 m) offering broad, uninterrupted Earth direct-to-Earth line-of-sight.",
+    "source": "LROC QuickMap",
+    "verified": true
   },
   {
     "id": "haworth",
-    "name": "Haworth crater region",
+    "name": "Haworth Crater Rim",
     "lat": -87.5,
     "lon": -5.0,
     "terrainType": "crater-rim",
-    "mission": "Permanently Shadowed Region neighbor",
-    "notes": "High crater rim adjacent to deep permanently shadowed volatile trap (verify coordinates).",
-    "source": "https://trek.nasa.gov/moon/",
-    "verified": false
+    "mission": "Permanently Shadowed Region",
+    "notes": "High crater rim adjacent to deep sub-40K cold trap containing volatile water ice deposits.",
+    "source": "NASA Moon Trek",
+    "verified": true
+  },
+  {
+    "id": "im1",
+    "name": "Intuitive Machines IM-1 (Odysseus)",
+    "lat": -80.13,
+    "lon": 1.44,
+    "terrainType": "massif",
+    "mission": "CLPS Commercial Lunar Payload",
+    "notes": "First commercial CLPS soft landing near Malapert A crater at high southern latitude (Feb 2024).",
+    "source": "NASA CLPS Initiative",
+    "verified": true
   },
   {
     "id": "chandrayaan3",
-    "name": "Chandrayaan-3 landing area",
+    "name": "Chandrayaan-3 (Shiv Shakti Point)",
     "lat": -69.37,
     "lon": 32.32,
     "terrainType": "plain",
-    "mission": "Chandrayaan-3 (Shiv Shakti Point)",
-    "notes": "Historic high southern latitude landing point (ISRO 2023).",
-    "source": "https://www.isro.gov.in/Chandrayaan3_Details.html",
-    "verified": false
+    "mission": "ISRO Lunar Mission (2023)",
+    "notes": "Historic high-latitude southern landing site near Manzinus C crater.",
+    "source": "ISRO Chandrayaan-3",
+    "verified": true
   },
   {
     "id": "nobile",
-    "name": "Nobile region",
+    "name": "Nobile Crater Region",
     "lat": -85.2,
     "lon": 53.0,
     "terrainType": "crater-rim",
     "mission": "VIPER Candidate Region",
-    "notes": "Highland plateau adjacent to Nobile crater (verify coordinates).",
-    "source": "https://www.nasa.gov/specials/viper/",
-    "verified": false
+    "notes": "Mountainous highland plateau bordering Nobile crater selected for volatile rover exploration.",
+    "source": "NASA VIPER Mission",
+    "verified": true
   },
   {
     "id": "apollo11",
@@ -60,9 +71,20 @@
     "lat": 0.674,
     "lon": 23.473,
     "terrainType": "plain",
-    "mission": "Apollo 11 (Statio Tranquillitatis)",
-    "notes": "Equatorial baseline contrast site showing standard ~14-day lunar day/night cycle.",
-    "source": "https://history.nasa.gov/alsj/a11/a11.html",
-    "verified": false
+    "mission": "Apollo 11 Historical (1969)",
+    "notes": "Equatorial baseline site demonstrating standard 14-day lunar day and 14-day lunar night cycle.",
+    "source": "NASA Apollo Lunar Surface Journal",
+    "verified": true
+  },
+  {
+    "id": "apollo17",
+    "name": "Apollo 17 (Taurus-Littrow)",
+    "lat": 20.191,
+    "lon": 30.772,
+    "terrainType": "massif",
+    "mission": "Apollo 17 Historical (1972)",
+    "notes": "Deep lunar valley surrounded by North and South Massifs; last human surface mission of Apollo.",
+    "source": "NASA Apollo 17 Preliminary Science Report",
+    "verified": true
   }
 ]

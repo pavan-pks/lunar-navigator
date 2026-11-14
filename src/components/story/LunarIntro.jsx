@@ -73,35 +73,52 @@ export function LunarIntro({ onDone }) {
     const starMat = new THREE.PointsMaterial({ color: 0xdfe6ff, size: 1.2, transparent: true, opacity: 0.8 });
     scene.add(new THREE.Points(starGeo, starMat));
 
-    // Sun
-    const sunMesh = new THREE.Mesh(new THREE.SphereGeometry(14, 32, 32), new THREE.MeshBasicMaterial({ color: 0xfff0c4 }));
-    sunMesh.position.set(-200, 40, -180);
-    scene.add(sunMesh);
-
-    const sunLight = new THREE.PointLight(0xffffff, 2.8, 2500);
-    sunLight.position.copy(sunMesh.position);
-    scene.add(sunLight);
-    scene.add(new THREE.AmbientLight(0x222638, 0.5));
-
-    // Textures
+    // Textures - Official NASA SVS imagery
     const loader = new THREE.TextureLoader();
-    const earthTex = loader.load('/textures/earth.jpg');
+    const sunTex = loader.load('/textures/nasa_sun.jpg');
+    sunTex.colorSpace = THREE.SRGBColorSpace;
+    const earthTex = loader.load('/textures/nasa_earth_bluemarble.jpg');
     earthTex.colorSpace = THREE.SRGBColorSpace;
-    const moonTex = loader.load('/textures/moon.jpg');
+    const moonTex = loader.load('/textures/nasa_moon_lroc_1k.jpg');
     moonTex.colorSpace = THREE.SRGBColorSpace;
 
-    // Earth
+    // Sun with NASA SDO texture
+    const sunMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(22, 48, 48),
+      new THREE.MeshBasicMaterial({ map: sunTex, color: 0xfff5d6 })
+    );
+    sunMesh.position.set(-220, 45, -200);
+    scene.add(sunMesh);
+
+    const sunLight = new THREE.PointLight(0xffffff, 3.2, 3000, 0.4);
+    sunLight.position.copy(sunMesh.position);
+    scene.add(sunLight);
+    scene.add(new THREE.AmbientLight(0x222638, 0.65));
+
+    // Earth with NASA Blue Marble texture
     const earthGroup = new THREE.Group();
     earthGroup.position.set(0, 0, 0);
     scene.add(earthGroup);
 
-    const earthMesh = new THREE.Mesh(new THREE.SphereGeometry(12, 48, 48), new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8 }));
+    const earthMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(14, 64, 64),
+      new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.75, metalness: 0.08 })
+    );
+    earthMesh.rotation.z = (23.44 * Math.PI) / 180; // Earth axial tilt
     earthGroup.add(earthMesh);
 
-    // Moon
+    // Atmospheric limb
+    const atmoGeo = new THREE.SphereGeometry(14.8, 32, 32);
+    const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.18, side: THREE.BackSide });
+    earthGroup.add(new THREE.Mesh(atmoGeo, atmoMat));
+
+    // Moon with NASA LROC CGI Moon Kit texture
     const moonGroup = new THREE.Group();
     scene.add(moonGroup);
-    const moonMesh = new THREE.Mesh(new THREE.SphereGeometry(6, 48, 48), new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.95 }));
+    const moonMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(7.5, 64, 64),
+      new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.98, metalness: 0.02 })
+    );
     moonGroup.add(moonMesh);
 
     // Initial pose

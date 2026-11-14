@@ -12,12 +12,15 @@ export function TopBar({
   quality,
   onQualityChange,
   isFakeData = false,
-  onOpenStoryMode
+  onOpenStoryMode,
+  onOpenVisor,
+  lunarClock
 }) {
   const tabs = [
-    { id: 'compare', label: 'Site Comparison', icon: '◬' },
-    { id: 'calendar', label: 'Launch Windows', icon: '▦' },
-    { id: 'battery', label: 'Energy & Power', icon: '⚡' }
+    { id: 'surface', label: '3D Surface & Lander', icon: '🌕' },
+    { id: 'compare', label: 'Trade Study Comparison', icon: '⚖️' },
+    { id: 'timeline', label: '14-Day Timeline & Windows', icon: '▦' },
+    { id: 'battery', label: 'Energy & Battery', icon: '⚡' }
   ];
 
   return (
@@ -70,14 +73,37 @@ export function TopBar({
 
         {/* Right: Telemetry Source, Story Mode & View Modes */}
         <div className="flex items-center gap-3">
-          {/* Story Mode Launcher Button */}
+          {/* Lunar Clock Readout */}
+          {lunarClock && (
+            <div
+              className="text-[#8b949e] text-[11px] font-mono hidden xl:block text-right cursor-help"
+              title={`Coordinated Lunar Time: ${lunarClock.ltcString} • Phase: ${lunarClock.phaseName} (${lunarClock.illumPct}% illuminated)`}
+            >
+              <b>{lunarClock.ltcString}</b> • <span className="text-slate-300">{lunarClock.illumPct}% ILLUM</span>
+            </div>
+          )}
+
+          {/* Visor HUD Launcher Button */}
+          {onOpenVisor && (
+            <button
+              onClick={onOpenVisor}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#21262d] hover:bg-[#30363d] border border-white/10 text-slate-200 text-xs font-mono transition-all cursor-pointer shadow-xs"
+              title="Open Astronaut Helmet Visor HUD"
+            >
+              <span>👨‍🚀</span>
+              <span className="hidden md:inline">Visor HUD</span>
+            </button>
+          )}
+
+          {/* Solar View Launcher Button */}
           {onOpenStoryMode && (
             <button
               onClick={onOpenStoryMode}
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 to-amber-500/20 hover:from-sky-500/30 hover:to-amber-500/30 border border-sky-400/30 text-white text-xs font-mono font-semibold transition-all shadow-[0_0_12px_rgba(56,189,248,0.2)] cursor-pointer"
+              title="Zoom out to 3D Solar System View"
             >
-              <span>🚀</span>
-              <span>Story Mode</span>
+              <span>☀️</span>
+              <span>Space View</span>
             </button>
           )}
 
