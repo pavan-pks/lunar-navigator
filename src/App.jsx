@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController, SPEED_OPTIONS } from './lib/useTimeController.js';
-import { landingDate } from './lib/metrics.js';
 import { TopBar } from './components/ui/TopBar.jsx';
 import { SampleDataBanner } from './components/ui/SampleDataBanner.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
 import { Footer } from './components/ui/Footer.jsx';
+import { Compare } from './components/ui/Compare.jsx';
+import { Calendar } from './components/ui/Calendar.jsx';
+import { BatteryPanel } from './components/ui/BatteryPanel.jsx';
+import { ExplorerCaptions } from './components/ui/ExplorerCaptions.jsx';
+import { AssumptionsPanel } from './components/ui/AssumptionsPanel.jsx';
 
 export function App() {
   const [data, setData] = useState(null);
@@ -14,12 +18,31 @@ export function App() {
 
   // App-level configuration state
   const [activeTab, setActiveTab] = useState('compare');
-  const [uiMode, setUiMode] = useState('planner');
   const [viewMode, setViewMode] = useState('orbit');
   const [quality, setQuality] = useState('auto');
   const [missionDays, setMissionDays] = useState(14);
   const [objectHeightM, setObjectHeightM] = useState(3.0);
   const [compareMode, setCompareMode] = useState('sites');
+  const [slipDays, setSlipDays] = useState(0);
+  const [showAssumptionsModal, setShowAssumptionsModal] = useState(false);
+
+  // Persistent UI mode (Planner vs Explorer)
+  const [uiMode, setUiMode] = useState(() => {
+    try {
+      return localStorage.getItem('lunar_ui_mode') || 'planner';
+    } catch {
+      return 'planner';
+    }
+  });
+
+  const handleUiModeChange = (mode) => {
+    setUiMode(mode);
+    try {
+      localStorage.setItem('lunar_ui_mode', mode);
+    } catch {
+      // Ignored if storage is restricted
+    }
+  };
 
   // Scenario state
   const [scenarioA, setScenarioA] = useState({
@@ -73,11 +96,28 @@ export function App() {
   const siteA = scenarioA.customSite || sites.find(s => s.id === scenarioA.siteId) || sites[0];
   const siteB = scenarioB.customSite || sites.find(s => s.id === scenarioB.siteId) || sites[1] || sites[0];
 
-  const landingA = landingDate(scenarioA.launchDate, scenarioA.transitDays);
-  const landingB = landingDate(scenarioB.launchDate, scenarioB.transitDays);
-
   const currentDay = (timeCtrl.tRel / 24).toFixed(1);
   const currentHour = Math.floor(timeCtrl.tRel);
+
+  // Staging handler from Calendar click
+  const handleStageFromCalendar = (scenarioKey, site, launchDateStr) => {
+    if (scenarioKey === 'A') {
+      setScenarioA(prev => ({
+        ...prev,
+        siteId: site.id,
+        customSite: site.id.startsWith('custom-') ? site : null,
+        launchDate: launchDateStr
+      }));
+    } else {
+      setScenarioB(prev => ({
+        ...prev,
+        siteId: site.id,
+        customSite: site.id.startsWith('custom-') ? site : null,
+        launchDate: launchDateStr
+      }));
+    }
+    setActiveTab('compare');
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-sky-500/30">
@@ -87,7 +127,7 @@ export function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         uiMode={uiMode}
-        onUiModeChange={setUiMode}
+        onUiModeChange={handleUiModeChange}
         quality={quality}
         onQualityChange={setQuality}
         isFakeData={ephem?.fake}
@@ -161,120 +201,64 @@ export function App() {
       </section>
 
       {/* Main Tab Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col space-y-4">
+        {uiMode === 'explorer' && (
+          <ExplorerCaptions
+            siteName={siteA.name}
+            objectHeightM={objectHeightM}
+          />
+        )}
+
         {activeTab === 'compare' && (
-          <div className="flex-1 flex flex-col space-y-4">
-            {/* Tab header badge */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/60 pb-3">
-              <div>
-                <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span>Site Comparison Architecture</span>
-                  <span className="text-xs font-mono font-normal px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                    {compareMode === 'sites' ? 'Dual Site Mode' : 'Launch Window Slip Mode'}
-                  </span>
-                </h1>
-                <p className="text-xs text-slate-400">
-                  Evaluate solar elevation, shadow lengths, direct Earth comms line-of-sight, and thermal survival margins side-by-side.
-                </p>
-              </div>
-
-              {/* Mode switch */}
-              <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
-                <span className="text-slate-500 text-[11px] px-1">Compare:</span>
-                <button
-                  onClick={() => setCompareMode('sites')}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
-                    compareMode === 'sites' ? 'bg-sky-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Two Sites
-                </button>
-                <button
-                  onClick={() => setCompareMode('dates')}
-                  className={`px-2.5 py-1 rounded transition-colors cursor-pointer ${
-                    compareMode === 'dates' ? 'bg-sky-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Two Launch Dates
-                </button>
-              </div>
-            </div>
-
-            {/* Placeholder wireframe for Compare screen (completed in R-07 to R-11) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
-              {/* Scenario A Card */}
-              <div className="bg-slate-900/60 border border-sky-500/30 rounded-xl p-4 flex flex-col space-y-3">
-                <div className="flex items-center justify-between border-b border-sky-500/20 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-sky-400"></span>
-                    <span className="font-bold text-sm text-sky-400 uppercase tracking-wider">Scenario A</span>
-                    <span className="text-xs text-slate-300 font-medium">{siteA.name}</span>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Landing: {landingA.toISOString().slice(0, 10)}
-                  </span>
-                </div>
-                <div className="bg-slate-950/80 rounded-lg p-6 border border-slate-800 flex-1 flex flex-col items-center justify-center text-center text-slate-400 text-xs space-y-2">
-                  <span className="text-2xl">🔭</span>
-                  <p className="font-semibold text-slate-200">Scenario A Telemetry & 3D Visualizer</p>
-                  <p className="max-w-xs text-slate-500 text-[11px]">
-                    Site selector, solar azimuth & elevation graphs, shadow ruler, and Pavan&apos;s WebGL 3D scene integrate here.
-                  </p>
-                </div>
-              </div>
-
-              {/* Scenario B Card */}
-              <div className="bg-slate-900/60 border border-amber-500/30 rounded-xl p-4 flex flex-col space-y-3">
-                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-amber-400"></span>
-                    <span className="font-bold text-sm text-amber-400 uppercase tracking-wider">Scenario B</span>
-                    <span className="text-xs text-slate-300 font-medium">{siteB.name}</span>
-                  </div>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    Landing: {landingB.toISOString().slice(0, 10)}
-                  </span>
-                </div>
-                <div className="bg-slate-950/80 rounded-lg p-6 border border-slate-800 flex-1 flex flex-col items-center justify-center text-center text-slate-400 text-xs space-y-2">
-                  <span className="text-2xl">⚖️</span>
-                  <p className="font-semibold text-slate-200">Scenario B Comparative Telemetry & 3D Visualizer</p>
-                  <p className="max-w-xs text-slate-500 text-[11px]">
-                    Synchronized to the shared T+{currentHour}h clock for direct trade studies.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Compare
+            sites={sites}
+            ephem={ephem}
+            scenarioA={scenarioA}
+            setScenarioA={setScenarioA}
+            scenarioB={scenarioB}
+            setScenarioB={setScenarioB}
+            compareMode={compareMode}
+            setCompareMode={setCompareMode}
+            tRel={timeCtrl.tRel}
+            setTRel={timeCtrl.setTRel}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            quality={quality}
+            setQuality={setQuality}
+            missionDays={missionDays}
+            setMissionDays={setMissionDays}
+            objectHeightM={objectHeightM}
+            slipDays={slipDays}
+            setSlipDays={setSlipDays}
+          />
         )}
 
         {activeTab === 'calendar' && (
-          <div className="flex-1 bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center space-y-3">
-            <span className="text-3xl">🗓️</span>
-            <h2 className="text-lg font-bold text-white">Mission Window Calendar Heatmap</h2>
-            <p className="text-xs text-slate-400 max-w-md">
-              Full-year 2027-2028 landing opportunity matrix. Identifies continuous solar illumination windows and optimal launch dates.
-            </p>
-            <span className="text-[11px] font-mono px-2 py-1 bg-slate-800 rounded text-slate-400">
-              Integrating in Task R-12
-            </span>
-          </div>
+          <Calendar
+            sites={sites}
+            ephem={ephem}
+            missionDays={missionDays}
+            onSelectOpportunity={handleStageFromCalendar}
+          />
         )}
 
         {activeTab === 'battery' && (
-          <div className="flex-1 bg-slate-900/40 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center text-center space-y-3">
-            <span className="text-3xl">🔋</span>
-            <h2 className="text-lg font-bold text-white">Battery & Solar Array Simulation</h2>
-            <p className="text-xs text-slate-400 max-w-md">
-              Evaluate horizontal vs vertical solar mast performance under polar horizon grazing angles, survival heater loads, and charge depletion.
-            </p>
-            <span className="text-[11px] font-mono px-2 py-1 bg-slate-800 rounded text-slate-400">
-              Integrating in Task R-13
-            </span>
-          </div>
+          <BatteryPanel
+            sites={sites}
+            ephem={ephem}
+            scenarioA={scenarioA}
+            scenarioB={scenarioB}
+            missionDays={missionDays}
+          />
         )}
       </main>
 
       <Footer />
+
+      <AssumptionsPanel
+        isOpen={showAssumptionsModal}
+        onClose={() => setShowAssumptionsModal(false)}
+      />
     </div>
   );
 }

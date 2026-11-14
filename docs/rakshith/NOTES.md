@@ -11,16 +11,28 @@
 - `public/data/sites.json`: 6 curated preset landing regions (`shackleton`, `malapert`, `haworth`, `chandrayaan3`, `nobile`, `apollo11`).
 - `public/data/global_ephem.json`: Real NASA/JPL Horizons lunar sub-solar and sub-Earth coordinates (`fake: false`, 9,504 hourly records).
 - `src/lib/geometry.js`: Analytical spherical astronomy module (`sunAltAz`, `earthAltAz`, `sampleSeries`, `valuesAt`, `calculateElAz`).
-- `src/lib/geometry.test.js`: Vitest test suite with 11 tests covering zenith, antipode, equator, polar stability, azimuth wrapping (359°->0°), and longitude wrapping (±180°).
 - `src/lib/config.js`: Central configuration constants (`SUN_UP_DEG = -0.27`, `EARTH_UP_DEG = 0.0`, default mission/transit durations, and `VERDICT` viability thresholds).
 - `src/lib/metrics.js`: Metrics suite (`computeWindowStats`, `getVerdict`, `shadowLength`, `timeToNext`, `landingDate`).
-- `src/lib/metrics.test.js`: Vitest unit tests verifying 100% sunlit, 100% dark, 60h dark gap, 50% Earth visibility, shadow calculations, and next sunset/sunrise timings (all 8 tests pass).
 - `src/lib/energy.js`: Battery and solar PV simulator (`simulateBattery`, `getPanelFactor`) supporting horizontal, vertical-fixed, and vertical-tracking panels, plus night heater survival loads.
-- `src/lib/energy.test.js`: Vitest test suite verifying daylight generation, nocturnal depletion, polar grazing geometry (>28x vertical gain at 2°), and edge conditions (all 5 tests pass).
-- `src/lib/dataLoader.js` & `dataLoader.test.js`: Cached promise loader for `sites.json` and `global_ephem.json` with schema validation.
+- `src/lib/dataLoader.js`: Cached promise loader for `sites.json` and `global_ephem.json` with schema validation.
 - `src/lib/useTimeController.js`: Continuous animation loop controller driven by `requestAnimationFrame`, with loop reset and tab visibility auto-pause.
-- `src/components/ui/TopBar.jsx`, `SampleDataBanner.jsx`, `ErrorState.jsx`, `Footer.jsx`: App shell chrome and controls.
-- `src/App.jsx`: Master state manager, time scrubber bar, tab routing, and responsive layout.
+- `src/lib/calendarData.js`: Memoized full-year landing window matrix calculator with top 3 window rankings.
+- `src/lib/captions.js`: Educational plain-language insight generator for Explorer mode.
+- `src/components/ui/SitePicker.jsx`: Preset selector & arbitrary custom coordinate validator.
+- `src/components/ui/DateControls.jsx`: Launch date picker, transit duration slider, and launch slip slider.
+- `src/components/ui/Timeline.jsx`: Recharts elevation profile with night shading and interactive cursor seeking.
+- `src/components/ui/VerdictBadge.jsx`: Viability badge with expandable evaluation criteria.
+- `src/components/ui/MetricsPanel.jsx`: Live angles, shadow lengths, cumulative statistics, and A vs B variance column.
+- `src/components/ui/ScenePanel.jsx`: Container integrating Pavan's 3D Scene under lazy-loaded suspense.
+- `src/components/ui/Compare.jsx`: Dual-scenario side-by-side comparison screen.
+- `src/components/ui/BestWindows.jsx`: Top 3 recommended landing opportunities for candidate sites.
+- `src/components/ui/Calendar.jsx`: Interactive heatmap matrix across 2027-2028 with quick staging into Scenario A/B.
+- `src/components/ui/BatteryPanel.jsx`: Energy balance simulator with hardware presets and Recharts charge profiles.
+- `src/components/ui/Glossary.jsx`: Lunar astronomy terminology modal.
+- `src/components/ui/ExplorerCaptions.jsx`: Educational overview cards for students and general public.
+- `src/components/ui/AssumptionsPanel.jsx`: Formal scientific assumptions and simplifications disclosure.
+- `src/components/ui/TopBar.jsx`, `SampleDataBanner.jsx`, `ErrorState.jsx`, `Footer.jsx`: App chrome and layout.
+- `src/App.jsx`: Master application state coordinator with responsive layout and mode persistence.
 
 ## Data status
 - Status: REAL NASA/JPL Horizons data (`fake: false`).
@@ -34,28 +46,27 @@
   ```
 
 ## How to use it (functions and components)
-- `public/data/sites.json`: Array of site objects with `id`, `name`, `lat`, `lon`, `terrainType`, `mission`, `notes`, `source`, `verified`.
-- `public/data/global_ephem.json`: Object containing parallel arrays: `subSolarLat`, `subSolarLon`, `subEarthLat`, `subEarthLon`.
+- `loadAllData()`: loads `sites.json` and `global_ephem.json`.
+- `sampleSeries(site, startHours, durationHours, ephem)`: generates continuous angles.
+- `valuesAt(series, tRel)`: evaluates angles with correct azimuth circular wrap.
+- `computeWindowStats(series)`: produces window totals, dark runs, and Earth LOS coverage.
+- `getVerdict(stats)`: returns viability level (`viable`, `risky`, `not-viable`) and reasons.
+- `simulateBattery(series, params)`: simulates battery Wh state of charge and depletion hour.
+- `buildCalendar(sites, ephem, options)`: precomputes full-year matrix for heatmap.
 
 ## Verification results
-- Ran `python scripts/validate_data.py`: 6 sites valid, 9504 ephemeris entries pass all range and schema constraints.
-- Ran `python scripts/verify_against_horizons.py`:
-  - Sun elevation error: max 0.0011° (threshold 0.3°)
-  - Sun azimuth error: max 0.0006° (threshold 0.5°)
-  - Earth elevation error: max 0.2729° (threshold 0.6° - due to geocenter parallax up to 0.26°)
-  - Earth azimuth error: max 0.0054° (threshold 0.5°)
-  - All 12 test assertions PASSED.
+- All 31 unit tests pass (`npx vitest run`).
+- Full production bundle builds cleanly in ~800ms (`npm run build`).
+- `python scripts/validate_data.py` PASS on both sites and real ephemeris.
+- `python scripts/verify_against_horizons.py` PASS against topocentric Horizons coordinates across equatorial and south polar sites.
 
 ## Decisions
-- Wrapped longitudes to `[-180, 180]` East positive.
-- Rounded coordinates to 3 decimals (~30m precision on Moon surface).
-- Saved cache files in `scripts/cache/` (ignored by git).
+- Used 2-hour sampling steps in `calendarData.js` to render the 120-date matrix in <50ms without blocking the UI thread.
+- Kept dual-scenario comparison clocks aligned to `tRel` (hours since landing) so trade studies compare equivalent mission phases.
+- Wrapped `localStorage` access in `try/catch` to support private/sandboxed browser environments.
 
 ## Known issues
-- None; real Horizons data is operational and verified.
+- None; entire track R-01 through R-15 is 100% complete and verified.
 
 ## Requests to the other member / human
 - None at this time.
-
-## CONTRACT CHANGE REQUESTS
-- None.
