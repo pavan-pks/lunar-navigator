@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController, SPEED_OPTIONS } from './lib/useTimeController.js';
 import { getLunarTime } from './lib/lunarTime.js';
 import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext, shadowLength } from './lib/metrics.js';
+import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
 
+import { CinematicSpaceUniverse } from './components/scene/CinematicSpaceUniverse.jsx';
+import { TradeStudyHolodeck } from './components/ui/TradeStudyHolodeck.jsx';
 import { ScenePanel } from './components/ui/ScenePanel.jsx';
-import { SpaceIntroScene } from './components/story/SpaceIntroScene.jsx';
-import { Compare } from './components/ui/Compare.jsx';
 import { Timeline } from './components/ui/Timeline.jsx';
 import { Calendar } from './components/ui/Calendar.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
@@ -66,6 +67,14 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Cinematic Experience Scene State:
+  // 'macro' (Scene 1) | 'transition' (Scene 2) | 'orbit' (Scene 3) | 'compare' (Scene 4)
+  const [sceneState, setSceneState] = useState(() => {
+    return window.location.hash.includes('nointro') ? 'orbit' : 'macro';
+  });
+
+  const universeRef = useRef(null);
+
   // Selected site & custom coordinates
   const [selectedSiteId, setSelectedSiteId] = useState('shackleton');
   const [customSite, setCustomSite] = useState(null);
@@ -78,26 +87,26 @@ export function App() {
   const maxHours = missionDays * 24;
   const objectHeightM = 3.0;
 
-  // View modes: 'orbit' | 'astronaut' | 'earth'
+  // View modes: 'orbit' (3D celestial space) | 'surface' (local high-res terrain with lander)
   const [viewMode, setViewMode] = useState('orbit');
 
+  // Audio mute state
+  const [audioMuted, setAudioMutedState] = useState(false);
+
   // Modals & Overlays
-  const [showIntro, setShowIntro] = useState(() => !window.location.hash.includes('nointro'));
-  const [showCompareModal, setShowCompareModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showTelemetrySidebars, setShowTelemetrySidebars] = useState(true);
 
   // Time controller for 14-day mission scrub
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 12 });
 
-  // Secondary scenario for Side-by-Side Trade Study comparison
+  // Scenario B for Trade Study Holodeck (Scene 4)
   const [scenarioB, setScenarioB] = useState({
     siteId: 'malapert',
     launchDate: '2027-03-08T00:00:00Z',
     transitDays: 4,
     customSite: null
   });
-  const [compareMode, setCompareMode] = useState('sites');
 
   // Real-time lunar clock
   const [lunarClock, setLunarClock] = useState(() => getLunarTime());
@@ -131,28 +140,16 @@ export function App() {
   }, [data, selectedSiteId, customSite]);
 
   const handleSelectSite = (newSite) => {
+    playTargetLock();
     if (typeof newSite === 'object' && newSite !== null) {
       setCustomSite(newSite);
       setSelectedSiteId(newSite.id);
-    } else if (newSite === 'custom') {
-      const lat = prompt('Enter custom Latitude (-90° to +90°):', '-89.5');
-      const lon = prompt('Enter custom Longitude (-180° to +180°):', '45.0');
-      const latNum = parseFloat(lat);
-      const lonNum = parseFloat(lon);
-      if (!isNaN(latNum) && !isNaN(lonNum)) {
-        const custom = {
-          id: `custom-${latNum.toFixed(1)}-${lonNum.toFixed(1)}`,
-          name: `Custom (${latNum.toFixed(1)}°, ${lonNum.toFixed(1)}°)`,
-          lat: latNum,
-          lon: lonNum,
-          terrainType: latNum < -80 ? 'crater-rim' : 'plain'
-        };
-        setCustomSite(custom);
-        setSelectedSiteId(custom.id);
-      }
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
+      if (universeRef.current?.focusSite) {
+        universeRef.current.focusSite(newSite);
+      }
     }
   };
 
@@ -191,6 +188,38 @@ export function App() {
   const metHours = Math.floor(timeCtrl.tRel % 24);
   const metMinutes = Math.floor((timeCtrl.tRel % 1) * 60);
 
+  // Trigger Scene 2: Transition from Macro to Lunar Orbit
+  const handleStartMission = () => {
+    playTelemetryPing(2524, 0.15);
+    playThrustRumble(2.6);
+    setSceneState('transition');
+    if (universeRef.current?.startMissionTransition) {
+      universeRef.current.startMissionTransition();
+    }
+  };
+
+  // Reached Orbit callback from universe
+  const handleReachedOrbit = () => {
+    playTelemetryPing(1800, 0.1);
+    setSceneState('orbit');
+  };
+
+  // Reset to Macro View
+  const handleResetToMacro = () => {
+    playTelemetryPing(1200, 0.1);
+    setSceneState('macro');
+    if (universeRef.current?.resetToMacro) {
+      universeRef.current.resetToMacro();
+    }
+  };
+
+  const toggleAudio = () => {
+    const next = !audioMuted;
+    setAudioMutedState(next);
+    setMuted(next);
+    if (!next) playTelemetryPing(2100, 0.08);
+  };
+
   if (loading) {
     return (
       <div className="h-screen w-screen bg-[#050814] text-slate-200 flex flex-col items-center justify-center p-6 space-y-4 font-mono select-none">
@@ -215,600 +244,456 @@ export function App() {
 
   return (
     <div className="h-screen w-screen bg-[#050814] text-[#f0f6fc] overflow-hidden font-sans select-none relative">
-      {/* 1. CENTRAL DOMINANT 3D LUNAR ENVIRONMENT VIEWPORT */}
-      <div className="absolute inset-0 w-full h-full z-0">
-        <ScenePanel
-          siteId={site.id}
-          terrainType={site.terrainType || 'crater-rim'}
+      {/* 1. CINEMATIC 3D UNIVERSE / SURFACE VIEWPORT */}
+      {viewMode === 'surface' ? (
+        <div className="absolute inset-0 w-full h-full z-0">
+          <ScenePanel
+            siteId={site.id}
+            terrainType={site.terrainType}
+            sunEl={live.sunEl}
+            sunAz={live.sunAz}
+            earthEl={live.earthEl}
+            earthAz={live.earthAz}
+            viewMode="orbit"
+            quality="auto"
+            label={site.name}
+            landerHeight={objectHeightM}
+          />
+        </div>
+      ) : (
+        <CinematicSpaceUniverse
+          ref={universeRef}
+          mode={sceneState}
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onSelectSite={handleSelectSite}
+          onReachedOrbit={handleReachedOrbit}
           sunEl={live.sunEl}
           sunAz={live.sunAz}
           earthEl={live.earthEl}
           earthAz={live.earthAz}
-          viewMode={viewMode}
-          quality="high"
-          label={`${site.name} • NASA Artemis III`}
-          landerHeight={objectHeightM}
-          showHud={false}
-          showShadowRuler={true}
+          customCoords={customSite}
+          onPointCustomCoords={(coords) => {
+            const latStr = `${Math.abs(coords.lat).toFixed(1)}°${coords.lat < 0 ? 'S' : 'N'}`;
+            const lonStr = `${Math.abs(coords.lon).toFixed(1)}°${coords.lon >= 0 ? 'E' : 'W'}`;
+            handleSelectSite({
+              id: `custom-${coords.lat.toFixed(1)}-${coords.lon.toFixed(1)}`,
+              name: `Designated Site (${latStr}, ${lonStr})`,
+              lat: coords.lat,
+              lon: coords.lon,
+              terrainType: coords.lat < -80 ? 'crater-rim' : 'plain'
+            });
+          }}
         />
-      </div>
-
-      {/* 2. NASA ARTEMIS / JPL MISSION CONTROL HEADER */}
-      <header className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
-        {/* Brand & Landing Site Selector */}
-        <div className="flex items-center gap-3 bg-[#070e1c]/85 backdrop-blur-2xl border border-slate-800/80 rounded-2xl px-4 py-2 shadow-[0_8px_30px_rgba(0,0,0,0.85)] pointer-events-auto">
-          {/* NASA Vector Insignia */}
-          <div className="w-8 h-8 rounded-xl bg-[#0B3D91] flex items-center justify-center shadow-[0_0_15px_rgba(11,61,145,0.6)] shrink-0 font-display font-extrabold text-xs text-white">
-            NASA
-          </div>
-
-          <div>
-            <div className="font-display font-extrabold text-xs tracking-wider uppercase flex items-center gap-1.5">
-              <span>LUNAR</span>
-              <span className="text-cyan-400">NAVIGATOR</span>
-              <span className="text-[9px] font-mono font-normal text-slate-500 hidden sm:inline">// JPL HORIZONS</span>
-            </div>
-            <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>FDO TELEMETRY ACTIVE</span>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-slate-800 mx-1"></div>
-
-          {/* Quick Landing Site Dropdown */}
-          <select
-            value={customSite ? 'custom' : selectedSiteId}
-            onChange={(e) => handleSelectSite(e.target.value)}
-            className="bg-[#0b1324] border border-slate-700/80 rounded-xl px-3 py-1.5 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:border-cyan-400 transition"
-          >
-            {customSite && (
-              <option value="custom">{site.name}</option>
-            )}
-            <optgroup label="Candidate Artemis Sites">
-              {sites.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S, {s.lon.toFixed(1)}° E)
-                </option>
-              ))}
-            </optgroup>
-            <option value="custom">Designate Custom Coordinates...</option>
-          </select>
-        </div>
-
-        {/* Center: Camera View Segmented Control */}
-        <div className="hidden md:flex items-center bg-[#070e1c]/85 backdrop-blur-2xl border border-slate-800/80 rounded-2xl p-1 shadow-[0_8px_30px_rgba(0,0,0,0.85)] pointer-events-auto font-mono text-[11px]">
-          <button
-            onClick={() => setViewMode('orbit')}
-            className={`px-3 py-1 rounded-xl transition cursor-pointer ${
-              viewMode === 'orbit' ? 'bg-[#0B3D91] text-cyan-200 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Orbit Nadir
-          </button>
-          <button
-            onClick={() => setViewMode('astronaut')}
-            className={`px-3 py-1 rounded-xl transition cursor-pointer ${
-              viewMode === 'astronaut' ? 'bg-[#0B3D91] text-cyan-200 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Surface Astronaut EVA
-          </button>
-          <button
-            onClick={() => setViewMode('earth')}
-            className={`px-3 py-1 rounded-xl transition cursor-pointer ${
-              viewMode === 'earth' ? 'bg-[#0B3D91] text-cyan-200 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Earth Line-of-Sight
-          </button>
-        </div>
-
-        {/* Right: Mission Actions */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {/* Telemetry Sidebars Toggle */}
-          <button
-            onClick={() => setShowTelemetrySidebars(prev => !prev)}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl font-mono text-xs font-bold transition shadow-lg cursor-pointer border ${
-              showTelemetrySidebars
-                ? 'bg-cyan-500/20 border-cyan-400/40 text-cyan-300'
-                : 'bg-[#070e1c]/85 border-slate-800 text-slate-300 hover:bg-[#0c162d]'
-            }`}
-            title="Toggle Telemetry Sidebar Overlay"
-          >
-            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <line x1="9" y1="3" x2="9" y2="21" />
-            </svg>
-            <span className="hidden sm:inline">Telemetry</span>
-          </button>
-
-          {/* Trade Study Compare Button */}
-          <button
-            onClick={() => setShowCompareModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#070e1c]/85 hover:bg-[#0c162d] backdrop-blur-2xl border border-slate-800 text-slate-200 text-xs font-mono font-semibold transition shadow-lg cursor-pointer"
-          >
-            <svg className="w-3.5 h-3.5 stroke-cyan-400" viewBox="0 0 24 24" fill="none" strokeWidth="2">
-              <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
-            </svg>
-            <span className="hidden sm:inline">Trade Study</span>
-          </button>
-
-          {/* Orbit Celestial View Button */}
-          <button
-            onClick={() => setShowIntro(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0B3D91] hover:bg-[#0e49ad] text-white text-xs font-mono font-semibold transition shadow-[0_0_15px_rgba(11,61,145,0.4)] cursor-pointer border border-cyan-400/30"
-          >
-            <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
-              <path d="M2 12h20" />
-            </svg>
-            <span>Orbit View</span>
-          </button>
-        </div>
-      </header>
-
-      {/* 3. DOCKED TELEMETRY SIDEBARS (NASA MISSION CONTROL PANELS) */}
-      {showTelemetrySidebars && (
-        <>
-          {/* LEFT TELEMETRY SIDEBAR: SOLAR ILLUMINATION & POWER */}
-          <aside className="absolute top-18 left-4 z-20 w-80 space-y-3 pointer-events-auto animate-in slide-in-from-left duration-300">
-            {/* CARD 1: SOLAR VECTOR & HORIZON ELEVATION */}
-            <div className="bg-[#070e1c]/90 backdrop-blur-2xl border border-slate-800/80 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-[10px] tracking-wider text-amber-400 uppercase font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  Solar Illumination Vector
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">
-                  {live.sunEl > 0 ? 'SUNLIT' : 'OCCULTED'}
-                </span>
-              </div>
-
-              {/* Circular Elevation Gauge */}
-              <div className="py-1">
-                <CircularElevationGauge
-                  angle={live.sunEl}
-                  color={live.sunEl > 2 ? '#ffd25a' : live.sunEl > 0 ? '#f59e0b' : '#64748b'}
-                  label="Solar Horizon Angle"
-                />
-              </div>
-
-              {/* Monospace Telemetry Metrics */}
-              <div className="space-y-1.5 text-[11px] pt-1 border-t border-slate-800/80">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Azimuth Heading:</span>
-                  <span className="text-slate-200 font-semibold">{live.sunAz.toFixed(1)}°</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Photovoltaic Yield:</span>
-                  <span className="text-amber-300 font-bold">{powerEfficiencyPct}% Max Output</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Time to Sunset:</span>
-                  <span className="text-amber-300 font-bold">
-                    {timeToSunset !== null ? `${timeToSunset}h remaining` : 'Quasi-Eternal Light'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Lander Mast Shadow:</span>
-                  <span className="text-slate-200">{Number.isFinite(shadowM) ? `${shadowM.toFixed(1)}m` : 'Horizon Blocked'}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* CARD 2: POWER BUDGET & THERMAL REGIME */}
-            <div className="bg-[#070e1c]/90 backdrop-blur-2xl border border-slate-800/80 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] font-mono text-xs space-y-2.5">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-[10px] tracking-wider text-slate-300 uppercase font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-                  14-Day Power Regime
-                </span>
-                <span className="text-[10px] font-bold text-cyan-300">
-                  {(stats.sunlitFraction * 100).toFixed(1)}% SUNLIT
-                </span>
-              </div>
-
-              {/* Power Yield Visual Bar */}
-              <div className="space-y-1">
-                <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-amber-500 to-amber-300 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(100, Math.max(0, stats.sunlitFraction * 100))}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-[10px] text-slate-400">
-                  <span>Sunlit: <strong>{stats.sunlitHours}h</strong></span>
-                  <span>Mission Total: <strong>{maxHours}h</strong></span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5 text-[11px] pt-1 border-t border-slate-800/80">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Peak Thermal Blackout:</span>
-                  <span className={`font-bold ${stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {stats.longestDarkHours}h duration
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Battery Capacity Need:</span>
-                  <span className="text-slate-300 text-[10px]">
-                    {stats.longestDarkHours === 0 ? 'Minimal (Continuous)' : `${stats.longestDarkHours}h pack required`}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          {/* RIGHT TELEMETRY SIDEBAR: DIRECT-TO-EARTH COMMS & FLIGHT VERDICT */}
-          <aside className="absolute top-18 right-4 z-20 w-80 space-y-3 pointer-events-auto animate-in slide-in-from-right duration-300">
-            {/* CARD 3: MISSION FLIGHT DYNAMICS STATUS */}
-            <div className="bg-[#070e1c]/90 backdrop-blur-2xl border border-slate-800/80 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] font-mono text-xs space-y-2.5">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-[10px] tracking-wider text-slate-400 uppercase font-bold">
-                  Flight Dynamics Status
-                </span>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-md border ${
-                  verdict.status === 'VIABLE' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
-                  verdict.status === 'MARGINAL' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                  'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                }`}>
-                  {verdict.badge}
-                </span>
-              </div>
-
-              <div className="text-[11px] text-slate-200 font-sans leading-relaxed">
-                {verdict.reason}
-              </div>
-
-              <div className="text-[10px] text-slate-400 pt-1.5 border-t border-slate-800 flex justify-between">
-                <span>Target: <strong className="text-slate-200">{site.name}</strong></span>
-                <span>{site.lat.toFixed(1)}°S, {site.lon.toFixed(1)}°E</span>
-              </div>
-            </div>
-
-            {/* CARD 4: DIRECT-TO-EARTH COMMS (DEEP SPACE NETWORK) */}
-            <div className="bg-[#070e1c]/90 backdrop-blur-2xl border border-slate-800/80 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="text-[10px] tracking-wider text-cyan-400 uppercase font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
-                  Direct-to-Earth (DSN)
-                </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                  live.earthEl > 0 ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30' : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                }`}>
-                  {live.earthEl > 0 ? 'DSN CARRIER LOCKED' : 'OCCULTED'}
-                </span>
-              </div>
-
-              {/* Circular Elevation Gauge for Earth */}
-              <div className="py-1">
-                <CircularElevationGauge
-                  angle={live.earthEl}
-                  color={live.earthEl > 0 ? '#38bdf8' : '#f43f5e'}
-                  label="Earth Horizon Elevation"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-[11px] pt-1 border-t border-slate-800/80">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">14-Day Visibility Window:</span>
-                  <span className="text-cyan-300 font-bold">{(stats.earthVisibleFraction * 100).toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Time to Earthset:</span>
-                  <span className="text-cyan-300 font-bold">
-                    {timeToEarthset !== null ? `${timeToEarthset}h remaining` : 'Continuous Link'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Max Communication Gap:</span>
-                  <span className="text-slate-200">{stats.longestEarthGapHours} hours</span>
-                </div>
-              </div>
-            </div>
-          </aside>
-        </>
       )}
 
-      {/* 4. TEMPORAL SCRUBBER (NLE VIDEO EDITING / MISSION CONTROL TIMELINE DOCKED AT BOTTOM) */}
-      <footer className="absolute bottom-3 left-4 right-4 z-30 pointer-events-auto">
-        <div className="max-w-5xl mx-auto bg-[#070e1c]/90 backdrop-blur-2xl border border-slate-800/90 rounded-2xl p-3 sm:p-4 shadow-[0_12px_45px_rgba(0,0,0,0.9)] space-y-2.5 font-mono text-xs">
-          
-          {/* Top Bar: Transport controls, MET Readout, and Speed Multipliers */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800/70 pb-2.5">
-            {/* Play/Pause & T+0 Reset */}
-            <div className="flex items-center gap-2">
+      {/* ========================================================================= */}
+      {/* SCENE 1: THE SOLAR SYSTEM MACRO VIEW (MAIN MENU)                          */}
+      {/* ========================================================================= */}
+      {sceneState === 'macro' && (
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-radial from-transparent via-black/25 to-[#050814]/85 pointer-events-none transition-opacity duration-500">
+          <div className="max-w-xl w-full bg-[#070e1c]/80 backdrop-blur-3xl border border-slate-800/80 rounded-3xl p-8 sm:p-10 space-y-6 shadow-[0_20px_80px_rgba(0,0,0,0.9)] pointer-events-auto text-center animate-in fade-in zoom-in-95 duration-500">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0B3D91]/30 border border-cyan-400/40 text-[10px] font-mono tracking-widest text-cyan-300 uppercase font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+              NASA ARTEMIS // POLAR FLIGHT DYNAMICS
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight uppercase leading-none">
+              LUNAR NAVIGATOR: <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-blue-500 drop-shadow-[0_0_30px_rgba(56,189,248,0.5)]">
+                ARTEMIS POLAR OPS
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed max-w-md mx-auto">
+              Simulate solar illumination, grazing crater shadows, and direct-to-Earth Deep Space Network communication corridors at candidate lunar landing sites.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
-                onClick={timeCtrl.toggle}
-                className={`px-3.5 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
-                  timeCtrl.playing ? 'bg-[#d29922] text-black shadow-md' : 'bg-cyan-400 text-black hover:bg-cyan-300'
-                }`}
+                onClick={handleStartMission}
+                className="w-full sm:flex-1 py-4 px-8 rounded-2xl bg-gradient-to-r from-[#0B3D91] to-cyan-500 hover:from-blue-700 hover:to-cyan-400 text-white font-bold text-xs tracking-widest uppercase font-mono transition-all transform hover:scale-[1.03] shadow-[0_0_35px_rgba(0,240,255,0.45)] cursor-pointer flex items-center justify-center gap-3 border border-cyan-300/40"
               >
-                {timeCtrl.playing ? (
-                  <>
-                    <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                    <span>Pause</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                    <span>Run MET</span>
-                  </>
-                )}
+                <span>INITIALIZE APPROACH</span>
+                <span className="text-sm">&rarr;</span>
               </button>
 
               <button
-                onClick={() => timeCtrl.setTRel(0)}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs transition cursor-pointer border border-slate-700/50"
-                title="Reset to Touchdown T+0h"
+                onClick={toggleAudio}
+                className="px-4 py-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 text-xs font-mono transition cursor-pointer border border-slate-800 flex items-center gap-2"
+                title={audioMuted ? 'Unmute Audio' : 'Mute Audio'}
               >
-                ↺ T+0
+                <span>{audioMuted ? 'Audio: OFF' : 'Audio: ON'}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-              {/* Speed Multipliers */}
-              <div className="flex items-center gap-1 bg-[#0b1324] rounded-xl p-0.5 border border-slate-800">
-                {SPEED_OPTIONS.map(spd => (
-                  <button
-                    key={spd}
-                    onClick={() => timeCtrl.setSpeed(spd)}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] cursor-pointer transition ${
-                      timeCtrl.speed === spd ? 'bg-[#0B3D91] text-cyan-200 font-bold shadow-xs' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {spd}h/s
-                  </button>
-                ))}
+      {/* ========================================================================= */}
+      {/* SCENE 2: THE TRANSITION (CAMERA LERPS RAPIDLY PAST EARTH INTO MOON ORBIT) */}
+      {/* ========================================================================= */}
+      {sceneState === 'transition' && (
+        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
+          <div className="bg-black/40 backdrop-blur-md px-6 py-3 rounded-2xl border border-cyan-400/20 text-xs font-mono text-cyan-300 tracking-widest uppercase flex items-center gap-3 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+            TRANS-LUNAR INJECTION // APPROACH VECTOR LOCKED
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* SCENE 3: LUNAR ORBIT & MISSION CONTROL HUD (THE CORE LOOP)                */}
+      {/* ========================================================================= */}
+      {(sceneState === 'orbit' || sceneState === 'compare') && (
+        <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-5">
+          {/* 3.1 TOP BAR: NASA ARTEMIS POLAR OPS HEADER */}
+          <header className="flex items-center justify-between pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#0B3D91] flex items-center justify-center text-white font-mono font-bold text-xs shadow-md border border-cyan-400/30">
+                NASA
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-display font-bold text-white tracking-wider">ARTEMIS POLAR OPS</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                    JPL HORIZONS
+                  </span>
+                </div>
+                <div className="text-[10px] font-mono text-slate-400">
+                  Target: <strong className="text-cyan-300">{site.name}</strong> ({site.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`} S)
+                </div>
               </div>
             </div>
 
-            {/* Mission Elapsed Time Readout */}
-            <div className="flex items-center gap-4 text-xs">
-              <div className="bg-[#0b1324] px-3 py-1 rounded-xl border border-slate-800 flex items-center gap-2">
-                <span className="text-[10px] text-slate-500 uppercase">MISSION ELAPSED:</span>
-                <span className="text-cyan-400 font-bold tracking-wider">
-                  MET +{String(metDays).padStart(2, '0')}d {String(metHours).padStart(2, '0')}h {String(metMinutes).padStart(2, '0')}m
-                </span>
+            {/* Quick Actions & Scene Toggles */}
+            <div className="flex items-center gap-2.5">
+              {/* Compare Alternate Scenarios (Triggers Scene 4) */}
+              <button
+                onClick={() => {
+                  playTelemetryPing(1900, 0.08);
+                  setSceneState('compare');
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-[#0B3D91] hover:bg-blue-700 text-white text-xs font-mono transition cursor-pointer border border-cyan-400/40 shadow-[0_0_15px_rgba(11,61,145,0.5)] flex items-center gap-1.5"
+              >
+                <span>COMPARE ALTERNATE SCENARIOS</span>
+              </button>
+
+              {/* View Mode Toggle (Orbit Space vs Surface Mesh) */}
+              <div className="hidden sm:flex items-center bg-black/40 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+                <button
+                  onClick={() => {
+                    playTelemetryPing(1400, 0.06);
+                    setViewMode('orbit');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    viewMode === 'orbit' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  3D Orbit
+                </button>
+                <button
+                  onClick={() => {
+                    playTelemetryPing(1400, 0.06);
+                    setViewMode('surface');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                    viewMode === 'surface' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Surface EVA
+                </button>
               </div>
-              <div className="hidden md:block text-[11px] text-slate-400">
-                Touchdown: <strong className="text-slate-200">{landing.toISOString().slice(0, 10)}</strong>
+
+              {/* Audio Toggle */}
+              <button
+                onClick={toggleAudio}
+                className="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 flex items-center justify-center text-xs font-mono transition cursor-pointer"
+                title={audioMuted ? 'Unmute' : 'Mute'}
+              >
+                {audioMuted ? '🔇' : '🔊'}
+              </button>
+
+              {/* Reset to Macro View */}
+              <button
+                onClick={handleResetToMacro}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono transition cursor-pointer border border-slate-800"
+                title="Return to Solar System Macro View"
+              >
+                Macro View
+              </button>
+            </div>
+          </header>
+
+          {/* 3.2 FLOATING TELEMETRY SIDEBARS (LEFT & RIGHT) */}
+          <div className="flex-1 flex justify-between items-center py-4 pointer-events-none">
+            {/* === LEFT SIDEBAR: TARGETING SYSTEM & SOLAR TELEMETRY === */}
+            <div className="w-80 space-y-3.5 pointer-events-auto animate-in slide-in-from-left duration-400">
+              {/* Targeting System Card */}
+              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">
+                    TARGETING SYSTEM
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase block">Candidate Polar Sites:</label>
+                  <select
+                    value={customSite ? 'custom' : selectedSiteId}
+                    onChange={(e) => {
+                      if (e.target.value === 'custom') {
+                        // Keep custom
+                      } else {
+                        handleSelectSite(e.target.value);
+                      }
+                    }}
+                    className="w-full bg-black/60 border border-slate-700/80 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
+                  >
+                    {customSite && <option value="custom">{customSite.name}</option>}
+                    {sites.map(s => (
+                      <option key={s.id} value={s.id} className="bg-slate-900 text-white">
+                        {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Quick-select pills */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {sites.slice(0, 4).map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => handleSelectSite(s.id)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition cursor-pointer border ${
+                        selectedSiteId === s.id && !customSite
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold'
+                          : 'bg-black/40 border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {s.name.split(' ')[0]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Solar Illumination Telemetry Card */}
+              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase">
+                    SOLAR ILLUMINATION
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                    live.sunEl > 0 ? 'bg-amber-500/15 text-amber-300' : 'bg-rose-500/15 text-rose-300'
+                  }`}>
+                    {live.sunEl > 0 ? 'ACTIVE POWER' : 'SHADOW'}
+                  </span>
+                </div>
+
+                <CircularElevationGauge
+                  angle={live.sunEl}
+                  maxAngle={25}
+                  color={live.sunEl > 0 ? '#fbbf24' : '#f87171'}
+                  label="Sun Elevation"
+                />
+
+                <div className="space-y-1.5 pt-1 text-xs font-mono">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Power Generation:</span>
+                    <strong className="text-white">{powerEfficiencyPct}% Nominal</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Time to Next Sunset:</span>
+                    <strong className="text-amber-300">{timeToSunset !== null ? `${timeToSunset}h` : 'No Sunset (Continuous)'}</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Longest Night Duration:</span>
+                    <strong className={stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}>
+                      {stats.longestDarkHours} hours
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* === RIGHT SIDEBAR: DIRECT-TO-EARTH COMMS & FLIGHT VERDICT === */}
+            <div className="w-80 space-y-3.5 pointer-events-auto animate-in slide-in-from-right duration-400">
+              {/* Direct-To-Earth Comms Card */}
+              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">
+                    DIRECT-TO-EARTH COMMS
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                    live.earthEl > 0 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'
+                  }`}>
+                    {live.earthEl > 0 ? 'DSN LOCKED' : 'OCCULTED'}
+                  </span>
+                </div>
+
+                <CircularElevationGauge
+                  angle={live.earthEl}
+                  maxAngle={20}
+                  color={live.earthEl > 0 ? '#38bdf8' : '#f87171'}
+                  label="Earth Elevation"
+                />
+
+                <div className="space-y-1.5 pt-1 text-xs font-mono">
+                  <div className="flex justify-between text-slate-400">
+                    <span>DSN Ground Station:</span>
+                    <strong className="text-cyan-300">Goldstone / Madrid</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Time to Earthset:</span>
+                    <strong className="text-white">{timeToEarthset !== null ? `${timeToEarthset}h` : 'Continuous Line of Sight'}</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Max Comms Gap:</span>
+                    <strong className="text-white">{stats.longestEarthGapHours} hours</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Flight Viability Verdict Card */}
+              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-2.5">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
+                    MISSION VERDICT
+                  </span>
+                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                    verdict.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-300' :
+                    verdict.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-300' :
+                    'bg-rose-500/20 text-rose-300'
+                  }`}>
+                    {verdict.badge}
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                  {verdict.reason}
+                </p>
+
+                <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  <span>Surface Sunlight: <strong>{(stats.sunlitFraction * 100).toFixed(0)}%</strong></span>
+                  <span>Comms Availability: <strong>{(stats.earthVisibleFraction * 100).toFixed(0)}%</strong></span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Timeline Multi-Track Scrubber (NLE style) */}
-          <div className="space-y-1 relative">
-            {/* Day / Hour Ruler Ticks */}
-            <div className="flex justify-between text-[9px] text-slate-500 font-mono px-1">
-              <span>T+0d</span>
-              <span>D2</span>
-              <span>D4</span>
-              <span>D6</span>
-              <span>D8</span>
-              <span>D10</span>
-              <span>D12</span>
-              <span>D14 (T+336h)</span>
+          {/* 3.3 BOTTOM VIDEO-STYLE TEMPORAL SCRUBBER */}
+          <div className="pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] space-y-3 animate-in slide-in-from-bottom duration-400">
+            {/* Scrubber Header: Transport controls, MET time & Date Sliders */}
+            <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+              <div className="flex items-center gap-3">
+                {/* Play / Pause button */}
+                <button
+                  onClick={() => {
+                    playTelemetryPing(1400, 0.06);
+                    timeCtrl.toggle();
+                  }}
+                  className="w-8 h-8 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold flex items-center justify-center transition cursor-pointer shadow-[0_0_12px_rgba(56,189,248,0.5)]"
+                >
+                  {timeCtrl.playing ? '⏸' : '▶'}
+                </button>
+
+                {/* Speed buttons */}
+                <div className="flex items-center bg-black/40 rounded-xl p-0.5 border border-slate-800">
+                  {SPEED_OPTIONS.map(spd => (
+                    <button
+                      key={spd.value}
+                      onClick={() => timeCtrl.setSpeed(spd.value)}
+                      className={`px-2 py-1 rounded-lg text-[10px] transition cursor-pointer ${
+                        timeCtrl.speed === spd.value ? 'bg-[#0B3D91] text-white font-bold' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {spd.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Mission Elapsed Time */}
+                <div className="text-slate-300 text-xs">
+                  MET: <strong className="text-cyan-300 font-bold">D+{metDays} {metHours}h {metMinutes}m</strong>
+                </div>
+              </div>
+
+              {/* Earth Launch Date & Transit Controls */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 uppercase">Earth Launch:</span>
+                  <input
+                    type="date"
+                    value={launchDate.slice(0, 10)}
+                    onChange={(e) => setLaunchDate(`${e.target.value}T00:00:00Z`)}
+                    className="bg-black/60 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 uppercase">Transit:</span>
+                  <span className="text-xs text-cyan-300 font-bold">{transitDays}d</span>
+                  <input
+                    type="range"
+                    min={2}
+                    max={8}
+                    step={1}
+                    value={transitDays}
+                    onChange={(e) => setTransitDays(parseInt(e.target.value, 10))}
+                    className="w-16 h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-400"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Ribbon Track Container */}
-            <div className="relative h-6 bg-slate-950/80 rounded-lg border border-slate-800 overflow-hidden flex flex-col justify-center">
-              {/* Solar Track Ribbon (Golden when sunlit) */}
-              <div className="h-2 w-full flex">
-                {series.sunEl.map((el, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 h-full"
-                    style={{
-                      backgroundColor: el > 2 ? '#ffd25a' : el > 0 ? '#f59e0b' : '#0f172a'
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Earth RF Track Ribbon (Cyan when visible) */}
-              <div className="h-1.5 w-full flex mt-0.5">
-                {series.earthEl.map((el, idx) => (
-                  <div
-                    key={idx}
-                    className="flex-1 h-full"
-                    style={{
-                      backgroundColor: el > 0 ? '#00f0ff' : '#450a0a'
-                    }}
-                  />
-                ))}
-              </div>
-
-              {/* Interactive Scrub Range Input Overlay */}
+            {/* Scrubber Timeline Slider & Day Ticks */}
+            <div className="relative pt-2">
               <input
                 type="range"
                 min={0}
                 max={maxHours}
-                step={0.2}
+                step={0.1}
                 value={timeCtrl.tRel}
-                onChange={(e) => timeCtrl.setTRel(parseFloat(e.target.value))}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-10"
+                onChange={(e) => timeCtrl.seek(parseFloat(e.target.value))}
+                className="w-full h-2.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-cyan-400 relative z-10"
               />
 
-              {/* Playhead Needle Cursor */}
-              <div
-                className="absolute top-0 bottom-0 w-0.5 bg-red-400 pointer-events-none z-20 shadow-[0_0_8px_#f87171]"
-                style={{ left: `${(timeCtrl.tRel / maxHours) * 100}%` }}
-              >
-                <div className="w-2.5 h-2.5 bg-red-400 rounded-full -ml-1 -mt-0.5"></div>
+              {/* Day Tick Marks (Day 0 to Day 14) */}
+              <div className="flex justify-between text-[9px] font-mono text-slate-500 pt-1.5 px-1 select-none">
+                {Array.from({ length: 15 }, (_, i) => (
+                  <span key={i} className={i === metDays ? 'text-cyan-300 font-bold' : ''}>
+                    D{i}
+                  </span>
+                ))}
               </div>
-            </div>
-          </div>
-
-          {/* Bottom Strip: Earth Launch Date & Launch Slip Controls */}
-          <div className="flex flex-wrap items-center justify-between text-[10px] text-slate-400 pt-1">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <span>Earth Launch:</span>
-                <input
-                  type="date"
-                  min="2027-01-01"
-                  max="2028-01-10"
-                  value={launchDate.slice(0, 10)}
-                  onChange={(e) => setLaunchDate(`${e.target.value}T00:00:00Z`)}
-                  className="bg-[#0b1324] border border-slate-700 rounded-lg px-2 py-0.5 text-slate-200 text-[10px] cursor-pointer focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div className="flex items-center gap-1.5">
-                <span>Transit:</span>
-                <span className="text-cyan-400 font-bold">{transitDays} days</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span>Launch Slip (±7d sensitivity):</span>
-              <input
-                type="range"
-                min={-7}
-                max={7}
-                step={1}
-                value={slipDays}
-                onChange={(e) => setSlipDays(parseInt(e.target.value, 10))}
-                className="w-24 h-1 bg-slate-900 rounded appearance-none cursor-pointer accent-cyan-400"
-              />
-              <span className={`font-bold font-mono ${slipDays !== 0 ? 'text-amber-400' : 'text-slate-300'}`}>
-                {slipDays > 0 ? `+${slipDays}d slip` : `${slipDays}d slip`}
-              </span>
-            </div>
-          </div>
-        </div>
-      </footer>
-
-      {/* 5. MODAL: FULLSCREEN NASA MISSION CONTROL TRADE STUDY (COMPARE) */}
-      {showCompareModal && (
-        <div className="fixed inset-0 z-40 bg-[#050814]/90 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-300 flex flex-col">
-          <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#0B3D91] flex items-center justify-center text-white font-display font-bold text-xs shadow-md">
-                  NASA
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-white tracking-wide">
-                    Lunar Landing Site Trade Study // Side-by-Side Dual Analysis
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Comparative ephemeris, solar array generation curves, and direct-to-Earth RF visibility.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowCompareModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-mono transition cursor-pointer border border-slate-700/60"
-              >
-                Close Trade Study
-              </button>
-            </div>
-
-            <div className="flex-1">
-              <Compare
-                sites={sites}
-                ephem={ephem}
-                scenarioA={scenarioA}
-                setScenarioA={(newScen) => {
-                  if (newScen.siteId) setSelectedSiteId(newScen.siteId);
-                  if (newScen.launchDate) setLaunchDate(newScen.launchDate);
-                  if (newScen.transitDays) setTransitDays(newScen.transitDays);
-                  if (newScen.customSite !== undefined) setCustomSite(newScen.customSite);
-                }}
-                scenarioB={scenarioB}
-                setScenarioB={setScenarioB}
-                compareMode={compareMode}
-                setCompareMode={setCompareMode}
-                tRel={timeCtrl.tRel}
-                setTRel={timeCtrl.setTRel}
-                viewMode={viewMode}
-                setViewMode={setViewMode}
-                quality="high"
-                setQuality={() => {}}
-                missionDays={missionDays}
-                setMissionDays={() => {}}
-                objectHeightM={objectHeightM}
-                slipDays={slipDays}
-                setSlipDays={setSlipDays}
-              />
             </div>
           </div>
         </div>
       )}
 
-      {/* 6. MODAL: 14-DAY TIMELINE & CALENDAR */}
-      {showTimelineModal && (
-        <div className="fixed inset-0 z-40 bg-[#050814]/90 backdrop-blur-3xl p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-300 flex flex-col">
-          <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-400">
-                  <svg className="w-4 h-4 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 className="text-lg sm:text-xl font-display font-bold text-white">
-                    14-Day Celestial Horizon Curves & Launch Windows
-                  </h2>
-                  <p className="text-xs text-slate-400">
-                    Sun (golden) and Earth (cyan) elevation trajectories relative to {site.name}.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowTimelineModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-mono transition cursor-pointer border border-slate-700"
-              >
-                Close Timeline
-              </button>
-            </div>
-
-            <div className="bg-[#070e1c] border border-slate-800 rounded-2xl p-6">
-              <Timeline
-                series={series}
-                tRel={timeCtrl.tRel}
-                onSeek={timeCtrl.setTRel}
-                height={280}
-              />
-            </div>
-
-            <div className="bg-[#070e1c] border border-slate-800 rounded-2xl p-6">
-              <Calendar
-                sites={sites}
-                ephem={ephem}
-                missionDays={missionDays}
-                onSelectOpportunity={(opp) => {
-                  setSelectedSiteId(opp.site.id);
-                  setLaunchDate(`${opp.dateStr}T00:00:00Z`);
-                  setShowTimelineModal(false);
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 7. OVERLAY: 3D SOLAR SYSTEM & ORBITAL LAUNCH SIMULATION */}
-      {showIntro && (
-        <SpaceIntroScene
+      {/* ========================================================================= */}
+      {/* SCENE 4: THE TRADE STUDY HOLODECK (COMPARISON MODE)                       */}
+      {/* ========================================================================= */}
+      {sceneState === 'compare' && (
+        <TradeStudyHolodeck
           sites={sites}
-          selectedSiteId={selectedSiteId}
-          onSelectSite={handleSelectSite}
-          launchDate={launchDate}
-          onLaunchDateChange={setLaunchDate}
-          transitDays={transitDays}
-          onTransitDaysChange={setTransitDays}
-          onSkipIntro={() => setShowIntro(false)}
-          onReachedMoon={() => {
-            setShowIntro(false);
-            setShowTelemetrySidebars(true);
+          ephem={ephem}
+          scenarioA={scenarioA}
+          setScenarioA={(newA) => {
+            if (typeof newA === 'function') {
+              // Not supported
+            } else {
+              if (newA.siteId) setSelectedSiteId(newA.siteId);
+              if (newA.launchDate) setLaunchDate(newA.launchDate);
+              if (newA.transitDays) setTransitDays(newA.transitDays);
+            }
           }}
+          scenarioB={scenarioB}
+          setScenarioB={setScenarioB}
+          missionDays={missionDays}
+          onClose={() => setSceneState('orbit')}
+          onSelectSiteInUniverse={handleSelectSite}
         />
       )}
     </div>
