@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
+import { buildLander } from './lander.js'
+import { createCameraController } from './cameraModes.js'
 
 /**
  * Scene3D component
@@ -37,14 +39,13 @@ export default function Scene3D({
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
 
-  // Resolve resolution tier
   const getResolution = (q) => {
     if (q === 'low') return 129
     if (q === 'high') return 385
-    return 257 // 'medium' or 'auto'
+    return 257
   }
 
-  // (a) Initialize Three.js scene, renderer, camera
+  // (a) Initialize Three.js scene, renderer, camera & controls
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -81,13 +82,11 @@ export default function Scene3D({
 
     // Scene & Camera
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000)
-    camera.position.set(70, 40, 90)
-    camera.lookAt(0, 0, 0)
+    const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2500)
+    camera.position.set(28, 16, 36)
 
-    // Directional light & Ambient light setup
+    // Directional light & target setup
     const sunLight = new THREE.DirectionalLight(0xffffff, 2.8)
-    sunLight.position.set(40, 30, -50)
     sunLight.castShadow = true
     sunLight.shadow.mapSize.width = quality === 'low' ? 1024 : 2048
     sunLight.shadow.mapSize.height = quality === 'low' ? 1024 : 2048
@@ -100,17 +99,14 @@ export default function Scene3D({
     sunLight.shadow.bias = -0.0005
     sunLight.shadow.normalBias = 0.3
     scene.add(sunLight)
+    scene.add(sunLight.target)
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
     scene.add(ambientLight)
 
-    // Temporary placeholder marker on pad until P-04 lander
-    const markerGeo = new THREE.BoxGeometry(2, 3, 2)
-    const markerMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.5 })
-    const markerCube = new THREE.Mesh(markerGeo, markerMat)
-    markerCube.castShadow = true
-    markerCube.receiveShadow = true
-    scene.add(markerCube)
+    // P-04 Lander Model
+    const lander = buildLander(landerHeight)
+    scene.add(lander.group)
 
     // Invalidate function for on-demand rendering
     const invalidate = () => {
@@ -122,6 +118,16 @@ export default function Scene3D({
         renderer.render(scene, camera)
       })
     }
+
+    // Camera controller (OrbitControls with terrain height constraint)
+    const cameraController = createCameraController({
+      camera,
+      domElement: canvas,
+      invalidate,
+      getPadY: () => ctxRef.current?.originPadHeight ?? 0,
+      getHeightAt: (x, z) => ctxRef.current?.heightAt(x, z) ?? 0,
+      quality,
+    })
 
     const handleResize = () => {
       if (isDisposed || !container) return
@@ -144,21 +150,23 @@ export default function Scene3D({
       scene,
       camera,
       sunLight,
-      markerCube,
+      lander,
+      cameraController,
       terrainData: null,
+      originPadHeight: 0,
       heightAt: () => 0,
       invalidate,
       dispose: () => {
         isDisposed = true
         if (animFrameId) cancelAnimationFrame(animFrameId)
         resizeObserver.disconnect()
+        cameraController.dispose()
 
         if (canvas.parentNode) {
           canvas.parentNode.removeChild(canvas)
         }
 
-        markerGeo.dispose()
-        markerMat.dispose()
+        lander.dispose()
 
         if (ctxRef.current?.terrainData) {
           ctxRef.current.terrainData.dispose()
@@ -179,7 +187,7 @@ export default function Scene3D({
     }
   }, [quality])
 
-  // (b) Lightweight effect for angle and prop changes
+  // (b) Lightweight effect for angle, light, and lander scale changes
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
@@ -198,8 +206,15 @@ export default function Scene3D({
 
     if (ctx.sunLight) {
       const dist = 500
-      ctx.sunLight.position.set(dirX * dist, Math.max(dirY * dist, 0.5), dirZ * dist)
+      const padY = ctx.originPadHeight || 0
+      ctx.sunLight.position.set(dirX * dist, padY + Math.max(dirY * dist, 0.5), dirZ * dist)
+      ctx.sunLight.target.position.set(0, padY, 0)
+      ctx.sunLight.target.updateMatrixWorld()
       ctx.sunLight.intensity = safeSunEl > -0.27 ? 2.8 : 0.0
+    }
+
+    if (ctx.lander) {
+      ctx.lander.setHeight(landerHeight)
     }
 
     ctx.invalidate()
@@ -221,14 +236,23 @@ export default function Scene3D({
     const terrain = buildTerrain({ siteId, terrainType, resolution })
     ctx.terrainData = terrain
     ctx.heightAt = terrain.heightAt
+    ctx.originPadHeight = terrain.originPadHeight
     ctx.scene.add(terrain.mesh)
 
-    // Update marker position on landing pad
-    if (ctx.markerCube) {
-      const padY = terrain.heightAt(0, 0)
-      ctx.markerCube.position.set(0, padY + 1.5, 0)
-      // Adjust camera target to look at pad center
-      ctx.camera.lookAt(0, padY + 2, 0)
+    // Position lander feet on pad height at (0, 0)
+    if (ctx.lander) {
+      ctx.lander.group.position.set(0, terrain.originPadHeight, 0)
+    }
+
+    // Update camera controls focus to lander
+    if (ctx.cameraController) {
+      ctx.cameraController.updateTarget(terrain.originPadHeight)
+    }
+
+    // Update sun light target
+    if (ctx.sunLight) {
+      ctx.sunLight.target.position.set(0, terrain.originPadHeight, 0)
+      ctx.sunLight.target.updateMatrixWorld()
     }
 
     ctx.invalidate()
@@ -261,7 +285,7 @@ export default function Scene3D({
           border: '1px solid #334155',
         }}
       >
-        {label || siteId} · {terrainType} · 400m patch
+        {label || siteId} · {terrainType} · H={landerHeight}m
       </div>
 
       <div

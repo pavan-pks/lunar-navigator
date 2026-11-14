@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 25 / 100**
+**Current score: 33 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** P-04: Lander model
+**Currently working on:** P-05: Rocks and scatter
 
 ## Core tasks
 
@@ -16,7 +16,8 @@
 | P-01 | Sandbox harness | 5 | Done | 100 | 5 | Sandbox harness with sliders, presets, simulation loop, dual-scene compare test & FPS counter |
 | P-02 | Scene skeleton (renderer, camera, resize, cleanup) | 8 | Done | 100 | 8 | WebGLRenderer, PerspectiveCamera, PCFShadowMap, ResizeObserver, on-demand invalidate(), StrictMode disposal |
 | P-03 | Terrain generator | 12 | Done | 100 | 12 | 400mx400m patch, noise.js + terrain.js, crater-rim/massif/plain, flat pad, vertex colors, bilinear heightAt |
-| P-04 | Lander model | 8 | Not started | 0 | 0 | |
+| P-04 | Lander model | 8 | Done | 100 | 8 | Procedural lunar lander in lander.js (cabin, gold foil stage, 4 legs, footpads, engine bell, solar panels, dish antenna) + OrbitControls |
+| P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
 | P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
 | P-06 | Sun light and shadows | 12 | Not started | 0 | 0 | |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |
