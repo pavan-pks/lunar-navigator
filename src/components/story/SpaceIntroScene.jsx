@@ -77,69 +77,110 @@ export function SpaceIntroScene({
     moonTex.colorSpace = THREE.SRGBColorSpace;
 
     // 4. Accurate Sun Sphere with NASA SDO Texture
-    const sunPos = new THREE.Vector3(-360, 45, -220);
-    const sunGeo = new THREE.SphereGeometry(32, 48, 48);
+    const sunPos = new THREE.Vector3(-320, 60, -180);
+    const sunGeo = new THREE.SphereGeometry(36, 48, 48);
     const sunMat = new THREE.MeshBasicMaterial({
       map: sunTex,
-      color: 0xfff5d6
+      color: 0xffffff
     });
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     sunMesh.position.copy(sunPos);
     scene.add(sunMesh);
 
-    // Solar point light & ambient illumination
-    const sunLight = new THREE.PointLight(0xffffff, 3.0, 3000, 0.4);
+    // Glowing Sun Corona Halo
+    const coronaGeo = new THREE.SphereGeometry(44, 32, 32);
+    const coronaMat = new THREE.MeshBasicMaterial({
+      color: 0xffd25a,
+      transparent: true,
+      opacity: 0.28,
+      side: THREE.BackSide
+    });
+    const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
+    coronaMesh.position.copy(sunPos);
+    scene.add(coronaMesh);
+
+    // Celestial Lighting: Bright Sun Light + Front Key Light + Ambient Hemisphere
+    const sunLight = new THREE.PointLight(0xfffaed, 4.5, 4000, 0.3);
     sunLight.position.copy(sunPos);
     scene.add(sunLight);
 
-    const ambientLight = new THREE.AmbientLight(0x222838, 0.65);
+    // Front-Quarter Key Light ensuring Earth & Moon visible faces are brightly illuminated
+    const frontKeyLight = new THREE.DirectionalLight(0xfff5e6, 2.8);
+    frontKeyLight.position.set(120, 140, 240);
+    scene.add(frontKeyLight);
+
+    // Luminous Space Fill Light so shadow sides are clear and not pitch dark
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334466, 1.4);
+    scene.add(hemiLight);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
 
-    // 5. Accurate Earth Sphere with NASA Blue Marble Texture
+    // 5. Bright & Vibrant Earth with NASA Blue Marble
     const earthGroup = new THREE.Group();
     earthGroup.position.set(-30, 0, 40);
     scene.add(earthGroup);
 
-    const earthGeo = new THREE.SphereGeometry(16, 64, 64);
+    const earthGeo = new THREE.SphereGeometry(17, 64, 64);
     const earthMat = new THREE.MeshStandardMaterial({
       map: earthTex,
-      roughness: 0.75,
-      metalness: 0.08
+      roughness: 0.45,
+      metalness: 0.1,
+      emissive: 0x0a1c2e,
+      emissiveIntensity: 0.35
     });
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
     earthMesh.rotation.z = (23.44 * Math.PI) / 180; // Earth axial tilt
     earthGroup.add(earthMesh);
 
-    // Atmospheric limb
-    const atmoGeo = new THREE.SphereGeometry(17.1, 48, 48);
+    // Brilliant Cyan Atmospheric Halo
+    const atmoGeo = new THREE.SphereGeometry(18.2, 48, 48);
     const atmoMat = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.32,
       side: THREE.BackSide
     });
     earthGroup.add(new THREE.Mesh(atmoGeo, atmoMat));
 
-    // 6. Accurate Moon Sphere with NASA SVS LROC CGI Moon Kit Texture
+    // Outer Atmospheric Soft Glow
+    const outerAtmoGeo = new THREE.SphereGeometry(19.2, 32, 32);
+    const outerAtmoMat = new THREE.MeshBasicMaterial({
+      color: 0x60a5fa,
+      transparent: true,
+      opacity: 0.15,
+      side: THREE.BackSide
+    });
+    earthGroup.add(new THREE.Mesh(outerAtmoGeo, outerAtmoMat));
+
+    // 6. Bright & Vibrant Moon Sphere with NASA LROC Texture
     const moonGroup = new THREE.Group();
     moonGroup.position.set(48, 8, 15);
     scene.add(moonGroup);
 
-    const moonGeo = new THREE.SphereGeometry(10, 64, 64);
+    const moonGeo = new THREE.SphereGeometry(10.5, 64, 64);
     const moonMat = new THREE.MeshStandardMaterial({
       map: moonTex,
-      roughness: 0.98,
-      metalness: 0.02
+      roughness: 0.65,
+      metalness: 0.05,
+      emissive: 0x1f242d,
+      emissiveIntensity: 0.35
     });
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonMesh.rotation.y = Math.PI * 0.35;
     moonGroup.add(moonMesh);
 
+    // Moon dedicated highlight to ensure crater details pop
+    const moonSpot = new THREE.DirectionalLight(0xffffff, 1.8);
+    moonSpot.position.set(80, 50, 90);
+    moonSpot.target = moonGroup;
+    scene.add(moonSpot);
+
     // South pole targeting reticle
-    const markerGeo = new THREE.RingGeometry(0.7, 1.1, 32);
+    const markerGeo = new THREE.RingGeometry(0.8, 1.25, 32);
     const markerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
     const poleMarker = new THREE.Mesh(markerGeo, markerMat);
-    poleMarker.position.set(0, -10.05, 0);
+    poleMarker.position.set(0, -10.55, 0);
     poleMarker.rotation.x = Math.PI / 2;
     moonGroup.add(poleMarker);
 
@@ -263,35 +304,35 @@ export function SpaceIntroScene({
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Pre-Zoom Start Overlay */}
+      {/* Pre-Zoom Minimal Glassmorphic Hero Overlay */}
       {!isZooming && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none">
-          <div className="max-w-2xl w-full bg-[#070b14]/85 backdrop-blur-xl border border-sky-500/25 rounded-3xl p-6 sm:p-8 space-y-6 shadow-[0_0_50px_rgba(0,0,0,0.9)] pointer-events-auto">
-            {/* Header Badge */}
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-radial from-transparent via-black/30 to-black/80 pointer-events-none">
+          <div className="max-w-xl w-full bg-black/40 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 space-y-5 shadow-[0_8px_40px_rgba(0,0,0,0.7)] pointer-events-auto animate-in fade-in zoom-in-95 duration-500">
+            {/* Mission Badge */}
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 border border-sky-500/30">
+              <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/30">
                 NASA Space Apps Challenge 2026
               </span>
               <span className="text-[10px] font-mono text-slate-400">
-                NASA/JPL Ephemeris Telemetry
+                JPL Horizons Telemetry
               </span>
             </div>
 
-            {/* Title & Mission Statement */}
-            <div className="space-y-2">
-              <h1 className="text-3xl sm:text-5xl font-display font-bold text-white tracking-tight">
-                LUNAR <span className="text-sky-400">NAVIGATOR</span>
+            {/* Title */}
+            <div>
+              <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight">
+                LUNAR <span className="text-sky-400 drop-shadow-[0_0_20px_rgba(56,189,248,0.6)]">NAVIGATOR</span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-light">
-                South pole missions face extreme lighting and direct-to-Earth communication constraints.
-                Simulate solar elevation, horizon shadows, and radio line-of-sight across candidate landing sites.
+              <p className="text-xs sm:text-sm text-slate-300 mt-2 font-light leading-relaxed">
+                South pole illumination & direct-to-Earth communication simulator.
+                Compare candidate landing sites, grazing horizon shadows, and power windows.
               </p>
             </div>
 
-            {/* Target Site Picker */}
-            <div className="space-y-2.5">
-              <label className="text-[11px] font-mono uppercase text-slate-400 font-semibold block">
-                Target Landing Site:
+            {/* Target Site Selector Chips */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider block">
+                Select Landing Target:
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {sites.slice(0, 6).map((s) => {
@@ -300,39 +341,35 @@ export function SpaceIntroScene({
                     <button
                       key={s.id}
                       onClick={() => onSelectSite && onSelectSite(s.id)}
-                      className={`text-left p-2.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+                      className={`text-left px-3 py-2 rounded-xl border text-xs font-mono transition-all duration-200 cursor-pointer ${
                         isSelected
-                          ? 'bg-sky-500/20 border-sky-400 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.3)] font-semibold'
-                          : 'bg-black/40 border-white/10 text-slate-300 hover:border-white/30 hover:bg-white/5'
+                          ? 'bg-sky-500/25 border-sky-400 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.35)] font-bold scale-[1.02]'
+                          : 'bg-black/40 border-white/10 text-slate-400 hover:border-white/30 hover:text-slate-200 hover:bg-white/5'
                       }`}
                     >
-                      <div className="truncate font-medium">{s.name.replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', '')}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{s.lat.toFixed(1)}° S</div>
+                      <div className="truncate font-semibold text-[11px]">{s.name.replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', '')}</div>
+                      <div className="text-[10px] opacity-70 mt-0.5">{s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S</div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* CTA Buttons */}
+            {/* Big Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
               <button
                 onClick={onStartZoom}
-                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-500 to-sky-400 hover:from-sky-400 hover:to-sky-300 text-black font-semibold text-sm transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2"
+                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-sm tracking-wide transition-all transform hover:scale-[1.03] active:scale-[0.98] shadow-[0_0_30px_rgba(56,189,248,0.55)] cursor-pointer flex items-center justify-center gap-2.5"
               >
                 <span>🚀</span>
                 <span>START MISSION: ZOOM TO MOON</span>
               </button>
               <button
                 onClick={onSkipIntro}
-                className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-transparent hover:bg-white/10 text-slate-300 border border-white/20 hover:border-white/40 text-xs font-mono transition cursor-pointer"
+                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15 hover:border-white/30 text-xs font-mono transition-all cursor-pointer"
               >
-                Direct to Navigator
+                Direct to Surface
               </button>
-            </div>
-
-            <div className="text-[10px] text-slate-500 font-mono text-center">
-              Targeting: <strong className="text-slate-300">{activeSite.name}</strong> ({activeSite.lat.toFixed(1)}° S, {activeSite.lon.toFixed(1)}° E)
             </div>
           </div>
         </div>

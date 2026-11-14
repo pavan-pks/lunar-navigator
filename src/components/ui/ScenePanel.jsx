@@ -19,10 +19,11 @@ export function ScenePanel({
   label = 'Lunar Site',
   landerHeight = 3.0,
   showHud = true,
-  showShadowRuler = true
+  showShadowRuler = true,
+  className = ''
 }) {
   return (
-    <div className="w-full h-80 sm:h-96 bg-[#02040a] rounded-2xl overflow-hidden border border-white/10 relative shadow-[0_8px_30px_rgba(0,0,0,0.8)] group">
+    <div className={`w-full h-full bg-[#000000] overflow-hidden relative group ${className}`}>
       {/* Subtle corner reticles for aerospace HUD feel */}
       <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-sky-400/40 pointer-events-none z-10"></div>
       <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-sky-400/40 pointer-events-none z-10"></div>
