@@ -2,10 +2,10 @@ import React from 'react';
 import { ScrambleValue } from './ScrambleValue.jsx';
 
 /**
- * The "Edge HUD" Telemetry Sidebars:
- * Placed strictly on the left and right margins of the viewport,
- * leaving the center 60% completely transparent for 3D orbit controls.
- * Features single-value result cards with scrambling decipher animations.
+ * Elegant Floating Astronomical Telemetry (De-Boxed UI):
+ * Free of heavy card boxes, glowing neons, and bulky containers.
+ * Uses spacious geometric sans-serif typography with monospace numerical readouts,
+ * whisper-thin dividers (border-white/5), and generous negative space.
  */
 export function EdgeHudSidebars({
   sites,
@@ -24,62 +24,52 @@ export function EdgeHudSidebars({
   const earthElStr = live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`;
   const commsWindowStr = `${(stats.earthVisibleFraction * 100).toFixed(0)}%`;
   const peakDarkStr = `${stats.longestDarkHours}h`;
-  const timeToEarthsetStr = timeToEarthset !== null ? `${timeToEarthset}h` : 'No Earthset';
-  const timeToSunsetStr = timeToSunset !== null ? `${timeToSunset}h` : 'Continuous';
+  const timeToEarthsetStr = timeToEarthset !== null ? `${timeToEarthset}h` : 'Constant';
+  const timeToSunsetStr = timeToSunset !== null ? `${timeToSunset}h` : 'Constant';
   const solarGenStr = `${powerEfficiencyPct}%`;
 
   return (
     <>
-      {/* === LEFT TELEMETRY SIDEBAR === */}
+      {/* === LEFT FLOATING TELEMETRY COLUMN === */}
       <aside
-        className={`absolute left-4 top-20 bottom-28 w-72 sm:w-80 flex flex-col justify-between pointer-events-auto transition-all duration-500 z-20 ${
-          isCollapsed ? '-translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'
+        className={`absolute left-8 sm:left-12 lg:left-14 top-24 bottom-28 w-64 sm:w-72 flex flex-col justify-between pointer-events-auto transition-all duration-700 ease-out z-20 ${
+          isCollapsed ? '-translate-x-12 opacity-0' : 'translate-x-0 opacity-100'
         }`}
       >
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-4 shadow-[0_0_25px_rgba(56,189,248,0.12)] space-y-4 flex-1 flex flex-col justify-between">
+        <div className="flex-1 flex flex-col justify-between space-y-8 drop-shadow-sm">
+          {/* Target Location Selector */}
           <div>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2.5 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f0ff] animate-ping"></span>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-cyan-300">
-                  PRIMARY TARGETING
-                </span>
-              </div>
-              <span className="text-[9px] font-mono text-slate-400">SYS 01</span>
-            </div>
-
-            {/* Site Selector Dropdown */}
-            <div className="space-y-1">
-              <label className="text-[9px] font-mono text-slate-400 uppercase tracking-wider block">
-                Designate Landing Crater:
-              </label>
+            <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block mb-2">
+              Landing Target
+            </span>
+            <div className="relative">
               <select
                 value={customSite ? 'custom' : selectedSiteId}
                 onChange={(e) => {
                   if (e.target.value !== 'custom') onSelectSite(e.target.value);
                 }}
-                className="w-full bg-black/60 border border-cyan-500/30 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
+                className="w-full bg-transparent border-b border-white/10 pb-1.5 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-pointer transition appearance-none"
               >
-                {customSite && <option value="custom">{customSite.name}</option>}
+                {customSite && <option value="custom" className="bg-[#050505] text-[#f5f5f5]">{customSite.name}</option>}
                 {sites.map(s => (
-                  <option key={s.id} value={s.id} className="bg-slate-900 text-white">
-                    {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S)
+                  <option key={s.id} value={s.id} className="bg-[#050505] text-[#f5f5f5]">
+                    {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`})
                   </option>
                 ))}
               </select>
+              <span className="absolute right-0 top-1 text-xs text-[#a3a3a3] pointer-events-none font-light">↓</span>
             </div>
 
-            {/* Quick-select buttons */}
-            <div className="flex flex-wrap gap-1.5 pt-2">
+            {/* Subtle Site Switcher Pills */}
+            <div className="flex flex-wrap gap-2 pt-3">
               {sites.slice(0, 4).map(s => (
                 <button
                   key={s.id}
                   onClick={() => onSelectSite(s.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition cursor-pointer border ${
+                  className={`text-[10px] font-sans tracking-wider transition cursor-pointer ${
                     selectedSiteId === s.id && !customSite
-                      ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 font-bold shadow-[0_0_8px_rgba(56,189,248,0.3)]'
-                      : 'bg-black/40 border-slate-800 text-slate-400 hover:text-white'
+                      ? 'text-[#f5f5f5] border-b border-white'
+                      : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
                   }`}
                 >
                   {s.name.split(' ')[0]}
@@ -88,52 +78,48 @@ export function EdgeHudSidebars({
             </div>
           </div>
 
-          {/* Single-Value Result Cards: Solar & Thermal */}
-          <div className="space-y-2.5">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-amber-400 font-bold border-b border-amber-500/20 pb-1">
-              SOLAR & POWER DYNAMICS
-            </div>
+          {/* Solar & Illumination Floating Metrics */}
+          <div className="space-y-5">
+            <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block border-b border-white/5 pb-1">
+              Solar Geometry
+            </span>
 
-            {/* Card 1: Sun Elevation */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">SUN ELEVATION</span>
-                <span className="text-[9px] font-mono text-slate-500">Above Horizon</span>
-              </div>
-              <div className="text-xl font-mono font-extrabold text-amber-300">
+            {/* Metric 1: Sun Elevation */}
+            <div>
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Sun Elevation
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={sunElStr} />
               </div>
             </div>
 
-            {/* Card 2: Time to Sunset */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">TIME TO SUNSET</span>
-                <span className="text-[9px] font-mono text-slate-500">Until Nightfall</span>
-              </div>
-              <div className="text-xl font-mono font-extrabold text-amber-300">
+            {/* Metric 2: Time to Sunset */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Time to Sunset
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={timeToSunsetStr} />
               </div>
             </div>
 
-            {/* Card 3: Peak Darkness */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">PEAK DARKNESS</span>
-                <span className="text-[9px] font-mono text-slate-500">Survival Battery</span>
-              </div>
-              <div className={`text-xl font-mono font-extrabold ${stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}`}>
+            {/* Metric 3: Peak Darkness */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Peak Darkness
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={peakDarkStr} />
               </div>
             </div>
 
-            {/* Card 4: Solar Yield */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">SOLAR YIELD</span>
-                <span className="text-[9px] font-mono text-slate-500">Array Capacity</span>
-              </div>
-              <div className="text-xl font-mono font-extrabold text-amber-300">
+            {/* Metric 4: Photovoltaic Yield */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Photovoltaic Yield
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={solarGenStr} />
               </div>
             </div>
@@ -141,90 +127,69 @@ export function EdgeHudSidebars({
         </div>
       </aside>
 
-      {/* === RIGHT TELEMETRY SIDEBAR === */}
+      {/* === RIGHT FLOATING TELEMETRY COLUMN === */}
       <aside
-        className={`absolute right-4 top-20 bottom-28 w-72 sm:w-80 flex flex-col justify-between pointer-events-auto transition-all duration-500 z-20 ${
-          isCollapsed ? 'translate-x-[120%] opacity-0' : 'translate-x-0 opacity-100'
+        className={`absolute right-8 sm:right-12 lg:right-14 top-24 bottom-28 w-64 sm:w-72 flex flex-col justify-between pointer-events-auto transition-all duration-700 ease-out z-20 ${
+          isCollapsed ? 'translate-x-12 opacity-0' : 'translate-x-0 opacity-100'
         }`}
       >
-        <div className="bg-slate-900/40 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-4 shadow-[0_0_25px_rgba(56,189,248,0.12)] space-y-4 flex-1 flex flex-col justify-between">
+        <div className="flex-1 flex flex-col justify-between space-y-8 drop-shadow-sm text-right">
+          {/* Deep Space Network Status */}
           <div>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2.5 mb-3">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_6px_#00f0ff]"></span>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-cyan-300">
-                  DEEP SPACE NETWORK
-                </span>
-              </div>
-              <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border ${
-                live.earthEl > 0 ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-              }`}>
-                {live.earthEl > 0 ? 'DSN LOCKED' : 'OCCULTED'}
-              </span>
+            <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block mb-1">
+              Earth Link
+            </span>
+            <div className="text-xs font-sans font-light text-[#f5f5f5]">
+              {live.earthEl > 0 ? 'Direct LOS Active' : 'Occulted by Rim'}
             </div>
-
-            <div className="text-[10px] font-mono text-slate-400 space-y-1">
-              <div className="flex justify-between">
-                <span>Direct Ground Link:</span>
-                <strong className="text-white">Goldstone / Madrid</strong>
-              </div>
-              <div className="flex justify-between">
-                <span>Signal Frequency:</span>
-                <strong className="text-cyan-300">Ka-Band 32 GHz</strong>
-              </div>
+            <div className="text-[10px] font-sans text-[#a3a3a3] mt-0.5">
+              Goldstone · Madrid · Canberra
             </div>
           </div>
 
-          {/* Single-Value Result Cards: Earth & Comms */}
-          <div className="space-y-2.5">
-            <div className="text-[9px] font-mono uppercase tracking-widest text-cyan-400 font-bold border-b border-cyan-500/20 pb-1">
-              DIRECT-TO-EARTH COMMS
-            </div>
+          {/* Communications Floating Metrics */}
+          <div className="space-y-5">
+            <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block border-b border-white/5 pb-1">
+              Direct-to-Earth
+            </span>
 
-            {/* Card 5: Earth Elevation */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">EARTH ELEVATION</span>
-                <span className="text-[9px] font-mono text-slate-500">Boresight Angle</span>
-              </div>
-              <div className={`text-xl font-mono font-extrabold ${live.earthEl > 0 ? 'text-cyan-300' : 'text-rose-400'}`}>
+            {/* Metric 5: Earth Elevation */}
+            <div>
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Earth Elevation
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={earthElStr} />
               </div>
             </div>
 
-            {/* Card 6: Time to Earthset */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">TIME TO EARTHSET</span>
-                <span className="text-[9px] font-mono text-slate-500">LOS Margin</span>
-              </div>
-              <div className="text-xl font-mono font-extrabold text-cyan-300">
+            {/* Metric 6: Time to Earthset */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Time to Earthset
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={timeToEarthsetStr} />
               </div>
             </div>
 
-            {/* Card 7: Comms Window */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">COMMS WINDOW</span>
-                <span className="text-[9px] font-mono text-slate-500">14-Day Surface Contact</span>
-              </div>
-              <div className="text-xl font-mono font-extrabold text-cyan-300">
+            {/* Metric 7: Comms Window */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Comms Window
+              </span>
+              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
                 <ScrambleValue value={commsWindowStr} />
               </div>
             </div>
 
-            {/* Card 8: Mission Status */}
-            <div className="bg-black/50 border border-white/5 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-mono uppercase text-slate-400 block">FLIGHT VERDICT</span>
-                <span className="text-[9px] font-mono text-slate-500">Artemis Safety Standard</span>
-              </div>
-              <div className={`text-lg font-mono font-extrabold ${
-                verdict.status === 'VIABLE' ? 'text-emerald-400' : verdict.status === 'MARGINAL' ? 'text-amber-400' : 'text-rose-400'
-              }`}>
-                <ScrambleValue value={verdict.badge} />
+            {/* Metric 8: Flight Certification Verdict */}
+            <div className="border-t border-white/5 pt-3">
+              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
+                Flight Status
+              </span>
+              <div className="text-lg font-sans font-light text-[#f5f5f5] mt-0.5">
+                {verdict.badge}
               </div>
             </div>
           </div>
