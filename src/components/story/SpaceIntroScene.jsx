@@ -1,26 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 
 /**
  * src/components/story/SpaceIntroScene.jsx
- * Accurate 3D Solar System rendering with official NASA textures:
- * - NASA SDO/STEREO 304Å Carrington extreme-UV Sun
- * - NASA SVS Blue Marble 2048 Earth
- * - NASA SVS LROC CGI Moon Kit Lunar Sphere
+ * Authentic NASA Mission Flow:
+ * 1. Deep Space Overview (Sun, Earth, Moon)
+ * 2. Smooth zoom to Lunar Orbit (Moon revolves in 3D, options appear on side without covering Moon)
+ * 3. Earth Launch & Translunar Trajectory (camera pans to Earth, spacecraft launches along real cislunar arc)
+ * 4. Lunar Orbit Insertion & Powered Descent to South Pole landing coordinates -> Touchdown!
  */
 export function SpaceIntroScene({
   onReachedMoon,
-  isZooming,
-  onStartZoom,
   onSkipIntro,
   sites = [],
   selectedSiteId = 'shackleton',
-  onSelectSite
+  onSelectSite,
+  launchDate = '2027-03-08T00:00:00Z',
+  onLaunchDateChange,
+  transitDays = 4,
+  onTransitDaysChange
 }) {
   const mountRef = useRef(null);
   const animFrameRef = useRef(null);
   const sceneElementsRef = useRef(null);
-  const [zoomPercent, setZoomPercent] = React.useState(0);
+
+  // Phases: 'overview' -> 'zooming-to-moon' -> 'moon-orbit' -> 'panning-to-earth' -> 'transit' -> 'lunar-descent'
+  const [phase, setPhase] = useState('overview');
+  const [flightTelemetry, setFlightTelemetry] = useState({
+    status: 'STANDBY',
+    velocity: '0.0 km/s',
+    progress: 0,
+    stage: 'Orbit Prep'
+  });
+
+  const activeSite = sites.find(s => s.id === selectedSiteId) || sites[0] || {
+    name: 'Shackleton Crater Rim',
+    lat: -89.9,
+    lon: 129.8
+  };
 
   useEffect(() => {
     const container = mountRef.current;
@@ -69,54 +86,42 @@ export function SpaceIntroScene({
     const textureLoader = new THREE.TextureLoader();
     const sunTex = textureLoader.load('/textures/nasa_sun.jpg');
     sunTex.colorSpace = THREE.SRGBColorSpace;
-
     const earthTex = textureLoader.load('/textures/nasa_earth_bluemarble.jpg');
     earthTex.colorSpace = THREE.SRGBColorSpace;
-
     const moonTex = textureLoader.load('/textures/nasa_moon_lroc_1k.jpg');
     moonTex.colorSpace = THREE.SRGBColorSpace;
 
-    // 4. Accurate Sun Sphere with NASA SDO Texture
+    // 4. Sun Sphere with SDO Texture
     const sunPos = new THREE.Vector3(-320, 60, -180);
     const sunGeo = new THREE.SphereGeometry(36, 48, 48);
-    const sunMat = new THREE.MeshBasicMaterial({
-      map: sunTex,
-      color: 0xffffff
-    });
+    const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffffff });
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     sunMesh.position.copy(sunPos);
     scene.add(sunMesh);
 
     // Glowing Sun Corona Halo
     const coronaGeo = new THREE.SphereGeometry(44, 32, 32);
-    const coronaMat = new THREE.MeshBasicMaterial({
-      color: 0xffd25a,
-      transparent: true,
-      opacity: 0.28,
-      side: THREE.BackSide
-    });
+    const coronaMat = new THREE.MeshBasicMaterial({ color: 0xffd25a, transparent: true, opacity: 0.28, side: THREE.BackSide });
     const coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
     coronaMesh.position.copy(sunPos);
     scene.add(coronaMesh);
 
-    // Celestial Lighting: Bright Sun Light + Front Key Light + Ambient Hemisphere
+    // Celestial Lighting
     const sunLight = new THREE.PointLight(0xfffaed, 4.5, 4000, 0.3);
     sunLight.position.copy(sunPos);
     scene.add(sunLight);
 
-    // Front-Quarter Key Light ensuring Earth & Moon visible faces are brightly illuminated
     const frontKeyLight = new THREE.DirectionalLight(0xfff5e6, 2.8);
     frontKeyLight.position.set(120, 140, 240);
     scene.add(frontKeyLight);
 
-    // Luminous Space Fill Light so shadow sides are clear and not pitch dark
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x334466, 1.4);
     scene.add(hemiLight);
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
     scene.add(ambientLight);
 
-    // 5. Bright & Vibrant Earth with NASA Blue Marble
+    // 5. Bright Earth with NASA Blue Marble
     const earthGroup = new THREE.Group();
     earthGroup.position.set(-30, 0, 40);
     scene.add(earthGroup);
@@ -130,30 +135,15 @@ export function SpaceIntroScene({
       emissiveIntensity: 0.35
     });
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-    earthMesh.rotation.z = (23.44 * Math.PI) / 180; // Earth axial tilt
+    earthMesh.rotation.z = (23.44 * Math.PI) / 180;
     earthGroup.add(earthMesh);
 
-    // Brilliant Cyan Atmospheric Halo
+    // Atmospheric Halos
     const atmoGeo = new THREE.SphereGeometry(18.2, 48, 48);
-    const atmoMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      transparent: true,
-      opacity: 0.32,
-      side: THREE.BackSide
-    });
+    const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.32, side: THREE.BackSide });
     earthGroup.add(new THREE.Mesh(atmoGeo, atmoMat));
 
-    // Outer Atmospheric Soft Glow
-    const outerAtmoGeo = new THREE.SphereGeometry(19.2, 32, 32);
-    const outerAtmoMat = new THREE.MeshBasicMaterial({
-      color: 0x60a5fa,
-      transparent: true,
-      opacity: 0.15,
-      side: THREE.BackSide
-    });
-    earthGroup.add(new THREE.Mesh(outerAtmoGeo, outerAtmoMat));
-
-    // 6. Bright & Vibrant Moon Sphere with NASA LROC Texture
+    // 6. Moon Sphere with NASA LROC Texture
     const moonGroup = new THREE.Group();
     moonGroup.position.set(48, 8, 15);
     scene.add(moonGroup);
@@ -170,13 +160,13 @@ export function SpaceIntroScene({
     moonMesh.rotation.y = Math.PI * 0.35;
     moonGroup.add(moonMesh);
 
-    // Moon dedicated highlight to ensure crater details pop
-    const moonSpot = new THREE.DirectionalLight(0xffffff, 1.8);
+    // Dedicated Moon highlight
+    const moonSpot = new THREE.DirectionalLight(0xffffff, 2.0);
     moonSpot.position.set(80, 50, 90);
     moonSpot.target = moonGroup;
     scene.add(moonSpot);
 
-    // South pole targeting reticle
+    // South Pole Targeting Reticle
     const markerGeo = new THREE.RingGeometry(0.8, 1.25, 32);
     const markerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
     const poleMarker = new THREE.Mesh(markerGeo, markerMat);
@@ -184,15 +174,54 @@ export function SpaceIntroScene({
     poleMarker.rotation.x = Math.PI / 2;
     moonGroup.add(poleMarker);
 
-    // Lunar Orbit Track
-    const orbitPts = [];
-    for (let i = 0; i <= 96; i++) {
-      const a = (i / 96) * Math.PI * 2;
-      orbitPts.push(new THREE.Vector3(Math.cos(a) * 85, 0, Math.sin(a) * 85));
-    }
-    const orbitGeo = new THREE.BufferGeometry().setFromPoints(orbitPts);
-    const orbitMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.22 });
-    earthGroup.add(new THREE.Line(orbitGeo, orbitMat));
+    // 7. Spacecraft Model for Earth -> Moon Flight
+    const spacecraftGroup = new THREE.Group();
+    // Capsule Command Module
+    const capsuleGeo = new THREE.ConeGeometry(0.7, 1.2, 16);
+    const capsuleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.85, roughness: 0.2 });
+    const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
+    capsule.rotation.x = Math.PI / 2;
+    spacecraftGroup.add(capsule);
+
+    // Service Module
+    const smGeo = new THREE.CylinderGeometry(0.7, 0.7, 1.3, 16);
+    const smMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.25 }); // Gold foil
+    const sm = new THREE.Mesh(smGeo, smMat);
+    sm.position.z = -1.0;
+    sm.rotation.x = Math.PI / 2;
+    spacecraftGroup.add(sm);
+
+    // Solar Wings
+    const wingGeo = new THREE.BoxGeometry(3.4, 0.45, 0.04);
+    const wingMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.85, roughness: 0.2 });
+    const wings = new THREE.Mesh(wingGeo, wingMat);
+    wings.position.z = -1.0;
+    spacecraftGroup.add(wings);
+
+    // Thruster Engine Plume
+    const plumeGeo = new THREE.ConeGeometry(0.4, 1.4, 12);
+    const plumeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
+    const plume = new THREE.Mesh(plumeGeo, plumeMat);
+    plume.position.z = -2.1;
+    plume.rotation.x = -Math.PI / 2;
+    spacecraftGroup.add(plume);
+
+    spacecraftGroup.visible = false;
+    scene.add(spacecraftGroup);
+
+    // 8. Translunar Injection (TLI) Trajectory Arc
+    const p0 = new THREE.Vector3(-30, 8, 40); // Earth departure
+    const p1 = new THREE.Vector3(-5, 32, 45);  // High transfer arc
+    const p2 = new THREE.Vector3(26, 22, 28);  // Lunar approach
+    const p3 = new THREE.Vector3(48, 8, 15);   // Moon insertion
+    const tliCurve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+
+    const curvePoints = tliCurve.getPoints(90);
+    const curveGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
+    const curveMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 });
+    const trajectoryLine = new THREE.Line(curveGeo, curveMat);
+    trajectoryLine.visible = false;
+    scene.add(trajectoryLine);
 
     // Store state in ref
     sceneElementsRef.current = {
@@ -204,8 +233,13 @@ export function SpaceIntroScene({
       moonGroup,
       sunMesh,
       poleMarker,
-      zoomProgress: 0,
-      phase: 'space' // 'space' | 'zooming' | 'moon'
+      spacecraftGroup,
+      plume,
+      trajectoryLine,
+      tliCurve,
+      phase: 'overview',
+      progress: 0,
+      zoomElapsed: 0
     };
 
     // Resize handler
@@ -219,52 +253,145 @@ export function SpaceIntroScene({
     };
     window.addEventListener('resize', handleResize);
 
-    // Animation Loop
+    // 9. ANIMATION LOOP
     let clock = new THREE.Clock();
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
       const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Rotations
+      // Constant natural planetary rotations
       earthMesh.rotation.y += delta * 0.12;
-      moonMesh.rotation.y += delta * 0.06;
+      moonMesh.rotation.y += delta * 0.08; // Moon revolving!
       sunMesh.rotation.y += delta * 0.02;
 
-      // Pulse pole marker
-      const s = 1.0 + Math.sin(elapsed * 4) * 0.2;
+      // Pulse reticle
+      const s = 1.0 + Math.sin(elapsed * 4) * 0.18;
       poleMarker.scale.set(s, s, s);
+
+      // Flickering rocket plume
+      if (spacecraftGroup.visible) {
+        plume.scale.set(1, 1 + Math.sin(elapsed * 25) * 0.25, 1);
+      }
 
       const el = sceneElementsRef.current;
       if (!el) return;
 
-      if (el.phase === 'zooming') {
-        el.zoomProgress = Math.min(1.0, el.zoomProgress + delta * 0.4);
-        const t = el.zoomProgress;
-        setZoomPercent(Math.floor(t * 100));
-
-        // Smooth cubic ease out
+      // PHASE A: ZOOMING TO MOON ORBIT
+      if (el.phase === 'zooming-to-moon') {
+        el.progress = Math.min(1.0, el.progress + delta * 0.45);
+        const t = el.progress;
         const ease = 1 - Math.pow(1 - t, 3);
 
-        // Zoom from solar system overview to close Moon South Pole
-        const startPos = new THREE.Vector3(0, 140, 360);
-        const targetPos = new THREE.Vector3(48, -4, 28);
-        camera.position.lerpVectors(startPos, targetPos, ease);
+        const startCam = new THREE.Vector3(0, 140, 360);
+        const moonCam = new THREE.Vector3(48, 2, 42); // Orbital pose looking at Moon
+        camera.position.lerpVectors(startCam, moonCam, ease);
 
         const lookStart = new THREE.Vector3(0, 0, 0);
-        const lookTarget = new THREE.Vector3(48, 6, 15);
-        const currentLook = new THREE.Vector3().lerpVectors(lookStart, lookTarget, ease);
-        camera.lookAt(currentLook);
+        const lookTarget = new THREE.Vector3(48, 8, 15);
+        const look = new THREE.Vector3().lerpVectors(lookStart, lookTarget, ease);
+        camera.lookAt(look);
 
         if (t >= 1.0) {
-          el.phase = 'moon';
+          el.phase = 'moon-orbit';
+          setPhase('moon-orbit');
+        }
+      }
+
+      // PHASE B: MOON ORBIT (Holding, Moon revolving in 3D, options open on side)
+      else if (el.phase === 'moon-orbit') {
+        // Gentle orbital drift
+        camera.position.x = 48 + Math.sin(elapsed * 0.15) * 2.0;
+        camera.position.y = 2 + Math.cos(elapsed * 0.1) * 1.0;
+        camera.position.z = 42 + Math.cos(elapsed * 0.12) * 1.5;
+        camera.lookAt(48, 8, 15);
+      }
+
+      // PHASE C: PANNING BACK TO EARTH FOR LAUNCH
+      else if (el.phase === 'panning-to-earth') {
+        el.progress = Math.min(1.0, el.progress + delta * 0.6);
+        const t = el.progress;
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        const startCam = new THREE.Vector3(48, 2, 42);
+        const earthCam = new THREE.Vector3(-30, 24, 82);
+        camera.position.lerpVectors(startCam, earthCam, ease);
+
+        const lookStart = new THREE.Vector3(48, 8, 15);
+        const lookEarth = new THREE.Vector3(-30, 0, 40);
+        const look = new THREE.Vector3().lerpVectors(lookStart, lookEarth, ease);
+        camera.lookAt(look);
+
+        if (t >= 1.0) {
+          el.phase = 'transit';
+          setPhase('transit');
+          el.progress = 0;
+          spacecraftGroup.visible = true;
+          trajectoryLine.visible = true;
+        }
+      }
+
+      // PHASE D: TRANSLUNAR INJECTION & CISLUNAR FLIGHT (Earth -> Moon)
+      else if (el.phase === 'transit') {
+        el.progress = Math.min(1.0, el.progress + delta * 0.22); // ~4.5 seconds cislunar journey
+        const t = el.progress;
+
+        // Position on Bezier curve
+        const pos = tliCurve.getPoint(t);
+        spacecraftGroup.position.copy(pos);
+
+        // Orient spacecraft along tangent vector
+        const tangent = tliCurve.getTangent(t).normalize();
+        spacecraftGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+
+        // Dynamic Camera tracking spacecraft
+        camera.position.set(pos.x + 8, pos.y + 12, pos.z + 18);
+        camera.lookAt(pos);
+
+        // Update In-Flight Telemetry
+        const vel = (10.9 - t * 8.5).toFixed(1); // 10.9 km/s TLI decreasing to 1.62 km/s at Moon
+        const pct = Math.floor(t * 100);
+        setFlightTelemetry({
+          status: 'TRANSLUNAR INJECTION',
+          velocity: `${vel} km/s`,
+          progress: pct,
+          stage: t < 0.2 ? 'TLI Burn' : t < 0.85 ? 'Cislunar Coast' : 'Lunar Orbit Insertion'
+        });
+
+        if (t >= 1.0) {
+          el.phase = 'lunar-descent';
+          setPhase('lunar-descent');
+          el.progress = 0;
+        }
+      }
+
+      // PHASE E: LUNAR DESCENT TO SOUTH POLE RETICLE -> TOUCHDOWN!
+      else if (el.phase === 'lunar-descent') {
+        el.progress = Math.min(1.0, el.progress + delta * 0.5); // 2-second powered descent
+        const t = el.progress;
+        const ease = 1 - Math.pow(1 - t, 2);
+
+        // Descent from orbit (48, 8, 15) to south pole marker (48, -2.5, 15)
+        const orbitPos = new THREE.Vector3(48, 8, 15);
+        const landPos = new THREE.Vector3(48, -2.5, 15);
+        spacecraftGroup.position.lerpVectors(orbitPos, landPos, ease);
+
+        // Camera closes in on touchdown
+        camera.position.set(48 + (1 - ease) * 10, -2 + (1 - ease) * 8, 15 + 14);
+        camera.lookAt(48, -2.5, 15);
+
+        const altM = Math.max(0, Math.floor((1 - t) * 15000));
+        setFlightTelemetry({
+          status: 'POWERED DESCENT',
+          velocity: `${(1.6 * (1 - t)).toFixed(1)} km/s`,
+          progress: 100,
+          stage: `Radar Alt: ${altM}m`
+        });
+
+        if (t >= 1.0) {
+          el.phase = 'landed';
           if (onReachedMoon) onReachedMoon();
         }
-      } else if (el.phase === 'moon') {
-        // Slow orbital drift
-        camera.position.x = 48 + Math.sin(elapsed * 0.2) * 1.5;
-        camera.position.y = -4 + Math.cos(elapsed * 0.15) * 0.8;
-        camera.lookAt(48, 6, 15);
       }
 
       renderer.render(scene, camera);
@@ -289,84 +416,53 @@ export function SpaceIntroScene({
     };
   }, []);
 
-  // Trigger camera zoom when isZooming prop changes to true
-  useEffect(() => {
-    if (isZooming && sceneElementsRef.current && sceneElementsRef.current.phase === 'space') {
-      sceneElementsRef.current.phase = 'zooming';
-      sceneElementsRef.current.zoomProgress = 0;
+  // Handler: User clicks "Zoom to Moon" from solar overview
+  const handleInitiateApproach = () => {
+    if (sceneElementsRef.current) {
+      sceneElementsRef.current.phase = 'zooming-to-moon';
+      sceneElementsRef.current.progress = 0;
+      setPhase('zooming-to-moon');
     }
-  }, [isZooming]);
+  };
 
-  const activeSite = sites.find(s => s.id === selectedSiteId) || sites[0] || { name: 'Shackleton Crater Rim', lat: -89.9, lon: 129.8 };
+  // Handler: User clicks "Launch Mission from Earth" after selecting options
+  const handleLaunchFromEarth = () => {
+    if (sceneElementsRef.current) {
+      sceneElementsRef.current.phase = 'panning-to-earth';
+      sceneElementsRef.current.progress = 0;
+      setPhase('panning-to-earth');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black text-white font-sans select-none overflow-hidden">
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full" />
 
-      {/* Pre-Zoom Minimal Glassmorphic Hero Overlay */}
-      {!isZooming && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-radial from-transparent via-black/30 to-black/80 pointer-events-none">
-          <div className="max-w-xl w-full bg-black/40 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 space-y-5 shadow-[0_8px_40px_rgba(0,0,0,0.7)] pointer-events-auto animate-in fade-in zoom-in-95 duration-500">
-            {/* Mission Badge */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/30">
-                NASA Space Apps Challenge 2026
-              </span>
-              <span className="text-[10px] font-mono text-slate-400">
-                JPL Horizons Telemetry
-              </span>
-            </div>
-
-            {/* Title */}
-            <div>
-              <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight">
-                LUNAR <span className="text-sky-400 drop-shadow-[0_0_20px_rgba(56,189,248,0.6)]">NAVIGATOR</span>
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 mt-2 font-light leading-relaxed">
-                South pole illumination & direct-to-Earth communication simulator.
-                Compare candidate landing sites, grazing horizon shadows, and power windows.
-              </p>
-            </div>
-
-            {/* Target Site Selector Chips */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider block">
-                Select Landing Target:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {sites.slice(0, 6).map((s) => {
-                  const isSelected = s.id === selectedSiteId;
-                  return (
-                    <button
-                      key={s.id}
-                      onClick={() => onSelectSite && onSelectSite(s.id)}
-                      className={`text-left px-3 py-2 rounded-xl border text-xs font-mono transition-all duration-200 cursor-pointer ${
-                        isSelected
-                          ? 'bg-sky-500/25 border-sky-400 text-sky-200 shadow-[0_0_15px_rgba(56,189,248,0.35)] font-bold scale-[1.02]'
-                          : 'bg-black/40 border-white/10 text-slate-400 hover:border-white/30 hover:text-slate-200 hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="truncate font-semibold text-[11px]">{s.name.replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', '')}</div>
-                      <div className="text-[10px] opacity-70 mt-0.5">{s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Big Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+      {/* 1. OVERVIEW SCREEN: Center Card */}
+      {phase === 'overview' && (
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-radial from-transparent via-black/20 to-black/70 pointer-events-none">
+          <div className="max-w-lg w-full bg-black/45 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 space-y-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] pointer-events-auto text-center animate-in fade-in zoom-in-95 duration-500">
+            <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/30">
+              NASA Space Apps Challenge 2026
+            </span>
+            <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight">
+              LUNAR <span className="text-sky-400 drop-shadow-[0_0_20px_rgba(56,189,248,0.6)]">NAVIGATOR</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 font-light leading-relaxed">
+              Explore lighting, shadows, and direct-to-Earth communication windows at candidate landing sites on the Moon’s South Pole.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
               <button
-                onClick={onStartZoom}
-                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-sm tracking-wide transition-all transform hover:scale-[1.03] active:scale-[0.98] shadow-[0_0_30px_rgba(56,189,248,0.55)] cursor-pointer flex items-center justify-center gap-2.5"
+                onClick={handleInitiateApproach}
+                className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-sm tracking-wide transition-all transform hover:scale-[1.03] shadow-[0_0_30px_rgba(56,189,248,0.55)] cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>🚀</span>
-                <span>START MISSION: ZOOM TO MOON</span>
+                <span>EXPLORE LUNAR SOUTH POLE</span>
               </button>
               <button
                 onClick={onSkipIntro}
-                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-black/40 hover:bg-white/10 text-slate-300 border border-white/15 hover:border-white/30 text-xs font-mono transition-all cursor-pointer"
+                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/15 text-xs font-mono transition cursor-pointer"
               >
                 Direct to Surface
               </button>
@@ -375,43 +471,136 @@ export function SpaceIntroScene({
         </div>
       )}
 
-      {/* In-Flight Zoom Telemetry HUD */}
-      {isZooming && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-8 sm:p-12 font-mono">
-          {/* Top Telemetry Header */}
-          <div className="flex justify-between items-start">
-            <div className="space-y-1 bg-black/60 backdrop-blur-md p-3.5 rounded-xl border border-sky-500/30 text-xs">
-              <div className="text-sky-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-                TRANSLUNAR INJECTION TRAJECTORY
+      {/* 2. MOON ORBIT SCREEN: Side Options Card (Moon is revolving in 3D right next to it!) */}
+      {phase === 'moon-orbit' && (
+        <div className="absolute inset-0 z-20 flex items-center justify-start p-6 sm:p-10 pointer-events-none">
+          <div className="max-w-md w-full bg-black/50 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 shadow-[0_10px_50px_rgba(0,0,0,0.8)] pointer-events-auto animate-in slide-in-from-left duration-500">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold block">
+                  LUNAR ORBIT INSERTION
+                </span>
+                <h2 className="text-lg font-display font-bold text-white mt-0.5">
+                  Target Landing Site & Date
+                </h2>
               </div>
-              <div className="text-slate-300 text-[11px]">
-                TARGET: {activeSite.name.toUpperCase()} ({activeSite.lat.toFixed(2)}° S)
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            </div>
+
+            {/* Target Site Selector */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block">
+                Landing Target:
+              </label>
+              <select
+                value={selectedSiteId}
+                onChange={(e) => onSelectSite && onSelectSite(e.target.value)}
+                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:border-sky-400"
+              >
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S)
+                  </option>
+                ))}
+              </select>
+              {activeSite.notes && (
+                <p className="text-[11px] text-slate-400 font-light leading-relaxed pt-1">
+                  {activeSite.notes}
+                </p>
+              )}
+            </div>
+
+            {/* Earth Launch Date & Transit */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold block mb-1">
+                  Earth Launch:
+                </label>
+                <input
+                  type="date"
+                  min="2027-01-01"
+                  max="2028-01-10"
+                  value={typeof launchDate === 'string' ? launchDate.slice(0, 10) : '2027-03-08'}
+                  onChange={(e) => onLaunchDateChange && onLaunchDateChange(`${e.target.value}T00:00:00Z`)}
+                  className="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-slate-200 text-xs font-mono focus:outline-none focus:border-sky-400"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-[10px] font-mono text-slate-400 uppercase font-semibold">
+                    Transit:
+                  </label>
+                  <span className="text-[11px] font-mono text-sky-400 font-bold">{transitDays}d</span>
+                </div>
+                <input
+                  type="range"
+                  min={2}
+                  max={8}
+                  step={1}
+                  value={transitDays}
+                  onChange={(e) => onTransitDaysChange && onTransitDaysChange(parseInt(e.target.value, 10))}
+                  className="w-full h-1.5 bg-slate-900 rounded appearance-none cursor-pointer accent-sky-400 mt-2"
+                />
               </div>
             </div>
 
-            <div className="text-right bg-black/60 backdrop-blur-md p-3.5 rounded-xl border border-white/10 text-xs">
-              <div className="text-slate-400 text-[10px]">APPROACH VELOCITY</div>
-              <div className="text-emerald-400 font-bold text-sm">1.62 km/s</div>
+            {/* Launch CTA */}
+            <div className="pt-2 space-y-2">
+              <button
+                onClick={handleLaunchFromEarth}
+                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs font-mono tracking-wide transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>🚀</span>
+                <span>LAUNCH MISSION FROM EARTH</span>
+              </button>
+              <div className="text-[10px] text-slate-500 font-mono text-center">
+                Pans back to Earth to simulate real translunar injection & descent trajectory
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. IN-FLIGHT TRANSLUNAR & POWERED DESCENT TELEMETRY HUD */}
+      {(phase === 'transit' || phase === 'lunar-descent' || phase === 'panning-to-earth') && (
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6 sm:p-10 font-mono">
+          {/* Top Telemetry Header */}
+          <div className="flex justify-between items-start">
+            <div className="space-y-1 bg-black/60 backdrop-blur-xl p-3.5 rounded-2xl border border-sky-400/30 text-xs shadow-xl">
+              <div className="text-sky-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+                {flightTelemetry.status}
+              </div>
+              <div className="text-slate-300 text-[11px]">
+                TARGET: {activeSite.name.toUpperCase()} ({activeSite.lat.toFixed(1)}° S)
+              </div>
+            </div>
+
+            <div className="text-right bg-black/60 backdrop-blur-xl p-3.5 rounded-2xl border border-white/10 text-xs shadow-xl">
+              <div className="text-slate-400 text-[10px]">CURRENT VELOCITY</div>
+              <div className="text-emerald-400 font-bold text-base">{flightTelemetry.velocity}</div>
             </div>
           </div>
 
-          {/* Bottom Reticle and Descent Gauge */}
-          <div className="max-w-md mx-auto w-full space-y-3 bg-black/70 backdrop-blur-md p-4 rounded-2xl border border-sky-400/30 text-center">
-            <div className="text-xs text-sky-300 uppercase tracking-widest font-semibold">
-              APPROACHING LUNAR SOUTH POLE
+          {/* Bottom Trajectory Progress Gauge */}
+          <div className="max-w-md mx-auto w-full space-y-2 bg-black/70 backdrop-blur-2xl p-4 rounded-3xl border border-sky-400/30 text-center shadow-2xl">
+            <div className="flex justify-between text-xs text-sky-300 uppercase tracking-wider font-semibold">
+              <span>{flightTelemetry.stage}</span>
+              <span>{flightTelemetry.progress}%</span>
             </div>
             {/* Progress Bar */}
             <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-sky-500/20">
               <div
-                className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-100 rounded-full"
-                style={{ width: `${zoomPercent}%` }}
+                className="h-full bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400 transition-all duration-100 rounded-full"
+                style={{ width: `${flightTelemetry.progress}%` }}
               />
             </div>
             <div className="flex justify-between text-[10px] text-slate-400">
-              <span>HIGH ORBIT</span>
-              <span className="text-sky-400 font-bold">{zoomPercent}%</span>
-              <span>SURFACE LOCK</span>
+              <span>Earth Exit</span>
+              <span>Cislunar Transfer</span>
+              <span>Lunar Touchdown</span>
             </div>
           </div>
         </div>

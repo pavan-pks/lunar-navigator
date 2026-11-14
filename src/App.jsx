@@ -11,6 +11,7 @@ import { Compare } from './components/ui/Compare.jsx';
 import { Timeline } from './components/ui/Timeline.jsx';
 import { Calendar } from './components/ui/Calendar.jsx';
 import { NasaResourcesModal } from './components/ui/NasaResourcesModal.jsx';
+import { MinimalMissionReport } from './components/ui/MinimalMissionReport.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
 
 export function App() {
@@ -39,6 +40,7 @@ export function App() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [showResourcesModal, setShowResourcesModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Time controller for 14-day mission scrub
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 12 });
@@ -247,6 +249,16 @@ export function App() {
 
         {/* Right: Modal Action Buttons */}
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Minimal NASA Assessment Report Button */}
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-sky-500/20 hover:bg-sky-500/30 backdrop-blur-2xl border border-sky-400/40 text-sky-200 text-xs font-mono font-bold transition-all shadow-[0_0_15px_rgba(56,189,248,0.25)] cursor-pointer"
+            title="Inspect Minimal NASA Mission Report & Embedded GIS"
+          >
+            <span>📋</span>
+            <span>Mission Report</span>
+          </button>
+
           {/* NASA & Partner Resources Portal */}
           <button
             onClick={() => setShowResourcesModal(true)}
@@ -254,7 +266,7 @@ export function App() {
             title="Access QuickMap, Moon Trek, JPL Horizons, and CSA Moon Exploration"
           >
             <span>🛰️</span>
-            <span className="hidden sm:inline">NASA Resources</span>
+            <span className="hidden sm:inline">Resources</span>
           </button>
 
           {/* Compare Sites Button */}
@@ -357,6 +369,12 @@ export function App() {
               <span className="text-slate-200 font-bold">{(stats.sunlitFraction * 100).toFixed(0)}% ({stats.sunlitHours}h)</span>
             </div>
           </div>
+          <button
+            onClick={() => setShowReportModal(true)}
+            className="w-full mt-1.5 py-1 px-2 rounded-xl bg-white/10 hover:bg-sky-500/25 text-sky-300 text-[10px] font-mono font-semibold transition cursor-pointer flex items-center justify-center gap-1 border border-white/10 hover:border-sky-400/40"
+          >
+            <span>Inspect Report & GIS ↗</span>
+          </button>
         </div>
       </div>
 
@@ -563,8 +581,10 @@ export function App() {
           sites={sites}
           selectedSiteId={selectedSiteId}
           onSelectSite={(id) => setSelectedSiteId(id)}
-          isZooming={isZooming}
-          onStartZoom={() => setIsZooming(true)}
+          launchDate={launchDate}
+          onLaunchDateChange={setLaunchDate}
+          transitDays={transitDays}
+          onTransitDaysChange={setTransitDays}
           onSkipIntro={() => {
             setIsZooming(false);
             setShowIntro(false);
@@ -572,6 +592,7 @@ export function App() {
           onReachedMoon={() => {
             setIsZooming(false);
             setShowIntro(false);
+            setShowReportModal(true);
           }}
         />
       )}
@@ -581,6 +602,20 @@ export function App() {
         isOpen={showResourcesModal}
         onClose={() => setShowResourcesModal(false)}
         selectedSite={site}
+      />
+
+      {/* 10. MODAL: MINIMAL NASA MISSION REPORT & EMBEDDED GIS */}
+      <MinimalMissionReport
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        site={site}
+        landingDateStr={landing.toISOString().slice(0, 10)}
+        stats={stats}
+        live={live}
+        verdict={verdict}
+        timeToSunset={timeToSunset}
+        timeToEarthset={timeToEarthset}
+        ephem={ephem}
       />
     </div>
   );
