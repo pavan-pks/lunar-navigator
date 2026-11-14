@@ -5,15 +5,15 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 0 / 100**
-**Last updated:** (date, time)
-**Currently working on:** (task id)
+**Current score: 5 / 100**
+**Last updated:** 2026-11-14
+**Currently working on:** P-02: Scene skeleton (renderer, camera, resize, cleanup)
 
 ## Core tasks
 
 | ID | Task | Weight | Status | Done % | Points | Last update / note |
 |---|---|---|---|---|---|---|
-| P-01 | Sandbox harness | 5 | Not started | 0 | 0 | |
+| P-01 | Sandbox harness | 5 | Done | 100 | 5 | Sandbox harness with sliders, presets, simulation loop, dual-scene compare test & FPS counter |
 | P-02 | Scene skeleton (renderer, camera, resize, cleanup) | 8 | Not started | 0 | 0 | |
 | P-03 | Terrain generator | 12 | Not started | 0 | 0 | |
 | P-04 | Lander model | 8 | Not started | 0 | 0 | |
@@ -26,7 +26,7 @@
 | P-11 | Quality tiers and performance (on-demand rendering) | 10 | Not started | 0 | 0 | |
 | P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Not started | 0 | 0 | |
 | P-13 | Shadow ruler | 3 | Not started | 0 | 0 | |
-| | **Total** | **100** | | | **0** | |
+| | **Total** | **100** | | | **5** | |
 
 ## Stretch tasks (only after all core tasks are 100%)
 

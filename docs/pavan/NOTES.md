@@ -4,22 +4,26 @@
 > Update after every finished task.
 
 ## What is built so far
-(List finished components and files, one line each.)
+- `sandbox-pavan.html`: Standalone entry page for Pavan's visual test sandbox.
+- `src/dev/pavan-main.jsx`: React entry point rendering `PavanSandbox`.
+- `src/dev/PavanSandbox.jsx`: Interactive test harness with angle sliders, presets, lunar day simulation, FPS counter, and dual-scene compare test.
+- `src/components/scene/index.js`: Exports `Scene3D` (named and default).
 
 ## How to use it (props and exports)
-(Exact props, defaults, and behaviours of `Scene3D`, `SkyDiagram`, `LaunchAnimation`. Must match `docs/INTEGRATION_README.md` section 5.4. Note anything extra such as `onTierChange`.)
+- Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
+- Exports from `src/components/scene/index.js`: `Scene3D` (named and default).
 
 ## Decisions
-(Why you chose something, for example shadow map sizes, terrain constants.)
+- Used standalone dark-themed inline styles in `PavanSandbox.jsx` to prevent styling conflicts with Tailwind and guarantee a clean testing UI across any layout width.
 
 ## Performance notes
-(Frame times measured per tier, what to do on a laptop without a GPU.)
+- Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
 
 ## Known issues
-(Bugs or limitations. Be honest.)
+- `Scene3D` is currently the stub component; real 3D renderer implementation begins in P-02.
 
 ## Requests to the other member / human
-(What you need from Rakshith or the human: file, what, why.)
+- None at this time.
 
 ## CONTRACT CHANGE REQUESTS
-(Only if the contract must change: what, why, exact new shape, affected files. Wait for the human's approval.)
+- None.
