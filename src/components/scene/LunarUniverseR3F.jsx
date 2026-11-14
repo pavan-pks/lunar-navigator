@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { LocalSurfaceChunk } from './LocalSurfaceChunk.jsx';
 
 export const MOON_RADIUS = 6.0;
 export const ORBIT_RADIUS = 8.6;
@@ -224,7 +225,7 @@ function ThrusterParticles({ active = false }) {
  * Crisp white body, graphite service module, gold thermal band, titanium engine,
  * 4 delicate landing struts with footpads, and 4 matte solar wings (zero blue!).
  */
-const SpacecraftModel = forwardRef(({ thrusterActive = false }, ref) => {
+export const SpacecraftModel = forwardRef(({ thrusterActive = false }, ref) => {
   return (
     <group ref={ref}>
       {/* 1. Command Module / Crew Cabin (Crisp white cylinder + nose cone) */}
@@ -694,29 +695,44 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     <div className="absolute inset-0 w-full h-full">
       <Canvas
         shadows
-        camera={{ position: [0, 8, 22], fov: 42, near: 0.1, far: 500 }}
+        camera={{
+          position: viewMode === 'surface' ? [3.4, 2.0, 5.4] : [0, 8, 22],
+          fov: viewMode === 'surface' ? 48 : 42,
+          near: 0.1,
+          far: 2500,
+        }}
         gl={{
           antialias: true,
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.9,
         }}
       >
-        <UniverseScene
-          mode={mode}
-          selectedSite={selectedSite}
-          sunEl={sunEl}
-          sunAz={sunAz}
-          onReachedOrbit={onReachedOrbit}
-          onLanderTouchdown={onLanderTouchdown}
-          onUpdateCraterScreenPos={onUpdateCraterScreenPos}
-          spacecraftRef={spacecraftRef}
-          thrusterActive={thrusterActive}
-          isDescending={isDescending}
-          hasLanded={hasLanded}
-          viewMode={viewMode}
-          isComparing={isComparing}
-          orbitControlsRef={orbitControlsRef}
-        />
+        {viewMode === 'surface' ? (
+          <LocalSurfaceChunk
+            sunEl={sunEl}
+            sunAz={sunAz}
+            earthEl={earthEl}
+            earthAz={earthAz}
+            site={selectedSite}
+          />
+        ) : (
+          <UniverseScene
+            mode={mode}
+            selectedSite={selectedSite}
+            sunEl={sunEl}
+            sunAz={sunAz}
+            onReachedOrbit={onReachedOrbit}
+            onLanderTouchdown={onLanderTouchdown}
+            onUpdateCraterScreenPos={onUpdateCraterScreenPos}
+            spacecraftRef={spacecraftRef}
+            thrusterActive={thrusterActive}
+            isDescending={isDescending}
+            hasLanded={hasLanded}
+            viewMode={viewMode}
+            isComparing={isComparing}
+            orbitControlsRef={orbitControlsRef}
+          />
+        )}
       </Canvas>
     </div>
   );
