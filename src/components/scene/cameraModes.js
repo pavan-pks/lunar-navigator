@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
 /**
- * Camera controller managing Orbit camera mode (and prepared for Astronaut mode).
+ * Camera controller managing Orbit camera mode.
  *
  * @param {Object} options
  * @param {THREE.PerspectiveCamera} options.camera
@@ -21,40 +21,87 @@ export function createCameraController({
   quality = 'auto',
 }) {
   const controls = new OrbitControls(camera, domElement)
-  controls.enableDamping = quality === 'high'
-  controls.dampingFactor = 0.05
-  controls.minDistance = 6
-  controls.maxDistance = 350
-  // Prevent camera from dipping underneath flat ground plane (85 degrees = ~1.48 rad)
-  controls.maxPolarAngle = 1.48
 
-  const updateTarget = (padY) => {
-    controls.target.set(0, padY + 1.5, 0)
-    controls.update()
+  // Quality tier settings: damping enabled only on high tier
+  const isHighTier = quality === 'high'
+  controls.enableDamping = isHighTier
+  controls.dampingFactor = 0.05
+
+  // Distance and angle limits per specification
+  controls.minDistance = 10
+  controls.maxDistance = 300
+  controls.maxPolarAngle = 1.45 // ~83 degrees, prevents dipping below ground
+
+  let isDampingActive = false
+  let dampingAnimId = null
+
+  // Ensure camera stays above local terrain elevation
+  const clampCameraAboveTerrain = () => {
+    const groundY = getHeightAt(camera.position.x, camera.position.z)
+    const minY = groundY + 1.0
+    if (camera.position.y < minY) {
+      camera.position.y = minY
+    }
   }
 
-  // Initial target
-  updateTarget(getPadY())
+  // Smooth damping frame loop for high tier
+  const startDampingLoop = () => {
+    if (!isHighTier || isDampingActive) return
+    isDampingActive = true
+
+    const step = () => {
+      clampCameraAboveTerrain()
+      controls.update()
+      invalidate()
+
+      // Continue animating while controls are damping
+      if (controls.state !== -1 || Math.abs(controls.getAzimuthalAngle()) > 0.0001) {
+        dampingAnimId = requestAnimationFrame(step)
+      } else {
+        isDampingActive = false
+      }
+    }
+    dampingAnimId = requestAnimationFrame(step)
+  }
 
   const handleChange = () => {
-    // Keep camera above local terrain height
-    const groundY = getHeightAt(camera.position.x, camera.position.z)
-    if (camera.position.y < groundY + 1.2) {
-      camera.position.y = groundY + 1.2
-    }
+    clampCameraAboveTerrain()
     invalidate()
   }
 
+  const handleStart = () => {
+    if (isHighTier) {
+      startDampingLoop()
+    }
+  }
+
   controls.addEventListener('change', handleChange)
+  controls.addEventListener('start', handleStart)
+
+  const updateTarget = (padY = 0) => {
+    controls.target.set(0, padY + 2, 0)
+    clampCameraAboveTerrain()
+    controls.update()
+    invalidate()
+  }
+
+  const resetInitialPosition = (padY = 0) => {
+    camera.position.set(70, padY + 40, 90)
+    updateTarget(padY)
+  }
 
   const dispose = () => {
+    if (dampingAnimId) cancelAnimationFrame(dampingAnimId)
     controls.removeEventListener('change', handleChange)
+    controls.removeEventListener('start', handleStart)
     controls.dispose()
   }
 
   return {
     controls,
     updateTarget,
+    resetInitialPosition,
+    clampCameraAboveTerrain,
     dispose,
   }
 }

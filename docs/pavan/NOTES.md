@@ -13,7 +13,7 @@
 - `src/components/scene/lander.js`: Detailed procedural lunar lander model (octagonal cabin, gold foil descent stage, 4 articulated legs with footpads, descent engine bell, solar panel wings, steerable dish antenna, and height-scale reactivity).
 - `src/components/scene/rocks.js`: Procedural rock and boulder scatter utilizing a single `InstancedMesh` with vertex-jittered icosahedrons, tier scaling (40/120/250), 3-5 landmark boulders, and terrain grounding.
 - `src/components/scene/sky.js`: Deep space procedural sky system with starfield Points (radius 900, 800-2500 by tier) dimming to 0.35 during daytime, emissive white Sun disk (angular size 0.53°), procedural canvas textured Earth sphere (angular size 1.9°), and callout text sprite.
-- `src/components/scene/cameraModes.js`: OrbitControls controller constrained to terrain height with target tracking.
+- `src/components/scene/cameraModes.js`: Formalized OrbitControls camera controller with starting offset `(70, 40, 90)`, target `(0, padY + 2, 0)`, polar angle clamp `1.45 rad`, distance limits `10-300m`, high-tier damping loop, and dynamic terrain height collision avoidance.
 - `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
@@ -30,6 +30,7 @@
 - Shadow camera frustum bounds set to `±240m` with `near=5`, `far=1300`, `bias=-0.0003`, `normalBias=0.25` ensuring full coverage across entire 400m patch even at grazing sun elevations (sub-2°).
 - Hard vacuum lunar illumination: Sun intensity 3.0 when `sunEl > -0.27°` with a 0.1° fade preventing pop-in, 0.02 baseline ambient, and 0.04 faint bluish Earthshine active only when `earthEl > 0°`.
 - Sun disk and Earth marker placed at distance 800 with realistic physical angular diameters (Sun ~0.53°, Earth ~1.9°, ratio ~3.5:1).
+- Camera clamped above local terrain `y >= heightAt(x, z) + 1.0` and max polar angle set to `1.45 rad` so camera never penetrates lunar surface or clips beneath ground.
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -41,7 +42,7 @@
 - Stars rendered as single `THREE.Points` draw call with zero texture overhead.
 
 ## Known issues
-- Orbit camera refinements (verifying exact polar angles, damping on high tier, and astronaut camera mode in P-09) are up next in P-08.
+- First-person Astronaut camera mode (with HUD quick-look buttons and compass ring) arrives in P-09.
 
 ## Requests to the other member / human
 - None at this time.

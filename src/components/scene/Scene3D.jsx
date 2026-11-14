@@ -85,7 +85,7 @@ export default function Scene3D({
     // Scene & Camera
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2500)
-    camera.position.set(28, 16, 36)
+    camera.position.set(70, 40, 90)
 
     // Harsh directional Sun light with tuned orthographic shadow frustum
     const sunLight = new THREE.DirectionalLight(0xffffff, 3.0)
