@@ -17,6 +17,10 @@
 - `src/lib/metrics.test.js`: Vitest unit tests verifying 100% sunlit, 100% dark, 60h dark gap, 50% Earth visibility, shadow calculations, and next sunset/sunrise timings (all 8 tests pass).
 - `src/lib/energy.js`: Battery and solar PV simulator (`simulateBattery`, `getPanelFactor`) supporting horizontal, vertical-fixed, and vertical-tracking panels, plus night heater survival loads.
 - `src/lib/energy.test.js`: Vitest test suite verifying daylight generation, nocturnal depletion, polar grazing geometry (>28x vertical gain at 2°), and edge conditions (all 5 tests pass).
+- `src/lib/dataLoader.js` & `dataLoader.test.js`: Cached promise loader for `sites.json` and `global_ephem.json` with schema validation.
+- `src/lib/useTimeController.js`: Continuous animation loop controller driven by `requestAnimationFrame`, with loop reset and tab visibility auto-pause.
+- `src/components/ui/TopBar.jsx`, `SampleDataBanner.jsx`, `ErrorState.jsx`, `Footer.jsx`: App shell chrome and controls.
+- `src/App.jsx`: Master state manager, time scrubber bar, tab routing, and responsive layout.
 
 ## Data status
 - Status: REAL NASA/JPL Horizons data (`fake: false`).

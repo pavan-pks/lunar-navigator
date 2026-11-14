@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 37 / 100**
+**Current score: 44 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** R-06: App shell, data loader, time controller
+**Currently working on:** R-07: Site picker and custom coordinates
 **Data status:** REAL NASA/JPL Horizons data (`fake: false`)
 
 ## Core tasks
@@ -19,7 +19,8 @@
 | R-03 | `geometry.js` (with tests) | 6 | Done | 100 | 6 | Implemented analytical spherical astronomy module (`sunAltAz`, `earthAltAz`, `sampleSeries`, `valuesAt`, `lerpAzimuth`, `lerpAngle180`) with 11 Vitest unit tests passing. |
 | R-04 | `config.js` and `metrics.js` (with tests) | 12 | Done | 100 | 12 | Implemented mission thresholds (`config.js`) and timeline analysis (`metrics.js`: `computeWindowStats`, `getVerdict`, `shadowLength`, `timeToNext`, `landingDate`). 8 Vitest tests pass; confirmed polar site seasonal verdict changes (0% July vs 100% Dec) and Apollo 11 ~50% synodic day/night. |
 | R-05 | `energy.js` (with tests) | 5 | Done | 100 | 5 | Implemented solar panel & battery simulation (`horizontal`, `vertical-fixed`, `vertical-tracking`) and night heater load. 5 Vitest tests pass; confirmed vertical panel delivers >28x power over horizontal at polar 2° elevation. |
-| R-06 | App shell, data loader, time controller | 7 | Not started | 0 | 0 | |
+| R-06 | App shell, data loader, time controller | 7 | Done | 100 | 7 | Built `App.jsx`, `dataLoader.js` (cached in-memory loader), `useTimeController.js` (rAF clock with tab auto-pause), `TopBar.jsx`, `SampleDataBanner.jsx`, `ErrorState.jsx`, `Footer.jsx`. All 27 Vitest unit tests pass and `npm run build` succeeds. |
+| R-07 | Site picker and custom coordinates | 4 | Not started | 0 | 0 | |
 | R-05 | `energy.js` (with tests) | 5 | Not started | 0 | 0 | |
 | R-06 | App shell, data loader, time controller | 7 | Not started | 0 | 0 | |
 | R-07 | Site picker and custom coordinates | 4 | Not started | 0 | 0 | |
