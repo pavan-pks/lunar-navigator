@@ -174,8 +174,8 @@ export function App() {
 
   return (
     <div className="h-screen w-screen bg-black text-[#f0f6fc] overflow-hidden font-sans select-none relative">
-      {/* 1. FULLSCREEN 3D LUNAR SURFACE VIEWPORT (Edge-to-Edge) */}
-      <div className={`absolute inset-0 w-full h-full z-0 transition-all duration-500 ${showResultCards ? 'filter blur-[1.5px]' : ''}`}>
+      {/* 1. FULLSCREEN 3D LUNAR SURFACE VIEWPORT (Edge-to-Edge - Zero Blur) */}
+      <div className="absolute inset-0 w-full h-full z-0">
         <ScenePanel
           siteId={site.id}
           terrainType={site.terrainType || 'crater-rim'}
@@ -191,11 +191,6 @@ export function App() {
           showShadowRuler={true}
         />
       </div>
-
-      {/* Subtle Backdrop Blur Overlay when Result Cards are active */}
-      {showResultCards && (
-        <div className="absolute inset-0 z-10 bg-black/20 backdrop-blur-[2px] transition-all duration-500 pointer-events-none" />
-      )}
 
       {/* 2. MINIMAL FLOATING GLASSMORPHIC HEADER */}
       <header className="absolute top-4 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
@@ -267,19 +262,32 @@ export function App() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Mission Report Toggle Button */}
+          <button
+            onClick={() => setShowResultCards(prev => !prev)}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-2xl font-mono text-xs font-bold transition-all shadow-xl cursor-pointer border-0 ${
+              showResultCards
+                ? 'bg-amber-400 text-black shadow-[0_0_20px_rgba(251,191,36,0.4)]'
+                : 'bg-black/55 hover:bg-black/75 text-amber-300 backdrop-blur-2xl'
+            }`}
+          >
+            <span>📊</span>
+            <span>{showResultCards ? 'Hide Report' : 'Report'}</span>
+          </button>
+
           {/* Run Simulation Trigger */}
           <button
             onClick={handleRunSimulation}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black text-xs font-mono font-bold transition-all shadow-[0_0_20px_rgba(56,189,248,0.4)] cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black text-xs font-mono font-bold transition-all shadow-[0_0_20px_rgba(56,189,248,0.4)] cursor-pointer border-0"
           >
             <span>▶</span>
-            <span>Record Simulation</span>
+            <span>Record</span>
           </button>
 
           {/* Compare Sites Button */}
           <button
             onClick={() => setShowCompareModal(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/45 hover:bg-black/60 backdrop-blur-2xl border border-white/15 hover:border-sky-400/50 text-slate-200 text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/45 hover:bg-black/60 backdrop-blur-2xl text-slate-200 text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer border-0"
           >
             <span>⚖️</span>
             <span className="hidden sm:inline">Compare</span>
@@ -288,7 +296,7 @@ export function App() {
           {/* Space Orbit / Mission Trajectory */}
           <button
             onClick={() => setShowIntro(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-2xl border border-white/15 text-white text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-2xl text-white text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer border-0"
           >
             <span>🚀</span>
             <span>Orbit View</span>
@@ -296,131 +304,175 @@ export function App() {
         </div>
       </header>
 
-      {/* 3. RESULT GLASS CARDS: POP UP ON LEFT AND RIGHT SIDES AFTER RUNNING SIMULATION */}
+      {/* 3. INDIVIDUAL BORDERLESS RESULT GLASS CARDS: DISTINCT MISSION ASPECTS */}
       {showResultCards && (
         <>
-          {/* LEFT RESULT GLASS CARD: POWER GENERATION & LIGHTING */}
-          <div className="absolute top-20 left-6 z-20 w-80 bg-black/55 backdrop-blur-2xl border border-amber-400/30 rounded-3xl p-5 shadow-[0_15px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3.5 animate-in slide-in-from-left duration-400 pointer-events-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-base text-amber-400">☀️</span>
-                <span className="font-display font-bold text-sm text-white uppercase tracking-wider">
-                  Power Assessment
+          {/* LEFT COLUMN: INDIVIDUAL BORDERLESS CARDS */}
+          <div className="absolute top-20 left-6 z-20 w-80 space-y-4 pointer-events-auto animate-in slide-in-from-left duration-400">
+            {/* CARD 1: SOLAR ILLUMINATION & HORIZON ANGLES */}
+            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-amber-400">☀️</span>
+                  <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
+                    Solar Illumination
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20">
+                  {live.sunEl > 0 ? 'SUNLIT' : 'OCCULTED'}
                 </span>
               </div>
-              <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30">
-                {powerEfficiencyPct}% OUTPUT
-              </span>
+
+              <div className="space-y-2 text-[11px]">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-slate-400">Sun Elevation:</span>
+                  <span className={`font-bold text-sm ${live.sunEl > 0 ? 'text-[#ffd25a]' : 'text-slate-500'}`}>
+                    {live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Sun Azimuth:</span>
+                  <span className="text-slate-200">{live.sunAz.toFixed(1)}°</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Time to Sunset:</span>
+                  <span className="text-amber-300 font-bold">
+                    {timeToSunset !== null ? `${timeToSunset}h remaining` : 'Quasi-Eternal Light'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Lander Mast Shadow:</span>
+                  <span className="text-slate-200">{Number.isFinite(shadowM) ? `${shadowM.toFixed(1)}m` : 'Horizon Blocked'}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Key Metrics */}
-            <div className="space-y-2 text-[11px]">
-              <div className="flex justify-between items-baseline">
-                <span className="text-slate-400">Solar Horizon Elevation:</span>
-                <span className={`font-bold text-sm ${live.sunEl > 0 ? 'text-[#ffd25a]' : 'text-slate-500'}`}>
-                  {live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`}
+            {/* CARD 2: POWER GENERATION POTENTIAL */}
+            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-yellow-400">⚡</span>
+                  <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
+                    Power Generation
+                  </span>
+                </div>
+                <span className="text-[10px] text-yellow-300 font-bold px-2 py-0.5 rounded-full bg-yellow-500/20">
+                  {powerEfficiencyPct}% EFFICIENCY
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Solar Azimuth:</span>
-                <span className="text-slate-200">{live.sunAz.toFixed(1)}°</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">14-Day Sunlit Window:</span>
-                <span className="text-slate-200 font-bold">
-                  {(stats.sunlitFraction * 100).toFixed(1)}% ({stats.sunlitHours}h)
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Peak Thermal Darkness:</span>
-                <span className={`font-bold ${stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-slate-200'}`}>
-                  {stats.longestDarkHours} hours
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-white/10 pt-2">
-                <span className="text-slate-400">Time to Sunset:</span>
-                <span className="text-amber-300 font-bold">
-                  {timeToSunset !== null ? `${timeToSunset}h remaining` : 'Quasi-Eternal Light'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Lander Mast Shadow:</span>
-                <span className="text-slate-200">{Number.isFinite(shadowM) ? `${shadowM.toFixed(1)}m` : 'Horizon Blocked'}</span>
+
+              <div className="space-y-2 text-[11px]">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-slate-400">14-Day Sunlit Window:</span>
+                  <span className="text-yellow-300 font-bold text-sm">
+                    {(stats.sunlitFraction * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Total Generation Time:</span>
+                  <span className="text-slate-200 font-bold">{stats.sunlitHours} hours</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Peak Thermal Darkness:</span>
+                  <span className={`font-bold ${stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-slate-200'}`}>
+                    {stats.longestDarkHours}h blackout
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Battery Sizing Need:</span>
+                  <span className="text-slate-300">
+                    {stats.longestDarkHours === 0 ? 'Minimal (Continuous solar)' : `${stats.longestDarkHours}h survival pack`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* RIGHT RESULT GLASS CARD: DIRECT-TO-EARTH COMMS & FLIGHT VERDICT */}
-          <div className="absolute top-20 right-6 z-20 w-80 bg-black/55 backdrop-blur-2xl border border-emerald-400/30 rounded-3xl p-5 shadow-[0_15px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3.5 animate-in slide-in-from-right duration-400 pointer-events-auto">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-              <div className="flex items-center gap-2">
-                <span className="text-base text-emerald-400">🌍</span>
-                <span className="font-display font-bold text-sm text-white uppercase tracking-wider">
-                  Comms Assessment
+          {/* RIGHT COLUMN: INDIVIDUAL BORDERLESS CARDS */}
+          <div className="absolute top-20 right-6 z-20 w-80 space-y-4 pointer-events-auto animate-in slide-in-from-right duration-400">
+            {/* CARD 3: DIRECT-TO-EARTH COMMUNICATION */}
+            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-cyan-400">🌍</span>
+                  <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
+                    Direct-To-Earth Comms
+                  </span>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  live.earthEl > 0 ? 'bg-cyan-500/20 text-cyan-300' : 'bg-rose-500/20 text-rose-300'
+                }`}>
+                  {live.earthEl > 0 ? 'DSN RF LOCKED' : 'OCCULTED'}
                 </span>
               </div>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                verdict.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
-                verdict.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
-                'bg-rose-500/20 text-rose-400 border-rose-500/30'
-              }`}>
-                {verdict.badge}
-              </span>
-            </div>
 
-            {/* Key Metrics */}
-            <div className="space-y-2 text-[11px]">
-              <div className="flex justify-between items-baseline">
-                <span className="text-slate-400">Earth Horizon Elevation:</span>
-                <span className={`font-bold text-sm ${live.earthEl > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">RF Line-of-Sight Status:</span>
-                <span className="text-emerald-300 font-bold">
-                  {live.earthEl > 0 ? 'Direct DSN Locked' : 'Occulted by Rim'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">14-Day Earth Visibility:</span>
-                <span className="text-slate-200 font-bold">
-                  {(stats.earthVisibleFraction * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Max Communication Gap:</span>
-                <span className="text-slate-200">
-                  {stats.longestEarthGapHours} hours
-                </span>
-              </div>
-              <div className="flex justify-between border-t border-white/10 pt-2">
-                <span className="text-slate-400">Time to Earthset:</span>
-                <span className="text-emerald-300 font-bold">
-                  {timeToEarthset !== null ? `${timeToEarthset}h remaining` : 'Continuous Link'}
-                </span>
+              <div className="space-y-2 text-[11px]">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-slate-400">Earth Horizon Elevation:</span>
+                  <span className={`font-bold text-sm ${live.earthEl > 0 ? 'text-cyan-300' : 'text-rose-400'}`}>
+                    {live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">14-Day Visibility Window:</span>
+                  <span className="text-slate-200 font-bold">
+                    {(stats.earthVisibleFraction * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Max Communication Gap:</span>
+                  <span className="text-slate-200">{stats.longestEarthGapHours} hours</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Time to Earthset:</span>
+                  <span className="text-cyan-300 font-bold">
+                    {timeToEarthset !== null ? `${timeToEarthset}h remaining` : 'Continuous Link'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Operational Verdict Rationale */}
-            <p className="text-[10px] text-slate-300 font-sans leading-tight border-t border-white/10 pt-2">
-              {verdict.reason}
-            </p>
+            {/* CARD 4: MISSION FLIGHT VERDICT */}
+            <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] font-mono text-xs space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-base text-emerald-400">🎯</span>
+                  <span className="font-display font-bold text-xs text-white uppercase tracking-wider">
+                    Flight Verdict
+                  </span>
+                </div>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  verdict.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-300' :
+                  verdict.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-rose-500/20 text-rose-300'
+                }`}>
+                  {verdict.badge}
+                </span>
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={() => setShowResultCards(false)}
-                className="flex-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono transition cursor-pointer text-center"
-              >
-                ✕ Dismiss Cards
-              </button>
-              <button
-                onClick={handleRunSimulation}
-                className="py-1.5 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-400/30 text-[10px] font-mono transition cursor-pointer"
-              >
-                ↺ Re-simulate
-              </button>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="text-slate-200 font-sans leading-tight">
+                  {verdict.reason}
+                </div>
+                <div className="text-[10px] text-slate-400 pt-1">
+                  Target: <strong className="text-slate-200">{site.name}</strong> ({site.lat.toFixed(1)}°, {site.lon.toFixed(1)}°)
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  onClick={() => setShowResultCards(false)}
+                  className="flex-1 py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-[10px] font-mono transition cursor-pointer text-center border-0"
+                >
+                  ✕ Dismiss
+                </button>
+                <button
+                  onClick={handleRunSimulation}
+                  className="py-1.5 px-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-mono transition cursor-pointer border-0"
+                >
+                  ↺ Re-run
+                </button>
+              </div>
             </div>
           </div>
         </>

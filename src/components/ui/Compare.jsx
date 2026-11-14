@@ -2,14 +2,13 @@ import React, { useMemo } from 'react';
 import { sampleSeries, valuesAt, hoursSince } from '../../lib/geometry.js';
 import { computeWindowStats, getVerdict, timeToNext, landingDate } from '../../lib/metrics.js';
 import { ScenePanel } from './ScenePanel.jsx';
-import { Timeline } from './Timeline.jsx';
-import { MetricsPanel } from './MetricsPanel.jsx';
 import { SitePicker } from './SitePicker.jsx';
 import { DateControls } from './DateControls.jsx';
 
 /**
  * src/components/ui/Compare.jsx
- * Side-by-side lunar landing trade study comparison view.
+ * Approachable, borderless side-by-side lunar landing trade study comparison view.
+ * Eliminates text bloat in favor of clear, modular visual cards.
  */
 export function Compare({
   sites,
@@ -28,7 +27,7 @@ export function Compare({
   setQuality,
   missionDays,
   setMissionDays,
-  objectHeightM,
+  objectHeightM = 3.0,
   slipDays,
   setSlipDays
 }) {
@@ -78,108 +77,112 @@ export function Compare({
     setScenarioB(tempA);
   };
 
-  // Comparative auto summary
+  // Approachable Comparative Summary Sentence
   const summarySentence = useMemo(() => {
     const sunDiff = (statsA.sunlitFraction - statsB.sunlitFraction) * 100;
     const darkDiff = statsB.longestDarkHours - statsA.longestDarkHours;
 
     if (Math.abs(sunDiff) < 1.0 && Math.abs(darkDiff) < 2.0) {
-      return `Both landing profiles present nearly identical solar regimes (${(statsA.sunlitFraction * 100).toFixed(0)}% vs ${(statsB.sunlitFraction * 100).toFixed(0)}% illuminated).`;
+      return `Both scenarios provide matching solar illumination (${(statsA.sunlitFraction * 100).toFixed(0)}%). Choose based on direct line-of-sight communication margins.`;
     }
     if (statsA.sunlitFraction > statsB.sunlitFraction) {
-      return `Scenario A yields ${(statsA.sunlitFraction * 100).toFixed(0)}% continuous solar coverage vs ${(statsB.sunlitFraction * 100).toFixed(0)}% for Scenario B. Scenario B suffers ${darkDiff > 0 ? `${darkDiff}h longer thermal blackout` : 'intermittent shadow intervals'}.`;
+      return `Scenario A (${siteA.name}) delivers ${(statsA.sunlitFraction * 100).toFixed(0)}% solar coverage vs ${(statsB.sunlitFraction * 100).toFixed(0)}% for Scenario B. Scenario B requires ${darkDiff > 0 ? `${darkDiff}h more battery survival` : 'battery reserves'}.`;
     } else {
-      return `Scenario B commands ${(statsB.sunlitFraction * 100).toFixed(0)}% illumination vs ${(statsA.sunlitFraction * 100).toFixed(0)}% for Scenario A; Scenario A requires battery endurance for a ${statsA.longestDarkHours}h blackout period.`;
+      return `Scenario B (${siteB.name}) delivers ${(statsB.sunlitFraction * 100).toFixed(0)}% solar coverage vs ${(statsA.sunlitFraction * 100).toFixed(0)}% for Scenario A.`;
     }
-  }, [statsA, statsB]);
+  }, [statsA, statsB, siteA.name, siteB.name]);
+
+  const sunPctA = (statsA.sunlitFraction * 100).toFixed(1);
+  const sunPctB = (statsB.sunlitFraction * 100).toFixed(1);
+  const earthPctA = (statsA.earthVisibleFraction * 100).toFixed(1);
+  const earthPctB = (statsB.earthVisibleFraction * 100).toFixed(1);
 
   return (
-    <div className="space-y-6">
-      {/* Top Operations & Mode Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#070b14]/80 p-3.5 rounded-2xl border border-white/10 shadow-lg text-xs backdrop-blur-md">
-        {/* Left: Mode toggles */}
-        <div className="flex items-center gap-3">
-          <span className="text-slate-400 font-mono text-[11px] uppercase tracking-wider">Mission Architecture:</span>
-          <div className="flex items-center bg-[#03060c] p-1 rounded-xl border border-white/10">
+    <div className="space-y-5 pb-8 font-sans select-none">
+      {/* 1. TOP CONTROLS & ARCHITECTURE CARD (BORDERLESS) */}
+      <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-wrap items-center justify-between gap-4">
+        {/* Architecture Mode Buttons */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Mode:</span>
+          <div className="flex items-center bg-black/40 p-1 rounded-2xl">
             <button
               onClick={() => setCompareMode('sites')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
-                compareMode === 'sites' 
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-xs' 
-                  : 'text-slate-400 hover:text-white border border-transparent'
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition cursor-pointer border-0 ${
+                compareMode === 'sites'
+                  ? 'bg-sky-400 text-black font-bold shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               Dual Site Assessment
             </button>
             <button
               onClick={() => setCompareMode('dates')}
-              className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
-                compareMode === 'dates' 
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30 shadow-xs' 
-                  : 'text-slate-400 hover:text-white border border-transparent'
+              className={`px-3 py-1.5 rounded-xl text-xs font-mono font-medium transition cursor-pointer border-0 ${
+                compareMode === 'dates'
+                  ? 'bg-amber-400 text-black font-bold shadow-md'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
-              Launch Window Slip (±30d)
+              Launch Date Slip
             </button>
           </div>
 
           <button
             onClick={handleSwap}
-            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors flex items-center gap-1.5 cursor-pointer text-xs"
-            title="Swap Scenario A and B targets"
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono transition cursor-pointer border-0 flex items-center gap-1.5"
+            title="Swap Scenario A and B"
           >
             <span>⇄</span>
-            <span>Invert A/B</span>
+            <span>Swap A/B</span>
           </button>
         </div>
 
-        {/* Right: Camera view & Quality */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-[#03060c] p-1 rounded-xl border border-white/10">
-            <span className="text-[10px] text-slate-500 px-2 uppercase font-mono tracking-wider">3D View:</span>
-            <button
-              onClick={() => setViewMode('orbit')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
-                viewMode === 'orbit' 
-                  ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold' 
-                  : 'text-slate-400 hover:text-white border border-transparent'
-              }`}
-            >
-              Orbital Nadir
-            </button>
-            <button
-              onClick={() => setViewMode('astronaut')}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
-                viewMode === 'astronaut' 
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold' 
-                  : 'text-slate-400 hover:text-white border border-transparent'
-              }`}
-            >
-              Astronaut EVA
-            </button>
+        {/* View Camera Mode */}
+        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-2xl font-mono text-xs">
+          <span className="text-[11px] text-slate-400 px-2">Camera:</span>
+          <button
+            onClick={() => setViewMode('orbit')}
+            className={`px-2.5 py-1 rounded-xl transition cursor-pointer border-0 ${
+              viewMode === 'orbit' ? 'bg-sky-400/20 text-sky-300 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Orbit
+          </button>
+          <button
+            onClick={() => setViewMode('astronaut')}
+            className={`px-2.5 py-1 rounded-xl transition cursor-pointer border-0 ${
+              viewMode === 'astronaut' ? 'bg-amber-400/20 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Surface EVA
+          </button>
+        </div>
+      </div>
+
+      {/* 2. APPROACHABLE EXECUTIVE SUMMARY CARD (BORDERLESS) */}
+      <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex items-center gap-3.5">
+        <div className="w-10 h-10 rounded-2xl bg-sky-500/15 flex items-center justify-center shrink-0 text-xl">
+          💡
+        </div>
+        <div>
+          <div className="text-[10px] text-sky-400 font-mono font-bold uppercase tracking-wider">
+            NASA Flight Dynamics Assessment
+          </div>
+          <div className="text-sm text-slate-200 font-sans mt-0.5 leading-snug">
+            {summarySentence}
           </div>
         </div>
       </div>
 
-      {/* Auto Summary Narrative Banner */}
-      <div className="bg-[#050914]/85 border border-sky-500/20 rounded-2xl px-5 py-3.5 text-xs text-slate-200 flex items-start sm:items-center gap-3 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-md">
-        <span className="w-2 h-2 rounded-full bg-sky-400 mt-1 sm:mt-0 shadow-[0_0_8px_#38bdf8] shrink-0"></span>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 leading-relaxed">
-          <span className="text-sky-400 font-mono text-[11px] uppercase tracking-wider font-bold">MISSION TRADE STUDY //</span>
-          <span>{summarySentence}</span>
-        </div>
-      </div>
-
-      {/* Comparison Grid (Two Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Scenario A Column */}
-        <div className="glass-panel-cyan rounded-3xl p-5 space-y-5 flex flex-col transition-all duration-300">
-          <div className="flex items-center justify-between border-b border-sky-500/20 pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></span>
-              <span className="font-display font-bold text-sm text-sky-400 tracking-wider">SCENARIO ALPHA</span>
-              <span className="text-xs font-mono text-slate-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                {siteA.name}
+      {/* 3. SITE SELECTION CARDS (SIDE-BY-SIDE BORDERLESS) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {/* Scenario Alpha Card */}
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-4">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
+              <span className="font-display font-bold text-xs uppercase tracking-wider text-sky-300">
+                Scenario Alpha
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
@@ -187,77 +190,37 @@ export function Compare({
             </span>
           </div>
 
-          {/* Controls Header */}
-          <div className="space-y-3 bg-[#03060c]/80 p-4 rounded-2xl border border-sky-500/15">
-            <SitePicker
-              sites={sites}
-              selectedSite={siteA}
-              onSelectSite={(newSite) => {
-                if (newSite.id.startsWith('custom-')) {
-                  setScenarioA(prev => ({ ...prev, siteId: newSite.id, customSite: newSite }));
-                } else {
-                  setScenarioA(prev => ({ ...prev, siteId: newSite.id, customSite: null }));
-                }
-              }}
-              colorVariant="sky"
-            />
-
-            <DateControls
-              launchDate={scenarioA.launchDate}
-              onLaunchDateChange={(d) => setScenarioA(prev => ({ ...prev, launchDate: d }))}
-              transitDays={scenarioA.transitDays}
-              onTransitDaysChange={(td) => setScenarioA(prev => ({ ...prev, transitDays: td }))}
-              missionDays={missionDays}
-              onMissionDaysChange={setMissionDays}
-              colorVariant="sky"
-            />
-          </div>
-
-          {/* 3D Scene Panel */}
-          <ScenePanel
-            siteId={siteA.id}
-            terrainType={siteA.terrainType}
-            sunEl={liveA.sunEl}
-            sunAz={liveA.sunAz}
-            earthEl={liveA.earthEl}
-            earthAz={liveA.earthAz}
-            viewMode={viewMode}
-            quality={quality}
-            label={`${siteA.name} [ALPHA]`}
-            landerHeight={objectHeightM}
-          />
-
-          {/* Timeline Chart */}
-          <Timeline
-            series={seriesA}
-            startUTC={landingA}
-            tRel={tRel}
-            onSeek={setTRel}
+          <SitePicker
+            sites={sites}
+            selectedSite={siteA}
+            onSelectSite={(newSite) => {
+              if (newSite.id.startsWith('custom-')) {
+                setScenarioA(prev => ({ ...prev, siteId: newSite.id, customSite: newSite }));
+              } else {
+                setScenarioA(prev => ({ ...prev, siteId: newSite.id, customSite: null }));
+              }
+            }}
             colorVariant="sky"
-            stats={statsA}
           />
 
-          {/* Metrics & Verdict Panel */}
-          <MetricsPanel
-            liveAngles={liveA}
-            stats={statsA}
-            verdict={verdictA}
-            objectHeightM={objectHeightM}
-            timeToSunset={timeToSunsetA}
-            timeToEarthset={timeToEarthsetA}
-            compareStats={statsB}
+          <DateControls
+            launchDate={scenarioA.launchDate}
+            onLaunchDateChange={(d) => setScenarioA(prev => ({ ...prev, launchDate: d }))}
+            transitDays={scenarioA.transitDays}
+            onTransitDaysChange={(td) => setScenarioA(prev => ({ ...prev, transitDays: td }))}
+            missionDays={missionDays}
+            onMissionDaysChange={setMissionDays}
             colorVariant="sky"
           />
         </div>
 
-        {/* Scenario B Column */}
-        <div className="glass-panel-amber rounded-3xl p-5 space-y-5 flex flex-col transition-all duration-300">
-          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_#fb923c] animate-pulse"></span>
-              <span className="font-display font-bold text-sm text-amber-400 tracking-wider">SCENARIO BRAVO</span>
-              <span className="text-xs font-mono text-slate-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
-                {siteB.name}
+        {/* Scenario Bravo Card */}
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.8)] space-y-4">
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fb923c]"></span>
+              <span className="font-display font-bold text-xs uppercase tracking-wider text-amber-300">
+                Scenario Bravo
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
@@ -265,81 +228,288 @@ export function Compare({
             </span>
           </div>
 
-          {/* Controls Header */}
-          <div className="space-y-3 bg-[#0a0604]/80 p-4 rounded-2xl border border-amber-500/15">
-            {compareMode === 'sites' ? (
-              <SitePicker
-                sites={sites}
-                selectedSite={siteB}
-                onSelectSite={(newSite) => {
-                  if (newSite.id.startsWith('custom-')) {
-                    setScenarioB(prev => ({ ...prev, siteId: newSite.id, customSite: newSite }));
-                  } else {
-                    setScenarioB(prev => ({ ...prev, siteId: newSite.id, customSite: null }));
-                  }
-                }}
-                colorVariant="amber"
-              />
-            ) : (
-              <div className="text-xs text-slate-400 font-mono py-2 px-3 bg-black/50 rounded-xl border border-amber-500/20">
-                Anchor Site: <span className="text-amber-300 font-bold">{siteA.name}</span> (Locked for Slip Sensitivity Study)
-              </div>
-            )}
-
-            <DateControls
-              launchDate={scenarioB.launchDate}
-              onLaunchDateChange={(d) => setScenarioB(prev => ({ ...prev, launchDate: d }))}
-              transitDays={scenarioB.transitDays}
-              onTransitDaysChange={(td) => setScenarioB(prev => ({ ...prev, transitDays: td }))}
-              missionDays={missionDays}
-              showSlipSlider={compareMode === 'dates'}
-              slipDays={slipDays}
-              onSlipDaysChange={(days) => {
-                setSlipDays(days);
-                const baseDate = new Date(scenarioA.launchDate);
-                baseDate.setDate(baseDate.getDate() + days);
-                setScenarioB(prev => ({ ...prev, launchDate: baseDate.toISOString() }));
+          {compareMode === 'sites' ? (
+            <SitePicker
+              sites={sites}
+              selectedSite={siteB}
+              onSelectSite={(newSite) => {
+                if (newSite.id.startsWith('custom-')) {
+                  setScenarioB(prev => ({ ...prev, siteId: newSite.id, customSite: newSite }));
+                } else {
+                  setScenarioB(prev => ({ ...prev, siteId: newSite.id, customSite: null }));
+                }
               }}
-              slipDeltaSummary={`Slip ${slipDays > 0 ? `+${slipDays}d` : `${slipDays}d`}: Landing ${landingB.toISOString().slice(0, 10)} | Verdict: ${verdictB.level.toUpperCase()}`}
               colorVariant="amber"
             />
+          ) : (
+            <div className="text-xs text-slate-400 font-mono py-2.5 px-3 bg-black/40 rounded-2xl">
+              Anchor Site: <span className="text-amber-300 font-bold">{siteA.name}</span> (Locked for Slip Study)
+            </div>
+          )}
+
+          <DateControls
+            launchDate={scenarioB.launchDate}
+            onLaunchDateChange={(d) => setScenarioB(prev => ({ ...prev, launchDate: d }))}
+            transitDays={scenarioB.transitDays}
+            onTransitDaysChange={(td) => setScenarioB(prev => ({ ...prev, transitDays: td }))}
+            missionDays={missionDays}
+            showSlipSlider={compareMode === 'dates'}
+            slipDays={slipDays}
+            onSlipDaysChange={(days) => {
+              setSlipDays(days);
+              const baseDate = new Date(scenarioA.launchDate);
+              baseDate.setDate(baseDate.getDate() + days);
+              setScenarioB(prev => ({ ...prev, launchDate: baseDate.toISOString() }));
+            }}
+            colorVariant="amber"
+          />
+        </div>
+      </div>
+
+      {/* 4. 3D SURFACE VIEWS (SIDE-BY-SIDE BORDERLESS CARDS) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="text-[11px] font-mono text-sky-400 font-bold mb-2 flex items-center justify-between">
+            <span>{siteA.name}</span>
+            <span className="text-slate-400 font-normal">Sun {liveA.sunEl > 0 ? `+${liveA.sunEl.toFixed(1)}°` : `${liveA.sunEl.toFixed(1)}°`}</span>
+          </div>
+          <div className="rounded-2xl overflow-hidden h-56">
+            <ScenePanel
+              siteId={siteA.id}
+              terrainType={siteA.terrainType}
+              sunEl={liveA.sunEl}
+              sunAz={liveA.sunAz}
+              earthEl={liveA.earthEl}
+              earthAz={liveA.earthAz}
+              viewMode={viewMode}
+              quality={quality}
+              label={siteA.name}
+              landerHeight={objectHeightM}
+            />
+          </div>
+        </div>
+
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden">
+          <div className="text-[11px] font-mono text-amber-400 font-bold mb-2 flex items-center justify-between">
+            <span>{siteB.name}</span>
+            <span className="text-slate-400 font-normal">Sun {liveB.sunEl > 0 ? `+${liveB.sunEl.toFixed(1)}°` : `${liveB.sunEl.toFixed(1)}°`}</span>
+          </div>
+          <div className="rounded-2xl overflow-hidden h-56">
+            <ScenePanel
+              siteId={siteB.id}
+              terrainType={siteB.terrainType}
+              sunEl={liveB.sunEl}
+              sunAz={liveB.sunAz}
+              earthEl={liveB.earthEl}
+              earthAz={liveB.earthAz}
+              viewMode={viewMode}
+              quality={quality}
+              label={siteB.name}
+              landerHeight={objectHeightM}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 5. CORE MISSION COMPARISON CARDS (ASPECT BY ASPECT - BORDERLESS) */}
+      <div className="space-y-5">
+        {/* ASPECT 1: SOLAR ILLUMINATION & POWER */}
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">☀️</span>
+              <div>
+                <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
+                  Aspect 1: Solar Illumination & Power Generation
+                </h3>
+                <p className="text-[11px] text-slate-400 font-sans">
+                  Assessing solar array viability and battery endurance required across the 14-day surface mission.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-amber-400/15 text-amber-300">
+              {statsA.sunlitFraction >= statsB.sunlitFraction ? `Winner: ${siteA.name}` : `Winner: ${siteB.name}`}
+            </span>
           </div>
 
-          {/* 3D Scene Panel */}
-          <ScenePanel
-            siteId={siteB.id}
-            terrainType={siteB.terrainType}
-            sunEl={liveB.sunEl}
-            sunAz={liveB.sunAz}
-            earthEl={liveB.earthEl}
-            earthAz={liveB.earthAz}
-            viewMode={viewMode}
-            quality={quality}
-            label={`${siteB.name} [BRAVO]`}
-            landerHeight={objectHeightM}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+            {/* Alpha Solar Metrics */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-sky-400 font-bold">
+                <span>{siteA.name}</span>
+                <span className="text-base text-amber-300">{sunPctA}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-2">
+                <div className="bg-sky-400 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, statsA.sunlitFraction * 100))}%` }}></div>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Sunlit Duration:</span>
+                <strong className="text-white">{statsA.sunlitHours}h / {durationHours}h</strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Peak Thermal Blackout:</span>
+                <strong className={statsA.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}>
+                  {statsA.longestDarkHours} hours
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Next Sunset:</span>
+                <span className="text-slate-400">{timeToSunsetA !== null ? `${timeToSunsetA}h` : 'No sunset'}</span>
+              </div>
+            </div>
 
-          {/* Timeline Chart */}
-          <Timeline
-            series={seriesB}
-            startUTC={landingB}
-            tRel={tRel}
-            onSeek={setTRel}
-            colorVariant="amber"
-            stats={statsB}
-          />
+            {/* Bravo Solar Metrics */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-amber-400 font-bold">
+                <span>{siteB.name}</span>
+                <span className="text-base text-amber-300">{sunPctB}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-2">
+                <div className="bg-amber-400 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, statsB.sunlitFraction * 100))}%` }}></div>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Sunlit Duration:</span>
+                <strong className="text-white">{statsB.sunlitHours}h / {durationHours}h</strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Peak Thermal Blackout:</span>
+                <strong className={statsB.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}>
+                  {statsB.longestDarkHours} hours
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Next Sunset:</span>
+                <span className="text-slate-400">{timeToSunsetB !== null ? `${timeToSunsetB}h` : 'No sunset'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          {/* Metrics & Verdict Panel */}
-          <MetricsPanel
-            liveAngles={liveB}
-            stats={statsB}
-            verdict={verdictB}
-            objectHeightM={objectHeightM}
-            timeToSunset={timeToSunsetB}
-            timeToEarthset={timeToEarthsetB}
-            compareStats={statsA}
-            colorVariant="amber"
-          />
+        {/* ASPECT 2: DIRECT-TO-EARTH COMMUNICATION */}
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🌍</span>
+              <div>
+                <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
+                  Aspect 2: Direct-To-Earth Communication
+                </h3>
+                <p className="text-[11px] text-slate-400 font-sans">
+                  Direct Deep Space Network (DSN) visibility without requiring orbital relay satellites.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-3 py-1 rounded-full bg-cyan-400/15 text-cyan-300">
+              {statsA.earthVisibleFraction >= statsB.earthVisibleFraction ? `Winner: ${siteA.name}` : `Winner: ${siteB.name}`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+            {/* Alpha Comms Metrics */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-sky-400 font-bold">
+                <span>{siteA.name}</span>
+                <span className="text-base text-cyan-300">{earthPctA}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-2">
+                <div className="bg-cyan-400 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, statsA.earthVisibleFraction * 100))}%` }}></div>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Earth Elevation:</span>
+                <strong className={liveA.earthEl > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {liveA.earthEl > 0 ? `+${liveA.earthEl.toFixed(1)}°` : `${liveA.earthEl.toFixed(1)}°`}
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>RF Lock Status:</span>
+                <strong className={liveA.earthEl > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {liveA.earthEl > 0 ? 'Direct DSN Locked' : 'Occulted by Rim'}
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Longest Comms Blackout:</span>
+                <span className="text-slate-400">{statsA.longestEarthGapHours} hours</span>
+              </div>
+            </div>
+
+            {/* Bravo Comms Metrics */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2.5">
+              <div className="flex items-center justify-between text-amber-400 font-bold">
+                <span>{siteB.name}</span>
+                <span className="text-base text-cyan-300">{earthPctB}%</span>
+              </div>
+              <div className="w-full bg-slate-800 rounded-full h-2">
+                <div className="bg-amber-400 h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, Math.max(0, statsB.earthVisibleFraction * 100))}%` }}></div>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Earth Elevation:</span>
+                <strong className={liveB.earthEl > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {liveB.earthEl > 0 ? `+${liveB.earthEl.toFixed(1)}°` : `${liveB.earthEl.toFixed(1)}°`}
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>RF Lock Status:</span>
+                <strong className={liveB.earthEl > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {liveB.earthEl > 0 ? 'Direct DSN Locked' : 'Occulted by Rim'}
+                </strong>
+              </div>
+              <div className="flex justify-between text-[11px] text-slate-300">
+                <span>Longest Comms Blackout:</span>
+                <span className="text-slate-400">{statsB.longestEarthGapHours} hours</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ASPECT 3: FLIGHT VERDICT & MISSION RECOMMENDATION */}
+        <div className="border-0 bg-slate-950/75 backdrop-blur-2xl rounded-3xl p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center gap-2.5 mb-4">
+            <span className="text-xl">🎯</span>
+            <div>
+              <h3 className="font-display font-bold text-sm text-white uppercase tracking-wider">
+                Aspect 3: Flight Viability Verdict & Recommendation
+              </h3>
+              <p className="text-[11px] text-slate-400 font-sans">
+                Comparative synthesis for mission planners, engineers, and educators.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+            {/* Alpha Verdict Card */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sky-400 font-bold">{siteA.name}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  verdictA.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-300' :
+                  verdictA.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-rose-500/20 text-rose-300'
+                }`}>
+                  {verdictA.badge}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                {verdictA.reason}
+              </p>
+            </div>
+
+            {/* Bravo Verdict Card */}
+            <div className="bg-black/40 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-amber-400 font-bold">{siteB.name}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  verdictB.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-300' :
+                  verdictB.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-300' :
+                  'bg-rose-500/20 text-rose-300'
+                }`}>
+                  {verdictB.badge}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 font-sans leading-relaxed">
+                {verdictB.reason}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -15,18 +15,13 @@ function latLonToVector3(lat, lon, radius) {
 
 /**
  * src/components/story/SpaceIntroScene.jsx
- * Authentic NASA Mission Flow:
  * 1. Deep Space Overview (Sun, Earth, Moon).
  * 2. Smooth zoom to Lunar Orbit:
  *    - Moon revolves in 3D right in front of user.
  *    - Interactive: Drag to spin Moon 360°, click ANY spot on Moon to point & set landing target!
- *    - Landmark pins mapped directly on Moon (Shackleton, Malapert, Haworth, IM-1, Chandrayaan-3, Apollo 11).
- *    - Minimal glassmorphism options card on side (Target, Launch Date, Transit).
- * 3. Physics-based Flight:
- *    - Camera pans to Earth.
- *    - Spacecraft departs Earth along real cislunar TLI transfer curve.
- *    - Spacecraft executes Lunar Orbit Insertion (LOI) braking burn and completes a circular lunar orbit.
- *    - Powered Descent Initiative (PDI) burns down to the pointed landing target -> Touchdown!
+ *    - Labeled landmark pins directly on the Moon (Shackleton, Malapert, Haworth, IM-1, Chandrayaan-3, Apollo 11).
+ *    - Minimal glassmorphism card on side without covering Moon.
+ * 3. Direct descent to selected coordinates -> Touchdown!
  */
 export function SpaceIntroScene({
   onReachedMoon,
@@ -43,15 +38,10 @@ export function SpaceIntroScene({
   const animFrameRef = useRef(null);
   const sceneElementsRef = useRef(null);
 
-  // Phases: 'overview' | 'zooming-to-moon' | 'moon-orbit' | 'panning-to-earth' | 'transit-tli' | 'lunar-orbit-insertion' | 'powered-descent'
+  // Phases: 'overview' | 'zooming-to-moon' | 'moon-orbit' | 'descent'
   const [phase, setPhase] = useState('overview');
   const [customPointedCoords, setCustomPointedCoords] = useState(null);
-  const [flightTelemetry, setFlightTelemetry] = useState({
-    status: 'STANDBY',
-    velocity: '0.0 km/s',
-    progress: 0,
-    stage: 'Orbit Preparation'
-  });
+  const [screenLabels, setScreenLabels] = useState([]);
 
   const activeSite = customPointedCoords
     ? { id: 'pointed-site', name: `Pointed Site (${customPointedCoords.lat.toFixed(1)}°, ${customPointedCoords.lon.toFixed(1)}°)`, lat: customPointedCoords.lat, lon: customPointedCoords.lon, terrainType: 'plain' }
@@ -211,56 +201,10 @@ export function SpaceIntroScene({
     const markerGeo = new THREE.RingGeometry(0.8, 1.25, 32);
     const markerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
     const targetReticle = new THREE.Mesh(markerGeo, markerMat);
-    // Initial position at active site coordinates
     const initReticlePos = latLonToVector3(activeSite.lat, activeSite.lon, MOON_RADIUS + 0.08);
     targetReticle.position.copy(initReticlePos);
     targetReticle.lookAt(targetReticle.position.clone().multiplyScalar(2));
     moonGroup.add(targetReticle);
-
-    // 7. Spacecraft Model with Rocket Plume
-    const spacecraftGroup = new THREE.Group();
-    const capsuleGeo = new THREE.ConeGeometry(0.7, 1.2, 16);
-    const capsuleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.85, roughness: 0.2 });
-    const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
-    capsule.rotation.x = Math.PI / 2;
-    spacecraftGroup.add(capsule);
-
-    const smGeo = new THREE.CylinderGeometry(0.7, 0.7, 1.3, 16);
-    const smMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.25 });
-    const sm = new THREE.Mesh(smGeo, smMat);
-    sm.position.z = -1.0;
-    sm.rotation.x = Math.PI / 2;
-    spacecraftGroup.add(sm);
-
-    const wingGeo = new THREE.BoxGeometry(3.4, 0.45, 0.04);
-    const wingMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, metalness: 0.85, roughness: 0.2 });
-    const wings = new THREE.Mesh(wingGeo, wingMat);
-    wings.position.z = -1.0;
-    spacecraftGroup.add(wings);
-
-    const plumeGeo = new THREE.ConeGeometry(0.4, 1.4, 12);
-    const plumeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.85 });
-    const plume = new THREE.Mesh(plumeGeo, plumeMat);
-    plume.position.z = -2.1;
-    plume.rotation.x = -Math.PI / 2;
-    spacecraftGroup.add(plume);
-
-    spacecraftGroup.visible = false;
-    scene.add(spacecraftGroup);
-
-    // 8. Translunar Injection (TLI) Trajectory Arc
-    const p0 = new THREE.Vector3(-30, 8, 40); // Earth departure
-    const p1 = new THREE.Vector3(-5, 34, 48);  // High transfer arc
-    const p2 = new THREE.Vector3(26, 22, 28);  // Cislunar coast
-    const p3 = new THREE.Vector3(48, 8, 30);   // Lunar approach insertion point
-    const tliCurve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
-
-    const curvePoints = tliCurve.getPoints(90);
-    const curveGeo = new THREE.BufferGeometry().setFromPoints(curvePoints);
-    const curveMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.65 });
-    const trajectoryLine = new THREE.Line(curveGeo, curveMat);
-    trajectoryLine.visible = false;
-    scene.add(trajectoryLine);
 
     // Store state in ref
     sceneElementsRef.current = {
@@ -272,17 +216,12 @@ export function SpaceIntroScene({
       moonGroup,
       sunMesh,
       targetReticle,
-      spacecraftGroup,
-      plume,
-      trajectoryLine,
-      tliCurve,
       landmarkPins,
       phase: 'overview',
-      progress: 0,
-      orbitAngle: 0
+      progress: 0
     };
 
-    // 9. Interactive Drag-to-Rotate & Click-to-Point Landing Target on Moon
+    // 7. Interactive Drag-to-Rotate & Click-to-Point Landing Target on Moon
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let isDragging = false;
@@ -314,7 +253,7 @@ export function SpaceIntroScene({
       const el = sceneElementsRef.current;
       if (!el || el.phase !== 'moon-orbit') return;
 
-      // If user clicked (drag distance < 6px), raycast to point a landing spot on the Moon!
+      // Click to point a landing spot on the Moon
       if (dragDistance < 6) {
         const rect = container.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -378,7 +317,7 @@ export function SpaceIntroScene({
     };
     window.addEventListener('resize', handleResize);
 
-    // 10. ANIMATION LOOP
+    // 8. ANIMATION LOOP
     let clock = new THREE.Clock();
     const animate = () => {
       animFrameRef.current = requestAnimationFrame(animate);
@@ -393,11 +332,6 @@ export function SpaceIntroScene({
       const s = 1.0 + Math.sin(elapsed * 4) * 0.18;
       targetReticle.scale.set(s, s, s);
 
-      // Flickering rocket plume
-      if (spacecraftGroup.visible) {
-        plume.scale.set(1, 1 + Math.sin(elapsed * 25) * 0.25, 1);
-      }
-
       const el = sceneElementsRef.current;
       if (!el) return;
 
@@ -406,9 +340,39 @@ export function SpaceIntroScene({
         moonMesh.rotation.y += delta * 0.04;
       }
 
+      // Project 3D landmark pins to 2D screen labels
+      if (el.phase === 'moon-orbit') {
+        const labels = [];
+        landmarkPins.forEach((pin) => {
+          const worldPos = new THREE.Vector3();
+          pin.getWorldPosition(worldPos);
+
+          // Check if facing the camera
+          const dirToCam = camera.position.clone().sub(worldPos).normalize();
+          const normal = worldPos.clone().sub(moonGroup.position).normalize();
+          const dot = dirToCam.dot(normal);
+
+          if (dot > 0.15) {
+            const screenPos = worldPos.clone().project(camera);
+            const x = (screenPos.x * 0.5 + 0.5) * width;
+            const y = (-screenPos.y * 0.5 + 0.5) * height;
+            labels.push({
+              id: pin.userData.siteId,
+              name: pin.userData.siteName.replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', '').replace(' Crater Rim', '').replace(' Massif', ''),
+              lat: pin.userData.lat,
+              x,
+              y
+            });
+          }
+        });
+        setScreenLabels(labels);
+      } else {
+        if (screenLabels.length > 0) setScreenLabels([]);
+      }
+
       // PHASE A: ZOOMING TO MOON ORBIT
       if (el.phase === 'zooming-to-moon') {
-        el.progress = Math.min(1.0, el.progress + delta * 0.45);
+        el.progress = Math.min(1.0, el.progress + delta * 0.5);
         const t = el.progress;
         const ease = 1 - Math.pow(1 - t, 3);
 
@@ -427,126 +391,19 @@ export function SpaceIntroScene({
         }
       }
 
-      // PHASE B: PANNING BACK TO EARTH FOR LAUNCH
-      else if (el.phase === 'panning-to-earth') {
+      // PHASE B: DESCENT TO CHOSEN SURFACE COORDINATES
+      else if (el.phase === 'descent') {
         el.progress = Math.min(1.0, el.progress + delta * 0.65);
         const t = el.progress;
         const ease = 1 - Math.pow(1 - t, 3);
 
-        const startCam = new THREE.Vector3(48, 2, 42);
-        const earthCam = new THREE.Vector3(-30, 24, 82);
-        camera.position.lerpVectors(startCam, earthCam, ease);
-
-        const lookStart = new THREE.Vector3(48, 8, 15);
-        const lookEarth = new THREE.Vector3(-30, 0, 40);
-        const look = new THREE.Vector3().lerpVectors(lookStart, lookEarth, ease);
-        camera.lookAt(look);
-
-        if (t >= 1.0) {
-          el.phase = 'transit-tli';
-          setPhase('transit-tli');
-          el.progress = 0;
-          spacecraftGroup.visible = true;
-          trajectoryLine.visible = true;
-        }
-      }
-
-      // PHASE C: TRANSLUNAR INJECTION & CISLUNAR FLIGHT (Earth -> Lunar Approach)
-      else if (el.phase === 'transit-tli') {
-        el.progress = Math.min(1.0, el.progress + delta * 0.28); // ~3.5 seconds
-        const t = el.progress;
-
-        const pos = tliCurve.getPoint(t);
-        spacecraftGroup.position.copy(pos);
-
-        const tangent = tliCurve.getTangent(t).normalize();
-        spacecraftGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
-
-        camera.position.set(pos.x + 8, pos.y + 10, pos.z + 16);
-        camera.lookAt(pos);
-
-        const vel = (10.9 - t * 8.5).toFixed(1);
-        setFlightTelemetry({
-          status: 'TRANSLUNAR INJECTION',
-          velocity: `${vel} km/s`,
-          progress: Math.floor(t * 60),
-          stage: t < 0.25 ? 'TLI Burn (Translunar Injection)' : 'Cislunar Coast Trajectory'
-        });
-
-        if (t >= 1.0) {
-          // Arrived at Moon approach -> transition to Lunar Orbit Insertion (LOI)!
-          el.phase = 'lunar-orbit-insertion';
-          setPhase('lunar-orbit-insertion');
-          el.progress = 0;
-          el.orbitAngle = -Math.PI / 2;
-        }
-      }
-
-      // PHASE D: LUNAR ORBIT INSERTION (LOI) - Braking Burn & Circular Lunar Orbit!
-      else if (el.phase === 'lunar-orbit-insertion') {
-        el.progress = Math.min(1.0, el.progress + delta * 0.35); // ~2.8 seconds
-        const t = el.progress;
-
-        // Circular Orbit radius around Moon
-        const orbitRadius = 14.2;
-        el.orbitAngle += delta * 1.8;
-        const angle = el.orbitAngle;
-
-        // Position on 3D lunar orbit plane
-        const orbitX = 48 + Math.cos(angle) * orbitRadius;
-        const orbitY = 8 + Math.sin(angle * 0.5) * 3.5;
-        const orbitZ = 15 + Math.sin(angle) * orbitRadius;
-        spacecraftGroup.position.set(orbitX, orbitY, orbitZ);
-
-        // Turn retrograde for braking burn
-        const tangent = new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle)).normalize();
-        spacecraftGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), tangent);
-
-        camera.position.set(48 + Math.cos(angle + 0.5) * 26, 12, 15 + Math.sin(angle + 0.5) * 26);
-        camera.lookAt(48, 8, 15);
-
-        setFlightTelemetry({
-          status: 'LUNAR ORBIT INSERTION (LOI)',
-          velocity: '1.63 km/s',
-          progress: 60 + Math.floor(t * 25),
-          stage: '100 km Circular Lunar Orbit • Braking Burn'
-        });
-
-        if (t >= 1.0) {
-          // Ready for powered descent to landing target!
-          el.phase = 'powered-descent';
-          setPhase('powered-descent');
-          el.progress = 0;
-        }
-      }
-
-      // PHASE E: POWERED DESCENT INITIATIVE (PDI) - Descent to Targeted Spot -> Touchdown!
-      else if (el.phase === 'powered-descent') {
-        el.progress = Math.min(1.0, el.progress + delta * 0.45); // ~2.2 seconds
-        const t = el.progress;
-        const ease = 1 - Math.pow(1 - t, 2);
-
-        // Target landing spot in world coordinates
         const targetWorld = new THREE.Vector3();
         targetReticle.getWorldPosition(targetWorld);
 
-        const startDeorbit = new THREE.Vector3(48 + 12, 12, 15);
-        spacecraftGroup.position.lerpVectors(startDeorbit, targetWorld, ease);
-
-        // Upright vertical orientation as it touches down
-        const surfaceNormal = targetWorld.clone().sub(moonGroup.position).normalize();
-        spacecraftGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
-
-        camera.position.set(targetWorld.x + (1 - ease) * 8 + 3, targetWorld.y + 4, targetWorld.z + 10);
+        const startCam = new THREE.Vector3(48, 2, 42);
+        const closeCam = targetWorld.clone().add(new THREE.Vector3(2, 4, 6));
+        camera.position.lerpVectors(startCam, closeCam, ease);
         camera.lookAt(targetWorld);
-
-        const altM = Math.max(0, Math.floor((1 - t) * 12000));
-        setFlightTelemetry({
-          status: 'POWERED DESCENT (PDI)',
-          velocity: `${(1.6 * (1 - t)).toFixed(1)} km/s`,
-          progress: 85 + Math.floor(t * 15),
-          stage: altM > 0 ? `Radar Alt: ${altM}m • Terminal Descent` : 'Touchdown Confirmed!'
-        });
 
         if (t >= 1.0) {
           el.phase = 'landed';
@@ -579,7 +436,7 @@ export function SpaceIntroScene({
     };
   }, []);
 
-  // Handler: User initiates approach from solar overview
+  // Handlers
   const handleInitiateApproach = () => {
     if (sceneElementsRef.current) {
       sceneElementsRef.current.phase = 'zooming-to-moon';
@@ -588,12 +445,11 @@ export function SpaceIntroScene({
     }
   };
 
-  // Handler: User launches mission after selecting / pointing coordinates
-  const handleLaunchFromEarth = () => {
+  const handleDescendToSite = () => {
     if (sceneElementsRef.current) {
-      sceneElementsRef.current.phase = 'panning-to-earth';
+      sceneElementsRef.current.phase = 'descent';
       sceneElementsRef.current.progress = 0;
-      setPhase('panning-to-earth');
+      setPhase('descent');
     }
   };
 
@@ -602,11 +458,36 @@ export function SpaceIntroScene({
       {/* 3D WebGL Canvas */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />
 
+      {/* Dynamic 3D Landmark Labels Screen Overlay */}
+      {phase === 'moon-orbit' && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {screenLabels.map((lbl) => (
+            <div
+              key={lbl.id}
+              style={{
+                position: 'absolute',
+                left: `${lbl.x}px`,
+                top: `${lbl.y}px`,
+                transform: 'translate(-50%, -130%)'
+              }}
+              className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-lg border-0 shadow-lg text-[10px] font-mono text-slate-200 pointer-events-auto cursor-pointer hover:bg-sky-500 hover:text-black transition flex items-center gap-1"
+              onClick={() => {
+                setCustomPointedCoords(null);
+                if (onSelectSite) onSelectSite(lbl.id);
+              }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+              <span>{lbl.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 1. OVERVIEW SCREEN: Center Card */}
       {phase === 'overview' && (
         <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 bg-radial from-transparent via-black/20 to-black/70 pointer-events-none">
-          <div className="max-w-lg w-full bg-black/45 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 sm:p-8 space-y-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] pointer-events-auto text-center animate-in fade-in zoom-in-95 duration-500">
-            <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/30">
+          <div className="max-w-lg w-full bg-black/45 backdrop-blur-2xl border-0 rounded-3xl p-6 sm:p-8 space-y-5 shadow-[0_10px_50px_rgba(0,0,0,0.8)] pointer-events-auto text-center animate-in fade-in zoom-in-95 duration-500">
+            <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold px-3 py-1 rounded-full bg-sky-500/10">
               NASA Space Apps Challenge 2026
             </span>
             <h1 className="text-3xl sm:text-5xl font-display font-extrabold text-white tracking-tight">
@@ -625,7 +506,7 @@ export function SpaceIntroScene({
               </button>
               <button
                 onClick={onSkipIntro}
-                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/15 text-xs font-mono transition cursor-pointer"
+                className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-white/10 hover:bg-white/20 text-slate-200 text-xs font-mono transition cursor-pointer"
               >
                 Direct to Surface
               </button>
@@ -638,30 +519,30 @@ export function SpaceIntroScene({
       {phase === 'moon-orbit' && (
         <div className="absolute inset-0 z-20 flex items-center justify-between p-6 sm:p-10 pointer-events-none">
           {/* Left Side Options Panel (Does NOT cover the Moon!) */}
-          <div className="max-w-md w-full bg-black/50 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 space-y-4 shadow-[0_10px_50px_rgba(0,0,0,0.8)] pointer-events-auto animate-in slide-in-from-left duration-500">
+          <div className="max-w-md w-full bg-black/55 backdrop-blur-2xl border-0 rounded-3xl p-6 space-y-4 shadow-[0_15px_60px_rgba(0,0,0,0.85)] pointer-events-auto animate-in slide-in-from-left duration-400">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
                 <span className="text-[10px] font-mono tracking-widest text-sky-400 uppercase font-bold block">
-                  LUNAR ORBIT HOLDING
+                  LUNAR ORBIT SELECTION
                 </span>
                 <h2 className="text-lg font-display font-bold text-white mt-0.5">
-                  Point Target & Launch Date
+                  Point Landing Spot & Date
                 </h2>
               </div>
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
             </div>
 
-            {/* Interactive Instructions Badge */}
-            <div className="bg-sky-500/10 border border-sky-400/30 rounded-2xl p-2.5 text-[11px] font-mono text-sky-300 flex items-center gap-2">
-              <span className="text-base">👆</span>
-              <span><strong>Interactive:</strong> Drag to spin Moon. Click <em>anywhere on Moon</em> to point your landing spot!</span>
+            {/* Interactive Instructions */}
+            <div className="bg-sky-500/10 rounded-2xl p-3 text-[11px] font-mono text-sky-300 flex items-center gap-2.5">
+              <span className="text-lg">👆</span>
+              <span><strong>Interactive:</strong> Drag to spin Moon 360°. Click <em>any spot on the Moon</em> to set your custom landing point!</span>
             </div>
 
             {/* Target Site Selector */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-[10px] font-mono">
-                <span className="text-slate-400 uppercase font-semibold">Landing Target:</span>
+                <span className="text-slate-400 uppercase font-semibold">Selected Spot:</span>
                 <span className="text-sky-400 font-bold">{activeSite.lat > 0 ? `+${activeSite.lat.toFixed(1)}°` : `${activeSite.lat.toFixed(1)}°`} S, {activeSite.lon > 0 ? `+${activeSite.lon.toFixed(1)}°` : `${activeSite.lon.toFixed(1)}°`} E</span>
               </div>
               <select
@@ -674,7 +555,7 @@ export function SpaceIntroScene({
                     if (onSelectSite) onSelectSite(e.target.value);
                   }
                 }}
-                className="w-full bg-black/60 border border-white/15 rounded-xl px-3 py-2 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:border-sky-400"
+                className="w-full bg-black/60 border-0 rounded-xl px-3 py-2 text-slate-200 text-xs font-mono cursor-pointer focus:outline-none focus:ring-1 focus:ring-sky-400"
               >
                 {customPointedCoords && (
                   <option value="custom">🎯 {activeSite.name}</option>
@@ -699,7 +580,7 @@ export function SpaceIntroScene({
                   max="2028-01-10"
                   value={typeof launchDate === 'string' ? launchDate.slice(0, 10) : '2027-03-08'}
                   onChange={(e) => onLaunchDateChange && onLaunchDateChange(`${e.target.value}T00:00:00Z`)}
-                  className="w-full bg-black/60 border border-white/15 rounded-xl px-2.5 py-1.5 text-slate-200 text-xs font-mono focus:outline-none focus:border-sky-400"
+                  className="w-full bg-black/60 border-0 rounded-xl px-2.5 py-1.5 text-slate-200 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-400"
                 />
               </div>
 
@@ -722,85 +603,18 @@ export function SpaceIntroScene({
               </div>
             </div>
 
-            {/* Launch CTA */}
+            {/* Descent CTA */}
             <div className="pt-2 space-y-2">
               <button
-                onClick={handleLaunchFromEarth}
+                onClick={handleDescendToSite}
                 className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs font-mono tracking-wide transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2"
               >
                 <span>🚀</span>
-                <span>LAUNCH MISSION FROM EARTH</span>
+                <span>DESCENT TO LANDING SPOT</span>
               </button>
-              <div className="text-[10px] text-slate-500 font-mono text-center">
-                Pans back to Earth &rarr; TLI burn &rarr; Lunar Orbit Insertion &rarr; Powered Descent
+              <div className="text-[10px] text-slate-400 font-mono text-center">
+                Dives smoothly into {activeSite.name}
               </div>
-            </div>
-          </div>
-
-          {/* Right Floating Badge showing Mapped Places */}
-          <div className="hidden lg:block bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl p-4 text-xs font-mono space-y-2 pointer-events-auto">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold block border-b border-white/10 pb-1">
-              Mapped Polar Landmarks
-            </span>
-            <div className="space-y-1 text-[11px]">
-              {sites.slice(0, 5).map(s => (
-                <div
-                  key={s.id}
-                  onClick={() => {
-                    setCustomPointedCoords(null);
-                    if (onSelectSite) onSelectSite(s.id);
-                  }}
-                  className={`px-2 py-1 rounded-lg cursor-pointer transition flex items-center justify-between gap-3 ${
-                    s.id === selectedSiteId && !customPointedCoords ? 'bg-sky-500/20 text-sky-300 font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span className="truncate max-w-[140px]">{s.name.replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', '')}</span>
-                  <span className="text-[10px] opacity-70">{s.lat.toFixed(1)}° S</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. IN-FLIGHT TRANSLUNAR & ORBIT INSERTION TELEMETRY HUD */}
-      {(phase === 'transit-tli' || phase === 'lunar-orbit-insertion' || phase === 'powered-descent' || phase === 'panning-to-earth') && (
-        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6 sm:p-10 font-mono">
-          {/* Top Telemetry Header */}
-          <div className="flex justify-between items-start">
-            <div className="space-y-1 bg-black/60 backdrop-blur-xl p-3.5 rounded-2xl border border-sky-400/30 text-xs shadow-xl">
-              <div className="text-sky-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
-                {flightTelemetry.status}
-              </div>
-              <div className="text-slate-300 text-[11px]">
-                TARGET: {activeSite.name.toUpperCase()} ({activeSite.lat.toFixed(1)}° S, {activeSite.lon.toFixed(1)}° E)
-              </div>
-            </div>
-
-            <div className="text-right bg-black/60 backdrop-blur-xl p-3.5 rounded-2xl border border-white/10 text-xs shadow-xl">
-              <div className="text-slate-400 text-[10px]">CURRENT VELOCITY</div>
-              <div className="text-emerald-400 font-bold text-base">{flightTelemetry.velocity}</div>
-            </div>
-          </div>
-
-          {/* Bottom Trajectory Progress Gauge */}
-          <div className="max-w-md mx-auto w-full space-y-2 bg-black/70 backdrop-blur-2xl p-4 rounded-3xl border border-sky-400/30 text-center shadow-2xl">
-            <div className="flex justify-between text-xs text-sky-300 uppercase tracking-wider font-semibold">
-              <span>{flightTelemetry.stage}</span>
-              <span>{flightTelemetry.progress}%</span>
-            </div>
-            {/* Progress Bar */}
-            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-sky-500/20">
-              <div
-                className="h-full bg-gradient-to-r from-sky-500 via-cyan-400 to-emerald-400 transition-all duration-100 rounded-full"
-                style={{ width: `${flightTelemetry.progress}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-slate-400">
-              <span>Earth Exit</span>
-              <span>LOI Orbit (100km)</span>
-              <span>PDI Landing</span>
             </div>
           </div>
         </div>
