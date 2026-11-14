@@ -6,6 +6,7 @@ import { buildRocks } from './rocks.js'
 import { buildSky } from './sky.js'
 import { buildCompassRing } from './compass.js'
 import { createCameraController } from './cameraModes.js'
+import { getTierConfig, createPerformanceProbe } from './quality.js'
 import Hud from './Hud.jsx'
 
 /**
@@ -17,13 +18,14 @@ import Hud from './Hud.jsx'
  * @param {number} earthAz - Earth azimuth in degrees (0 to 360)
  * @param {string} siteId - Site identifier (e.g. 'shackleton', 'malapert')
  * @param {string} terrainType - 'crater-rim' | 'massif' | 'plain'
- * @param {string} viewMode - 'orbit' | 'astronaut' (optional; if omitted or toggled, uses internal state)
- * @param {string} quality - 'auto' | 'low' | 'medium' | 'high'
- * @param {string} label - Display label
- * @param {number} landerHeight - Lander height in meters (default 3)
- * @param {boolean} showHud - Show HUD overlay (default true)
- * @param {boolean} showShadowRuler - Show shadow ruler (default true)
+ * @param {string} [viewMode] - 'orbit' | 'astronaut' (optional; if omitted or toggled, uses internal state)
+ * @param {string} [quality='auto'] - 'auto' | 'low' | 'medium' | 'high'
+ * @param {string} [label] - Display label
+ * @param {number} [landerHeight=3] - Lander height in meters (default 3)
+ * @param {boolean} [showHud=true] - Show HUD overlay (default true)
+ * @param {boolean} [showShadowRuler=true] - Show shadow ruler (default true)
  * @param {string} [heightmapUrl] - Optional stretch goal heightmap URL
+ * @param {(tier: string) => void} [onTierChange] - Optional callback when quality tier changes or auto-downgrades
  */
 export default function Scene3D({
   sunEl = 2.0,
@@ -39,20 +41,21 @@ export default function Scene3D({
   showHud = true,
   showShadowRuler = true,
   heightmapUrl,
+  onTierChange,
 }) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
   const [internalViewMode, setInternalViewMode] = useState('orbit')
+  const [activeTier, setActiveTier] = useState(quality === 'auto' ? 'medium' : quality)
   const [notification, setNotification] = useState('')
 
-  // Active viewMode: prop takes precedence if explicitly passed, otherwise internal state
   const activeViewMode = propViewMode || internalViewMode
 
-  const getResolution = (q) => {
-    if (q === 'low') return 129
-    if (q === 'high') return 385
-    return 257
-  }
+  // Sync activeTier if quality prop changes from parent
+  useEffect(() => {
+    const nextTier = quality === 'auto' ? 'medium' : quality
+    setActiveTier(nextTier)
+  }, [quality])
 
   // (a) Initialize Three.js scene, renderer, camera & controllers
   useEffect(() => {
@@ -62,14 +65,16 @@ export default function Scene3D({
     let isDisposed = false
     let renderRequested = false
     let animFrameId = null
+    let isOffscreen = false
+    let isHidden = document.hidden
 
-    const tierMaxDpr = quality === 'low' ? 1.0 : quality === 'medium' ? 1.5 : 2.0
-    const pixelRatio = Math.min(window.devicePixelRatio || 1, tierMaxDpr)
+    const tierConfig = getTierConfig(activeTier)
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, tierConfig.dpr)
 
     let renderer
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: quality !== 'low',
+        antialias: tierConfig.antialias,
         powerPreference: 'default',
       })
     } catch (err) {
@@ -97,7 +102,7 @@ export default function Scene3D({
     // Harsh directional Sun light with tuned orthographic shadow frustum
     const sunLight = new THREE.DirectionalLight(0xffffff, 3.0)
     sunLight.castShadow = true
-    const shadowMapDim = quality === 'low' ? 1024 : 2048
+    const shadowMapDim = tierConfig.shadowMapSize
     sunLight.shadow.mapSize.width = shadowMapDim
     sunLight.shadow.mapSize.height = shadowMapDim
     sunLight.shadow.camera.left = -240
@@ -126,20 +131,20 @@ export default function Scene3D({
     scene.add(lander.group)
 
     // Sky system: Stars, Sun disk, Earth marker
-    const sky = buildSky({ quality })
+    const sky = buildSky({ quality: activeTier })
     scene.add(sky.group)
 
     // Compass ring at 190m radius
     const compass = buildCompassRing()
     scene.add(compass.group)
 
-    // Invalidate function for on-demand rendering
+    // Invalidate function for on-demand rendering (checks offscreen and tab visibility)
     const invalidate = () => {
-      if (isDisposed || renderRequested) return
+      if (isDisposed || renderRequested || isOffscreen || isHidden) return
       renderRequested = true
       animFrameId = requestAnimationFrame(() => {
         renderRequested = false
-        if (isDisposed) return
+        if (isDisposed || isOffscreen || isHidden) return
         renderer.render(scene, camera)
       })
     }
@@ -151,7 +156,7 @@ export default function Scene3D({
       invalidate,
       getPadY: () => ctxRef.current?.originPadHeight ?? 0,
       getHeightAt: (x, z) => ctxRef.current?.heightAt(x, z) ?? 0,
-      quality,
+      quality: activeTier,
       onNotification: (msg) => {
         setNotification(msg)
         setTimeout(() => setNotification(''), 3000)
@@ -174,6 +179,36 @@ export default function Scene3D({
     resizeObserver.observe(container)
     handleResize()
 
+    // IntersectionObserver to pause when scrolled offscreen
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      isOffscreen = !entry.isIntersecting
+      if (!isOffscreen) {
+        invalidate()
+      }
+    })
+    intersectionObserver.observe(container)
+
+    // Tab visibility change handler
+    const handleVisibilityChange = () => {
+      isHidden = document.hidden
+      if (!isHidden) {
+        invalidate()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Auto quality performance probe (runs only when quality='auto')
+    let perfProbe = null
+    if (quality === 'auto') {
+      perfProbe = createPerformanceProbe({
+        renderFrame: () => renderer.render(scene, camera),
+        onDowngrade: (newTier) => {
+          setActiveTier(newTier)
+          if (onTierChange) onTierChange(newTier)
+        },
+      })
+    }
+
     ctxRef.current = {
       renderer,
       scene,
@@ -193,7 +228,11 @@ export default function Scene3D({
       dispose: () => {
         isDisposed = true
         if (animFrameId) cancelAnimationFrame(animFrameId)
+        if (perfProbe) perfProbe.cancel()
+
         resizeObserver.disconnect()
+        intersectionObserver.disconnect()
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
         cameraController.dispose()
 
         if (canvas.parentNode) {
@@ -225,7 +264,7 @@ export default function Scene3D({
         ctxRef.current = null
       }
     }
-  }, [quality])
+  }, [activeTier])
 
   // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, sky bodies, and viewMode
   useEffect(() => {
@@ -305,7 +344,7 @@ export default function Scene3D({
     ctx.invalidate()
   }, [sunEl, sunAz, earthEl, earthAz, landerHeight, activeViewMode])
 
-  // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, quality, heightmapUrl)
+  // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, activeTier, heightmapUrl)
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
@@ -324,8 +363,8 @@ export default function Scene3D({
       ctx.terrainData = null
     }
 
-    const resolution = getResolution(quality)
-    const terrain = buildTerrain({ siteId, terrainType, resolution })
+    const tierConfig = getTierConfig(activeTier)
+    const terrain = buildTerrain({ siteId, terrainType, resolution: tierConfig.resolution })
     ctx.terrainData = terrain
     ctx.heightAt = terrain.heightAt
     ctx.originPadHeight = terrain.originPadHeight
@@ -337,7 +376,7 @@ export default function Scene3D({
     }
 
     // Build rocks and landmark scatter
-    const rocks = buildRocks({ siteId, quality, heightAt: terrain.heightAt })
+    const rocks = buildRocks({ siteId, quality: activeTier, heightAt: terrain.heightAt })
     ctx.rocksData = rocks
     ctx.scene.add(rocks.mesh)
 
@@ -366,7 +405,7 @@ export default function Scene3D({
     }
 
     ctx.invalidate()
-  }, [siteId, terrainType, quality, heightmapUrl])
+  }, [siteId, terrainType, activeTier, heightmapUrl])
 
   return (
     <div
@@ -394,7 +433,7 @@ export default function Scene3D({
           onLookSun={() => ctxRef.current?.cameraController?.lookAtSun(sunEl, sunAz)}
           onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(earthEl, earthAz)}
           onLookNorth={() => ctxRef.current?.cameraController?.lookNorth()}
-          quality={quality}
+          quality={activeTier}
         />
       )}
 

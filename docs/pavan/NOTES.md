@@ -16,11 +16,12 @@
 - `src/components/scene/compass.js`: Procedural 3D compass ring at 190m radius with circular baseline and cardinal sprites (N at -Z, E at +X, S at +Z, W at -X).
 - `src/components/scene/cameraModes.js`: Dual-mode camera controller supporting OrbitControls (fov 50, limits, terrain clamping) and Astronaut mode (fov 70, 1.7m eye height, pitch ±60° drag look, arrow keys, smooth look-at animation to Sun, Earth, and North).
 - `src/components/scene/Hud.jsx`: Dedicated DOM overlay with site label, "Illustrative terrain" honesty badge, live 0.1° Sun/Earth coordinate readouts, real-time lander shadow length and multiplier ratio, interactive view mode toggle, and astronaut quick-look actions.
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, and full StrictMode disposal.
+- `src/components/scene/quality.js`: Performance tier configurations (`low`, `medium`, `high`) and automatic 90-frame benchmarking probe that drops from medium to low if fps < 24.
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, IntersectionObserver off-screen pause, visibility change tab pause, quality auto-downgrade, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
-- `Scene3D` accepts all contract props: `sunEl`, `sunAz`, `earthEl`, `earthAz`, `siteId`, `terrainType`, `viewMode`, `quality`, `label`, `landerHeight`, `showHud`, `showShadowRuler`, `heightmapUrl`.
+- `Scene3D` accepts all contract props: `sunEl`, `sunAz`, `earthEl`, `earthAz`, `siteId`, `terrainType`, `viewMode`, `quality`, `label`, `landerHeight`, `showHud`, `showShadowRuler`, `heightmapUrl`, `onTierChange`.
 - Render occurs strictly on-demand via internal `invalidate()` whenever angles, dimensions, camera position, or scene configurations change.
 
 ## Decisions
@@ -35,6 +36,8 @@
 - Camera clamped above local terrain `y >= heightAt(x, z) + 1.0` and max polar angle set to `1.45 rad` so camera never penetrates lunar surface or clips beneath ground.
 - Astronaut camera mode places user 8-11m from lander at 1.7m eye height with fov 70; includes quick-look helpers with ease-out cubic transitions.
 - HUD overlay keeps `pointer-events: none` overall to allow seamless click/drag canvas controls, enabling `pointer-events: auto` strictly on interactive toggle buttons.
+- On-demand rendering coupled with IntersectionObserver off-screen detection and tab visibility events ensures 0% continuous GPU waste when hidden.
+- `quality="auto"` starts on medium, samples 90 frames, and downgrades to low if average FPS is under 24 (never auto-upgrades).
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -44,9 +47,10 @@
 - Shadow map size: `low` = 1024, `medium`/`high` = 2048.
 - Rock scatter takes <8ms to generate in 1 single draw call for all instances.
 - Stars rendered as single `THREE.Points` draw call with zero texture overhead.
+- Dual WebGL contexts run smoothly in sandbox side-by-side comparison mode.
 
 ## Known issues
-- Auto quality benchmark and downgrade calibration logic is up next in P-11.
+- WebGL failure fallback and hardening (`SkyDiagram.jsx` and ErrorBoundary) arrive in P-12.
 
 ## Requests to the other member / human
 - None at this time.
