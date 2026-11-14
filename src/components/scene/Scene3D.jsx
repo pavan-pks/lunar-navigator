@@ -67,13 +67,23 @@ function Scene3DInner({
   showShadowRuler = true,
   heightmapUrl,
   onTierChange,
+  onReturnToOrbit,
+  isSimulating = false,
+  onToggleSimulation,
+  onToggleShadowRuler,
+  onViewModeChange,
 }) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
-  const [internalViewMode, setInternalViewMode] = useState('orbit')
+  const [internalViewMode, setInternalViewMode] = useState(propViewMode || 'orbit')
   const [activeTier, setActiveTier] = useState(quality === 'auto' ? 'medium' : quality)
   const [notification, setNotification] = useState('')
   const [webglError, setWebglError] = useState(false)
+
+  // Sync internal view mode when prop changes
+  useEffect(() => {
+    if (propViewMode) setInternalViewMode(propViewMode)
+  }, [propViewMode])
 
   // Track last valid numeric angles for robust NaN / undefined clamping
   const lastAngles = useRef({
@@ -522,11 +532,19 @@ function Scene3DInner({
           earthAz={validEarthAz}
           landerHeight={validLanderHeight}
           viewMode={activeViewMode}
-          onToggleViewMode={(newMode) => setInternalViewMode(newMode)}
+          onToggleViewMode={(newMode) => {
+            setInternalViewMode(newMode)
+            if (onViewModeChange) onViewModeChange(newMode)
+          }}
           onLookSun={() => ctxRef.current?.cameraController?.lookAtSun(validSunEl, validSunAz)}
           onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(validEarthEl, validEarthAz)}
           onLookNorth={() => ctxRef.current?.cameraController?.lookNorth()}
           quality={activeTier}
+          isSimulating={isSimulating}
+          onToggleSimulation={onToggleSimulation}
+          onReturnToOrbit={onReturnToOrbit}
+          showShadowRuler={showShadowRuler}
+          onToggleShadowRuler={onToggleShadowRuler}
         />
       )}
 

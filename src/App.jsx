@@ -9,6 +9,7 @@ import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/m
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
 
 import { LunarUniverseR3F } from './components/scene/LunarUniverseR3F.jsx';
+import { SurfaceViewSimulation } from './components/scene/SurfaceViewSimulation.jsx';
 import { TargetingReticle } from './components/ui/TargetingReticle.jsx';
 import { EdgeHudSidebars } from './components/ui/EdgeHudSidebars.jsx';
 import { ComparePanel } from './components/ui/ComparePanel.jsx';
@@ -47,6 +48,7 @@ export function App() {
   // Descent & Landing States
   const [isDescending, setIsDescending] = useState(false);
   const [hasLanded, setHasLanded] = useState(false);
+  const [showLandingOption, setShowLandingOption] = useState(false);
   const [isSidebarsCollapsed, setIsSidebarsCollapsed] = useState(false);
 
   // View modes: 'orbit' | 'surface' (EVA View)
@@ -107,6 +109,7 @@ export function App() {
   const handleSelectSite = (newSite) => {
     playTargetLock();
     setHasLanded(false);
+    setShowLandingOption(false);
     setViewMode('orbit');
     if (typeof newSite === 'object' && newSite !== null) {
       setCustomSite(newSite);
@@ -160,6 +163,7 @@ export function App() {
     playTelemetryPing(2400, 0.15);
     setIsDescending(true);
     setIsSidebarsCollapsed(true);
+    setShowLandingOption(false);
 
     if (universeRef.current?.triggerCinematicDescent) {
       universeRef.current.triggerCinematicDescent(() => {
@@ -167,12 +171,14 @@ export function App() {
         setIsDescending(false);
         setHasLanded(true);
         setIsSidebarsCollapsed(false);
+        setShowLandingOption(true);
       });
     } else {
       setTimeout(() => {
         setIsDescending(false);
         setHasLanded(true);
         setIsSidebarsCollapsed(false);
+        setShowLandingOption(true);
       }, 3000);
     }
   };
@@ -182,6 +188,7 @@ export function App() {
     setSceneState('macro');
     setViewMode('orbit');
     setHasLanded(false);
+    setShowLandingOption(false);
     setIsSidebarsCollapsed(false);
     setCompareOpen(false);
     if (universeRef.current?.resetToMacro) universeRef.current.resetToMacro();
@@ -224,30 +231,79 @@ export function App() {
       <CustomCursor />
 
       {/* ── 1. UNIFIED R3F 3D VIEWPORT (SPACE, MOON & SPACECRAFT) ── */}
-      <LunarUniverseR3F
-        ref={universeRef}
-        mode={sceneState}
-        sites={sites}
-        selectedSiteId={selectedSiteId}
-        onSelectSite={handleSelectSite}
-        onReachedOrbit={handleReachedOrbit}
-        onLanderTouchdown={() => {
-          setHasLanded(true);
-        }}
-        onUpdateCraterScreenPos={setCraterScreenPos}
-        sunEl={live.sunEl}
-        sunAz={live.sunAz}
-        earthEl={live.earthEl}
-        earthAz={live.earthAz}
-        customCoords={customSite}
-        viewMode={viewMode}
-        isDescending={isDescending}
-        hasLanded={hasLanded}
-        isComparing={compareOpen}
-        setIsDescending={setIsDescending}
-        setHasLanded={setHasLanded}
-        setViewMode={setViewMode}
-      />
+      <div className={`absolute inset-0 w-full h-full ${viewMode === 'surface' ? 'hidden' : 'block'}`}>
+        <LunarUniverseR3F
+          ref={universeRef}
+          mode={sceneState}
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onSelectSite={handleSelectSite}
+          onReachedOrbit={handleReachedOrbit}
+          onLanderTouchdown={() => {
+            setHasLanded(true);
+            setShowLandingOption(true);
+          }}
+          onUpdateCraterScreenPos={setCraterScreenPos}
+          sunEl={live.sunEl}
+          sunAz={live.sunAz}
+          earthEl={live.earthEl}
+          earthAz={live.earthAz}
+          customCoords={customSite}
+          viewMode={viewMode === 'surface' ? 'orbit' : viewMode}
+          isDescending={isDescending}
+          hasLanded={hasLanded}
+          isComparing={compareOpen}
+          setIsDescending={setIsDescending}
+          setHasLanded={setHasLanded}
+          setViewMode={setViewMode}
+        />
+      </div>
+
+      {/* ── 1B. PHOTOREALISTIC SURFACE VIEW & SIMULATION (PAVAN SANDBOX AESTHETIC) ── */}
+      {viewMode === 'surface' && (
+        <div className="absolute inset-0 w-full h-full z-10">
+          <SurfaceViewSimulation
+            site={site}
+            sunEl={live.sunEl}
+            sunAz={live.sunAz}
+            earthEl={live.earthEl}
+            earthAz={live.earthAz}
+            onReturnToOrbit={() => setViewMode('orbit')}
+          />
+        </div>
+      )}
+
+      {/* ── 1C. TOUCHDOWN SURFACE VIEW OPTION PROMPT ── */}
+      <AnimatePresence>
+        {showLandingOption && viewMode === 'orbit' && hasLanded && (
+          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-md border border-white/20 p-5 rounded-xl shadow-2xl flex flex-col items-center gap-3 text-center pointer-events-auto max-w-md w-full mx-4">
+            <div className="flex items-center gap-2 text-xs font-sans tracking-[0.2em] text-[#f5f5f5] uppercase font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Touchdown Confirmed · {site.name}
+            </div>
+            <p className="text-[11px] text-[#a3a3a3] leading-relaxed">
+              Lander securely grounded on landing pad. Open local surface simulation to inspect procedural regolith, grazing shadows, and 20s day sweep cycle.
+            </p>
+            <div className="flex items-center gap-3 w-full mt-1">
+              <button
+                onClick={() => {
+                  setShowLandingOption(false);
+                  setViewMode('surface');
+                }}
+                className="flex-1 bg-white text-black hover:bg-neutral-200 py-2.5 px-4 rounded text-xs font-sans font-medium tracking-wider uppercase transition cursor-none"
+              >
+                Enter Surface Simulation ↘
+              </button>
+              <button
+                onClick={() => setShowLandingOption(false)}
+                className="text-xs text-[#a3a3a3] hover:text-white px-3 py-2 transition cursor-none"
+              >
+                Stay in Orbit
+              </button>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── 2. CENTER RETICLE (Visible in orbit when not comparing) ── */}
       {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && !compareOpen && (

@@ -610,7 +610,6 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
         setThrusterActive(false);
         setIsDescending?.(false);
         setHasLanded?.(true);
-        setViewMode?.('surface');
         onLanderTouchdown?.();
         onComplete?.();
       },
