@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
+import gsap from 'gsap';
 
 /**
  * Convert lunar latitude and longitude to 3D sphere cartesian coordinates.
- * Standard Clementine / LRO equirectangular coordinate mapping.
  */
 export function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -20,19 +20,16 @@ export function latLonToVector3(lat, lon, radius) {
 function createLandingReticle() {
   const group = new THREE.Group();
 
-  // Central pinpoint beacon
   const dotGeo = new THREE.SphereGeometry(0.2, 16, 16);
   const dotMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
   const dot = new THREE.Mesh(dotGeo, dotMat);
   group.add(dot);
 
-  // Inner ring
   const innerRingGeo = new THREE.RingGeometry(0.4, 0.58, 32);
   const innerRingMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
   const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
   group.add(innerRing);
 
-  // Outer pulsing targeting ring
   const outerRingGeo = new THREE.RingGeometry(0.85, 1.15, 32);
   const outerRingMat = new THREE.MeshBasicMaterial({
     color: 0x38bdf8,
@@ -43,7 +40,6 @@ function createLandingReticle() {
   const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
   group.add(outerRing);
 
-  // 4 Crosshair ticks along surface tangent
   const tickMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
   const tickGeo = new THREE.PlaneGeometry(0.08, 0.4);
   for (let i = 0; i < 4; i++) {
@@ -59,32 +55,28 @@ function createLandingReticle() {
 }
 
 /**
- * Creates an Artemis Orion / CLPS orbital spacecraft 3D model.
+ * Creates an Artemis Orion / CLPS orbital spacecraft 3D model with engine nozzle.
  */
 function createOrbitalSpacecraft() {
   const group = new THREE.Group();
 
-  // Command Module
   const capsuleGeo = new THREE.ConeGeometry(0.3, 0.4, 16);
   const capsuleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3, metalness: 0.4 });
   const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
   capsule.position.set(0, 0.3, 0);
   group.add(capsule);
 
-  // Visor window
   const windowGeo = new THREE.BoxGeometry(0.1, 0.06, 0.04);
   const windowMat = new THREE.MeshBasicMaterial({ color: 0x0a101d });
   const windowMesh = new THREE.Mesh(windowGeo, windowMat);
   windowMesh.position.set(0, 0.3, 0.18);
   group.add(windowMesh);
 
-  // Service Module
   const smGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.36, 16);
   const smMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.6 });
   const sm = new THREE.Mesh(smGeo, smMat);
   group.add(sm);
 
-  // Gold MLI blanket
   const goldGeo = new THREE.CylinderGeometry(0.305, 0.305, 0.15, 16);
   const goldMat = new THREE.MeshStandardMaterial({ color: 0xdf8a08, roughness: 0.25, metalness: 0.88 });
   const goldBand = new THREE.Mesh(goldGeo, goldMat);
@@ -110,31 +102,54 @@ function createOrbitalSpacecraft() {
     group.add(wing);
   }
 
+  // Engine Plasma Thrust Particle Cone (Additive Blended)
+  const plumeGeo = new THREE.ConeGeometry(0.2, 1.2, 16, 1, true);
+  plumeGeo.translate(0, -0.6, 0);
+  const plumeMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    transparent: true,
+    opacity: 0,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide
+  });
+  const plume = new THREE.Mesh(plumeGeo, plumeMat);
+  plume.position.set(0, -0.28, 0);
+  group.add(plume);
+  group.userData = { plume };
+
   group.scale.set(1.4, 1.4, 1.4);
   return group;
 }
 
 /**
- * Displace lunar mesh vertices in the South Pole region (lat < -75°) based on
- * genuine LOLA crater morphology (Shackleton, Malapert, Haworth, Faustini, Nobile).
+ * Creates Ground Dust Kickup Ring Mesh (Regolith kickup at 50m to touchdown).
+ */
+function createGroundDustRing() {
+  const ringGeo = new THREE.RingGeometry(0.2, 1.4, 32);
+  ringGeo.rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: 0x94a3b8,
+    transparent: true,
+    opacity: 0,
+    side: THREE.DoubleSide
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  return ring;
+}
+
+/**
+ * Displace lunar mesh vertices in the South Pole region (lat < -75°) based on LOLA data.
  */
 function applyLolaSouthPoleTopography(geometry, radius) {
   const posAttr = geometry.attributes.position;
   const count = posAttr.count;
 
-  // Key LOLA topographic features (lat in deg, lon in deg, radius in deg, depth in radius units)
   const features = [
-    // Shackleton crater at south pole: deep depression with sharp elevated rim
     { lat: -89.9, lon: 129.8, rDeg: 1.8, depth: -0.35, rimHeight: 0.14 },
-    // Malapert Massif: soaring mountain ridge peak
     { lat: -85.9, lon: 357.0, rDeg: 3.2, depth: 0.0, rimHeight: 0.42 },
-    // Haworth Crater: deep depression
     { lat: -87.4, lon: 355.0, rDeg: 2.2, depth: -0.28, rimHeight: 0.11 },
-    // Faustini Crater
     { lat: -87.3, lon: 84.3, rDeg: 2.0, depth: -0.26, rimHeight: 0.10 },
-    // Nobile Crater
     { lat: -85.2, lon: 53.5, rDeg: 3.5, depth: -0.22, rimHeight: 0.09 },
-    // Amundsen Rim
     { lat: -84.5, lon: 85.6, rDeg: 3.8, depth: -0.25, rimHeight: 0.18 }
   ];
 
@@ -146,7 +161,6 @@ function applyLolaSouthPoleTopography(geometry, radius) {
     const curR = Math.hypot(x, y, z);
     const lat = Math.asin(Math.max(-1, Math.min(1, y / curR))) * (180 / Math.PI);
 
-    // Only apply displacement to South Polar Region (lat < -75°)
     if (lat < -75) {
       let theta = Math.atan2(z, -x);
       if (theta < 0) theta += Math.PI * 2;
@@ -164,7 +178,6 @@ function applyLolaSouthPoleTopography(geometry, radius) {
         if (distDeg < feat.rDeg * 2.2) {
           const u = distDeg / feat.rDeg;
           if (feat.depth < 0) {
-            // Impact crater with bowl and raised rim
             if (u < 1.0) {
               deltaR += feat.depth * (1.0 - u * u);
             } else if (u < 2.0) {
@@ -172,7 +185,6 @@ function applyLolaSouthPoleTopography(geometry, radius) {
               deltaR += feat.rimHeight * Math.exp(-rimDist * rimDist);
             }
           } else {
-            // Mountain massif ridge
             deltaR += feat.rimHeight * Math.exp(-Math.pow(distDeg / feat.rDeg, 2));
           }
         }
@@ -190,19 +202,19 @@ function applyLolaSouthPoleTopography(geometry, radius) {
 }
 
 /**
- * Cinematic 3D Space Universe:
- * Houses the Sun, Earth, high-density LOLA Moon with genuine South Pole crater morphology,
- * realistic lunar regolith PBR material, dynamic grazing shadows,
- * and autonomous satellite landing animation sequence.
+ * Cinematic 3D Space Universe & Targeting Computer:
+ * Implements diegetic lock-on auto-rotation, scanning cursor hover,
+ * LOLA South Pole topography, grazing shadows, and cinematic GSAP descent sequence.
  */
 export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse(
   {
-    mode = 'macro', // 'macro' | 'transition' | 'orbit' | 'compare'
+    mode = 'macro',
     sites = [],
     selectedSiteId = 'shackleton',
     onSelectSite,
     onReachedOrbit,
     onLanderTouchdown,
+    onUpdateCraterScreenPos,
     sunEl = 5.0,
     sunAz = 180.0,
     earthEl = 5.0,
@@ -224,24 +236,20 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     sunMesh: null,
     grazingSunLight: null,
     targetReticle: null,
+    hoverRing: null,
     landmarkPins: [],
     orbitalSpacecraft: null,
+    groundDustRing: null,
     mode: 'macro',
     transitionProgress: 0,
     hasUserInteracted: false,
-    cameraTargetPos: new THREE.Vector3(0, 160, 420),
-    cameraTargetLook: new THREE.Vector3(0, 0, 0),
     zoomDistance: 32,
-    // Landing sequence state
-    satelliteState: 'orbiting', // 'orbiting' | 'descending' | 'landed'
-    descentProgress: 0,
-    descentStartPos: new THREE.Vector3(),
-    hasReportedTouchdown: false
+    satelliteState: 'orbiting',
+    cameraShakeIntensity: 0
   });
 
-  const [screenLabels, setScreenLabels] = useState([]);
+  const [hoverScan, setHoverScan] = useState(null); // { lat, lon, screenX, screenY }
 
-  // Active site data
   const activeSite = customCoords
     ? { id: 'pointed-site', name: `Landing Reticle (${customCoords.lat.toFixed(1)}°, ${customCoords.lon.toFixed(1)}°)`, lat: customCoords.lat, lon: customCoords.lon }
     : (sites.find(s => s.id === selectedSiteId) || sites[0] || { name: 'Shackleton Crater Rim', lat: -89.9, lon: 129.8 });
@@ -261,7 +269,9 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
       s.transitionProgress = 0;
       s.hasUserInteracted = false;
       s.satelliteState = 'orbiting';
-      s.hasReportedTouchdown = false;
+      if (s.orbitalSpacecraft?.userData?.plume) {
+        s.orbitalSpacecraft.userData.plume.material.opacity = 0;
+      }
     },
     focusSite: (siteId) => {
       const s = stateRef.current;
@@ -269,28 +279,116 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
       const targetSite = sites.find(st => st.id === siteId);
       if (!targetSite) return;
 
-      // Smoothly orient Moon to face South Pole and crater
+      // Diegetic Lock-on: Smoothly auto-rotate Moon so the chosen crater centers dead-center!
       const targetVec = latLonToVector3(targetSite.lat, targetSite.lon, 1).normalize();
-      const desiredDir = new THREE.Vector3(0, 0, 1);
-      const q = new THREE.Quaternion().setFromUnitVectors(targetVec, desiredDir);
-      s.moonMesh.quaternion.slerp(q, 0.7);
-      s.hasUserInteracted = true;
+      const desiredDir = new THREE.Vector3(0, 0, 1); // Directly facing camera in z-axis
+      const qTarget = new THREE.Quaternion().setFromUnitVectors(targetVec, desiredDir);
 
-      // Trigger satellite descent animation to land on this site
-      triggerDescentAnimation();
+      gsap.to(s.moonMesh.quaternion, {
+        x: qTarget.x,
+        y: qTarget.y,
+        z: qTarget.z,
+        w: qTarget.w,
+        duration: 1.4,
+        ease: 'power2.out',
+        onUpdate: () => {
+          s.moonMesh.quaternion.normalize();
+        }
+      });
+      s.hasUserInteracted = true;
     },
-    triggerLanding: () => {
-      triggerDescentAnimation();
+    // Trigger the Cinematic Descent Sequence (GSAP timeline with retro propulsion & dust)
+    triggerCinematicDescent: (onComplete) => {
+      executeCinematicDescent(onComplete);
     }
   }));
 
-  const triggerDescentAnimation = () => {
+  // Cinematic GSAP Lander Descent Sequence
+  const executeCinematicDescent = (onComplete) => {
     const s = stateRef.current;
-    if (!s || !s.orbitalSpacecraft) return;
+    if (!s || !s.orbitalSpacecraft || !s.targetReticle || !s.moonMesh) return;
+
     s.satelliteState = 'descending';
-    s.descentProgress = 0;
-    s.descentStartPos = s.orbitalSpacecraft.position.clone();
-    s.hasReportedTouchdown = false;
+    const craft = s.orbitalSpacecraft;
+    const plume = craft.userData?.plume;
+    const dust = s.groundDustRing;
+
+    // Get touchdown target world coordinates
+    const targetWorld = new THREE.Vector3();
+    s.targetReticle.getWorldPosition(targetWorld);
+
+    const moonWorld = new THREE.Vector3();
+    s.moonMesh.getWorldPosition(moonWorld);
+    const surfaceNormal = targetWorld.clone().sub(moonWorld).normalize();
+
+    // High de-orbit start point
+    const deorbitStart = targetWorld.clone().add(surfaceNormal.clone().multiplyScalar(16)).add(new THREE.Vector3(5, 4, 3));
+    craft.position.copy(deorbitStart);
+
+    // Parabolic waypoint at 50m scale
+    const waypoint50m = targetWorld.clone().add(surfaceNormal.clone().multiplyScalar(4.5));
+    const touchdownPad = targetWorld.clone().add(surfaceNormal.clone().multiplyScalar(0.2));
+
+    // Align dust ring flush at landing pad
+    if (dust) {
+      dust.position.copy(targetWorld.clone().add(surfaceNormal.clone().multiplyScalar(0.02)));
+      dust.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), surfaceNormal);
+      dust.material.opacity = 0;
+      dust.scale.set(0.1, 0.1, 0.1);
+    }
+
+    // GSAP Master Descent Timeline
+    const tl = gsap.timeline({
+      onComplete: () => {
+        s.satelliteState = 'landed';
+        if (plume) plume.material.opacity = 0;
+        if (onLanderTouchdown) onLanderTouchdown();
+        if (onComplete) onComplete();
+      }
+    });
+
+    // 1. Activate Retro-Propulsion Plasma Plume
+    if (plume) {
+      tl.to(plume.material, { opacity: 0.85, duration: 0.3, ease: 'power1.in' }, 0);
+    }
+
+    // 2. Parabolic Descent along Curve to 50m above ground
+    tl.to(craft.position, {
+      x: waypoint50m.x,
+      y: waypoint50m.y,
+      z: waypoint50m.z,
+      duration: 1.8,
+      ease: 'power2.inOut'
+    }, 0);
+
+    // 3. Final Touchdown Descent to Pad
+    tl.to(craft.position, {
+      x: touchdownPad.x,
+      y: touchdownPad.y,
+      z: touchdownPad.z,
+      duration: 1.2,
+      ease: 'power1.out'
+    }, 1.8);
+
+    // 4. Trigger expanding regolith dust ring at 50m
+    if (dust) {
+      tl.to(dust.material, { opacity: 0.6, duration: 0.4 }, 1.8);
+      tl.to(dust.scale, { x: 4.5, y: 4.5, z: 4.5, duration: 1.4, ease: 'power2.out' }, 1.8);
+      tl.to(dust.material, { opacity: 0, duration: 0.8, ease: 'power1.out' }, 2.4);
+    }
+
+    // 5. Touchdown impact: execute 0.5s high-frequency procedural camera shake
+    tl.add(() => {
+      s.cameraShakeIntensity = 0.55;
+      gsap.to(s, {
+        cameraShakeIntensity: 0,
+        duration: 0.5,
+        ease: 'power2.out'
+      });
+      if (plume) {
+        gsap.to(plume.material, { opacity: 0, duration: 0.2 });
+      }
+    }, 3.0);
   };
 
   useEffect(() => {
@@ -315,7 +413,7 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     renderer.setSize(width, height);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap; // Sharp high-contrast shadows for pitch-black lunar PSRs
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     container.appendChild(renderer.domElement);
 
     // 2. High-Density Deep Space Starfield
@@ -352,7 +450,7 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     moonTex.colorSpace = THREE.SRGBColorSpace;
     const moonBumpTex = textureLoader.load('/textures/nasa_moon_bump_2k.jpg');
 
-    // 4. Glowing Sun Core & Multi-Layer Corona
+    // 4. Glowing Sun Core & Corona
     const sunPos = new THREE.Vector3(-340, 70, -200);
     const sunGeo = new THREE.SphereGeometry(38, 48, 48);
     const sunMat = new THREE.MeshBasicMaterial({ map: sunTex, color: 0xffffff });
@@ -370,10 +468,10 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     sunPointLight.position.copy(sunPos);
     scene.add(sunPointLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.05); // Very faint ambient to maintain pitch-black PSR craters
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.04);
     scene.add(ambientLight);
 
-    // 5. Earth with Blue Marble & Rayleigh Scattering Glow
+    // 5. Earth in Orbit
     const earthGroup = new THREE.Group();
     earthGroup.position.set(-36, 0, 48);
     scene.add(earthGroup);
@@ -400,16 +498,14 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     moonGroup.position.set(48, 8, 15);
     scene.add(moonGroup);
 
-    // High density mesh (128x128) with LOLA physical displacement on south pole
     const moonGeo = new THREE.SphereGeometry(MOON_RADIUS, 128, 128);
     applyLolaSouthPoleTopography(moonGeo, MOON_RADIUS);
 
-    // Realistic PBR lunar regolith material (zero specularity, high roughness, bump mapping)
     const moonMat = new THREE.MeshStandardMaterial({
       map: moonTex,
       bumpMap: moonBumpTex,
       bumpScale: 0.28,
-      roughness: 0.96, // Lunar dust is matte with virtually zero gloss
+      roughness: 0.96,
       metalness: 0.0,
       emissive: 0x050608,
       emissiveIntensity: 0.1
@@ -417,18 +513,16 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonMesh.castShadow = true;
     moonMesh.receiveShadow = true;
-    // Initial tilt to display the lunar South Pole
     moonMesh.rotation.set(-0.35, 0, 0);
     moonGroup.add(moonMesh);
 
-    // High-Resolution Grazing Sun Directional Light (4096 shadow map tightly bounded)
+    // High-Resolution Grazing Sun Directional Light (4096 shadow map)
     const grazingSunLight = new THREE.DirectionalLight(0xfff8ee, 3.8);
     grazingSunLight.castShadow = true;
     grazingSunLight.shadow.mapSize.width = 4096;
     grazingSunLight.shadow.mapSize.height = 4096;
     grazingSunLight.shadow.camera.near = 1;
     grazingSunLight.shadow.camera.far = 160;
-    // Tightly focused shadow camera bounds on the Moon South Pole
     grazingSunLight.shadow.camera.left = -14;
     grazingSunLight.shadow.camera.right = 14;
     grazingSunLight.shadow.camera.top = 14;
@@ -437,7 +531,18 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     grazingSunLight.target = moonGroup;
     scene.add(grazingSunLight);
 
-    // Mapped Landmark 3D Pins on the Moon
+    // Scanning Mode: Illuminated hover ring cast on the lunar surface
+    const hoverRingGeo = new THREE.RingGeometry(0.25, 0.45, 32);
+    const hoverRingMat = new THREE.MeshBasicMaterial({
+      color: 0x00f0ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0
+    });
+    const hoverRing = new THREE.Mesh(hoverRingGeo, hoverRingMat);
+    moonMesh.add(hoverRing);
+
+    // Mapped Landmark 3D Pins
     const landmarkPins = [];
     sites.forEach((site) => {
       const pinPos = latLonToVector3(site.lat, site.lon, MOON_RADIUS + 0.12);
@@ -461,9 +566,13 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), initNormal);
     moonMesh.add(targetReticle);
 
-    // 3D Orbital Spacecraft / Satellite
+    // 3D Orbital Spacecraft / Lander
     const orbitalSpacecraft = createOrbitalSpacecraft();
     moonGroup.add(orbitalSpacecraft);
+
+    // Ground Dust Kickup Ring
+    const groundDustRing = createGroundDustRing();
+    moonGroup.add(groundDustRing);
 
     // Save state
     stateRef.current = {
@@ -476,21 +585,19 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
       sunMesh,
       grazingSunLight,
       targetReticle,
+      hoverRing,
       landmarkPins,
       orbitalSpacecraft,
+      groundDustRing,
       mode: mode,
       transitionProgress: 0,
       hasUserInteracted: false,
-      cameraTargetPos: new THREE.Vector3(0, 160, 420),
-      cameraTargetLook: new THREE.Vector3(0, 0, 0),
       zoomDistance: 32,
       satelliteState: 'orbiting',
-      descentProgress: 0,
-      descentStartPos: new THREE.Vector3(),
-      hasReportedTouchdown: false
+      cameraShakeIntensity: 0
     };
 
-    // 7. Interactive Free Drag-to-Rotate & Click-to-Point Landing Target
+    // 7. Interactive Free Drag-to-Rotate & Scanning Mode Hover
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let isDragging = false;
@@ -504,23 +611,62 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     };
 
     const onPointerMove = (e) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevPointer.x;
-      const dy = e.clientY - prevPointer.y;
-      dragDistance += Math.abs(dx) + Math.abs(dy);
-      prevPointer = { x: e.clientX, y: e.clientY };
-
       const s = stateRef.current;
-      if (s && (s.mode === 'orbit' || s.mode === 'compare')) {
-        s.hasUserInteracted = true;
-        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      if (!s) return;
 
-        const qYaw = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.007);
-        const qPitch = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.007);
+      if (isDragging) {
+        const dx = e.clientX - prevPointer.x;
+        const dy = e.clientY - prevPointer.y;
+        dragDistance += Math.abs(dx) + Math.abs(dy);
+        prevPointer = { x: e.clientX, y: e.clientY };
 
-        s.moonMesh.quaternion.premultiply(qYaw);
-        s.moonMesh.quaternion.premultiply(qPitch);
+        if (s.mode === 'orbit' || s.mode === 'compare') {
+          s.hasUserInteracted = true;
+          const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+          const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
+          const qYaw = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.007);
+          const qPitch = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.007);
+
+          s.moonMesh.quaternion.premultiply(qYaw);
+          s.moonMesh.quaternion.premultiply(qPitch);
+        }
+      } else {
+        // Scanning Mode (Hover State): cast illuminated ring on Moon surface + floating coordinate readout
+        if (s.mode === 'orbit' && s.hoverRing && s.moonMesh) {
+          const rect = container.getBoundingClientRect();
+          mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+          raycaster.setFromCamera(mouse, camera);
+
+          const intersects = raycaster.intersectObject(s.moonMesh, false);
+          if (intersects.length > 0) {
+            const hit = intersects[0];
+            const localPoint = s.moonMesh.worldToLocal(hit.point.clone());
+            const r = localPoint.length();
+            const lat = Math.asin(Math.max(-1, Math.min(1, localPoint.y / r))) * (180 / Math.PI);
+            let theta = Math.atan2(localPoint.z, -localPoint.x);
+            if (theta < 0) theta += Math.PI * 2;
+            let lon = theta * (180 / Math.PI) - 180;
+            if (lon < -180) lon += 360;
+            if (lon > 180) lon -= 360;
+
+            const normal = localPoint.clone().normalize();
+            s.hoverRing.position.copy(normal.clone().multiplyScalar(MOON_RADIUS + 0.03));
+            s.hoverRing.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+            s.hoverRing.material.opacity = 0.75;
+
+            setHoverScan({
+              lat,
+              lon,
+              screenX: e.clientX,
+              screenY: e.clientY
+            });
+          } else {
+            s.hoverRing.material.opacity = 0;
+            setHoverScan(null);
+          }
+        }
       }
     };
 
@@ -536,21 +682,17 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(mouse, camera);
 
-        // Check if user clicked an existing landmark pin
+        // Click on landmark pin
         const pinIntersects = raycaster.intersectObjects(landmarkPins, false);
         if (pinIntersects.length > 0) {
           const hitPin = pinIntersects[0].object;
           if (hitPin.userData?.siteId && onSelectSite) {
             onSelectSite(hitPin.userData.siteId);
-            const normal = hitPin.position.clone().normalize();
-            targetReticle.position.copy(normal.clone().multiplyScalar(MOON_RADIUS + 0.04));
-            targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-            triggerDescentAnimation();
             return;
           }
         }
 
-        // Check if user clicked on Moon surface
+        // Click anywhere on Moon surface to designate landing site
         const intersects = raycaster.intersectObject(moonMesh, false);
         if (intersects.length > 0) {
           const hit = intersects[0];
@@ -563,14 +705,9 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
           if (lon < -180) lon += 360;
           if (lon > 180) lon -= 360;
 
-          const normal = localPoint.clone().normalize();
-          targetReticle.position.copy(normal.clone().multiplyScalar(MOON_RADIUS + 0.04));
-          targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-
           if (onPointCustomCoords) {
             onPointCustomCoords({ lat, lon });
           }
-          triggerDescentAnimation();
         }
       }
     };
@@ -604,7 +741,6 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
       const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
 
-      // Constant natural planetary drift
       earthMesh.rotation.y += delta * 0.1;
       sunMesh.rotation.y += delta * 0.02;
 
@@ -625,54 +761,41 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
         moonMesh.quaternion.multiply(idleSpin);
       }
 
-      // SATELLITE / SPACECRAFT ANIMATION SEQUENCE
-      if (s.orbitalSpacecraft) {
-        if (s.satelliteState === 'orbiting') {
-          // Circular orbit around Moon
-          const orbitAngle = elapsed * 0.35;
-          const orbitRadius = MOON_RADIUS + 3.2;
-          s.orbitalSpacecraft.position.set(
-            Math.cos(orbitAngle) * orbitRadius,
-            Math.sin(orbitAngle * 1.4) * 1.4,
-            Math.sin(orbitAngle) * orbitRadius
-          );
-          const tangent = new THREE.Vector3(
-            -Math.sin(orbitAngle),
-            Math.cos(orbitAngle * 1.4) * 0.35,
-            Math.cos(orbitAngle)
-          ).normalize();
-          s.orbitalSpacecraft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-        } else if (s.satelliteState === 'descending') {
-          // Breaks orbit, descends towards target reticle, decelerates and lands!
-          s.descentProgress = Math.min(1.0, s.descentProgress + delta * 0.65);
-          const t = s.descentProgress;
-          // Smooth deceleration (cubic ease-out)
-          const ease = 1 - Math.pow(1 - t, 3);
+      // Orbital Spacecraft circular orbit when not descending
+      if (s.orbitalSpacecraft && s.satelliteState === 'orbiting') {
+        const orbitAngle = elapsed * 0.35;
+        const orbitRadius = MOON_RADIUS + 3.2;
+        s.orbitalSpacecraft.position.set(
+          Math.cos(orbitAngle) * orbitRadius,
+          Math.sin(orbitAngle * 1.4) * 1.4,
+          Math.sin(orbitAngle) * orbitRadius
+        );
+        const tangent = new THREE.Vector3(
+          -Math.sin(orbitAngle),
+          Math.cos(orbitAngle * 1.4) * 0.35,
+          Math.cos(orbitAngle)
+        ).normalize();
+        s.orbitalSpacecraft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      }
 
-          const targetWorld = new THREE.Vector3();
-          targetReticle.getWorldPosition(targetWorld);
+      // Project target reticle to 2D screen coordinate for dynamic SVG callout line
+      if (s.targetReticle && onUpdateCraterScreenPos) {
+        const reticleWorld = new THREE.Vector3();
+        s.targetReticle.getWorldPosition(reticleWorld);
 
-          const moonWorld = new THREE.Vector3();
-          moonMesh.getWorldPosition(moonWorld);
-          const normalWorld = targetWorld.clone().sub(moonWorld).normalize();
+        const moonWorld = new THREE.Vector3();
+        s.moonMesh.getWorldPosition(moonWorld);
+        const dirToCam = camera.position.clone().sub(reticleWorld).normalize();
+        const normal = reticleWorld.clone().sub(moonWorld).normalize();
 
-          // Descent trajectory from orbit point down to landing pad
-          const hoverPos = targetWorld.clone().add(normalWorld.clone().multiplyScalar(0.4));
-          s.orbitalSpacecraft.position.lerpVectors(s.descentStartPos, hoverPos, ease);
-
-          // Rotate spacecraft upright relative to surface normal
-          const currentUp = new THREE.Vector3(0, 1, 0);
-          const targetUp = normalWorld.clone();
-          const qAlign = new THREE.Quaternion().setFromUnitVectors(currentUp, targetUp);
-          s.orbitalSpacecraft.quaternion.slerp(qAlign, ease);
-
-          if (t >= 1.0) {
-            s.satelliteState = 'landed';
-            if (!s.hasReportedTouchdown) {
-              s.hasReportedTouchdown = true;
-              if (onLanderTouchdown) onLanderTouchdown();
-            }
-          }
+        // Only emit if reticle is facing towards camera
+        if (dirToCam.dot(normal) > 0.05) {
+          const screenPos = reticleWorld.clone().project(camera);
+          const x = (screenPos.x * 0.5 + 0.5) * width;
+          const y = (-screenPos.y * 0.5 + 0.5) * height;
+          onUpdateCraterScreenPos({ x, y });
+        } else {
+          onUpdateCraterScreenPos(null);
         }
       }
 
@@ -717,33 +840,17 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
       } else if (s.mode === 'orbit' || s.mode === 'compare') {
         const moonCenter = new THREE.Vector3(48, 8, 15);
         const targetCamPos = new THREE.Vector3(48, 12, 15 + s.zoomDistance);
+
+        // Procedural camera shake on touchdown impact
+        if (s.cameraShakeIntensity > 0.001) {
+          const shakeX = (Math.random() - 0.5) * s.cameraShakeIntensity * 2.5;
+          const shakeY = (Math.random() - 0.5) * s.cameraShakeIntensity * 2.5;
+          targetCamPos.x += shakeX;
+          targetCamPos.y += shakeY;
+        }
+
         camera.position.lerp(targetCamPos, 0.08);
         camera.lookAt(moonCenter);
-
-        // Project 3D landmark pins to 2D screen coordinates
-        const labels = [];
-        landmarkPins.forEach((pin) => {
-          const worldPos = new THREE.Vector3();
-          pin.getWorldPosition(worldPos);
-
-          const dirToCam = camera.position.clone().sub(worldPos).normalize();
-          const normal = worldPos.clone().sub(moonCenter).normalize();
-          const dot = dirToCam.dot(normal);
-
-          if (dot > 0.15) {
-            const screenPos = worldPos.clone().project(camera);
-            const x = (screenPos.x * 0.5 + 0.5) * width;
-            const y = (-screenPos.y * 0.5 + 0.5) * height;
-            labels.push({
-              id: pin.userData.siteId,
-              name: pin.userData.siteName.replace(' Crater Rim', '').replace(' Massif', '').replace(' (Odysseus)', '').replace(' (Shiv Shakti Point)', ''),
-              lat: pin.userData.lat,
-              x,
-              y
-            });
-          }
-        });
-        setScreenLabels(labels);
       }
 
       renderer.render(scene, camera);
@@ -772,7 +879,7 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     };
   }, []);
 
-  // Update dynamic grazing sunlight position whenever sunEl or sunAz changes
+  // Update dynamic grazing sunlight position
   useEffect(() => {
     const s = stateRef.current;
     if (!s || !s.grazingSunLight || !s.moonGroup) return;
@@ -801,31 +908,20 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden select-none">
-      {/* 3D Canvas Mount */}
+      {/* 3D Canvas Mount (Captures drag and scroll across center 60% of screen) */}
       <div ref={mountRef} className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing" />
 
-      {/* 2D Landmark Pins Screen Overlay */}
-      {(mode === 'orbit' || mode === 'compare') && (
-        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
-          {screenLabels.map((lbl) => (
-            <div
-              key={lbl.id}
-              style={{
-                position: 'absolute',
-                left: `${lbl.x}px`,
-                top: `${lbl.y}px`,
-                transform: 'translate(-50%, -130%)'
-              }}
-              className="bg-black/65 backdrop-blur-md px-2.5 py-1 rounded-xl border border-white/10 shadow-lg text-[10px] font-mono text-slate-200 pointer-events-auto cursor-pointer hover:bg-[#0B3D91] hover:text-white transition flex items-center gap-1.5"
-              onClick={() => {
-                if (onSelectSite) onSelectSite(lbl.id);
-                triggerDescentAnimation();
-              }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-              <span>{lbl.name}</span>
-            </div>
-          ))}
+      {/* Floating Cursor Coordinate Tag in Scanning Mode */}
+      {hoverScan && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${hoverScan.screenX + 16}px`,
+            top: `${hoverScan.screenY + 16}px`
+          }}
+          className="pointer-events-none z-30 bg-black/75 backdrop-blur-md px-2.5 py-1 rounded border border-cyan-400/50 shadow-lg font-mono text-[9px] text-cyan-300"
+        >
+          SCAN: {Math.abs(hoverScan.lat).toFixed(1)}°{hoverScan.lat < 0 ? 'S' : 'N'}, {Math.abs(hoverScan.lon).toFixed(1)}°{hoverScan.lon >= 0 ? 'E' : 'W'}
         </div>
       )}
     </div>

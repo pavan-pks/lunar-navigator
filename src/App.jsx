@@ -7,8 +7,9 @@ import { computeWindowStats, getVerdict, landingDate, timeToNext, shadowLength }
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
 
 import { CinematicSpaceUniverse } from './components/scene/CinematicSpaceUniverse.jsx';
+import { TargetingReticle } from './components/ui/TargetingReticle.jsx';
+import { EdgeHudSidebars } from './components/ui/EdgeHudSidebars.jsx';
 import { TradeStudyHolodeck } from './components/ui/TradeStudyHolodeck.jsx';
-import { ResultCardsGrid } from './components/ui/ResultCardsGrid.jsx';
 import { CsaArtemisPanel } from './components/ui/CsaArtemisPanel.jsx';
 import { ScenePanel } from './components/ui/ScenePanel.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
@@ -30,8 +31,13 @@ export function App() {
   const [selectedSiteId, setSelectedSiteId] = useState('shackleton');
   const [customSite, setCustomSite] = useState(null);
 
-  // Landing sequence state
+  // Projected 2D screen coordinates of the active crater for dynamic SVG line
+  const [craterScreenPos, setCraterScreenPos] = useState(null);
+
+  // Descent & Landing States
+  const [isDescending, setIsDescending] = useState(false);
   const [hasLanded, setHasLanded] = useState(false);
+  const [isSidebarsCollapsed, setIsSidebarsCollapsed] = useState(false);
 
   // View modes: 'orbit' (3D celestial space) | 'surface' (local high-res LOLA terrain with lander)
   const [viewMode, setViewMode] = useState('orbit');
@@ -93,15 +99,13 @@ export function App() {
     return data.sites.find(s => s.id === selectedSiteId) || data.sites[0];
   }, [data, selectedSiteId, customSite]);
 
+  // Diegetic Lock-on: Select site & auto-rotate Moon to center crater
   const handleSelectSite = (newSite) => {
     playTargetLock();
     setHasLanded(false);
     if (typeof newSite === 'object' && newSite !== null) {
       setCustomSite(newSite);
       setSelectedSiteId(newSite.id);
-      if (universeRef.current?.triggerLanding) {
-        universeRef.current.triggerLanding();
-      }
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
@@ -159,10 +163,31 @@ export function App() {
     setSceneState('orbit');
   };
 
-  // Satellite touchdown callback
-  const handleLanderTouchdown = () => {
-    playTelemetryPing(2200, 0.12);
-    setHasLanded(true);
+  // Cinematic Descent Trigger Sequence
+  const handleTriggerDescent = () => {
+    if (isDescending) return;
+    playTelemetryPing(2600, 0.2);
+    playThrustRumble(3.2);
+    setIsDescending(true);
+    setIsSidebarsCollapsed(true); // Collapses sidebars off-screen instantly
+
+    if (universeRef.current?.triggerCinematicDescent) {
+      universeRef.current.triggerCinematicDescent(() => {
+        // Touchdown complete: transition to Surface View
+        playTelemetryPing(2200, 0.15);
+        setIsDescending(false);
+        setHasLanded(true);
+        setViewMode('surface');
+        setIsSidebarsCollapsed(false);
+      });
+    } else {
+      setTimeout(() => {
+        setIsDescending(false);
+        setHasLanded(true);
+        setViewMode('surface');
+        setIsSidebarsCollapsed(false);
+      }, 3000);
+    }
   };
 
   // Reset to Macro View
@@ -171,6 +196,7 @@ export function App() {
     setSceneState('macro');
     setViewMode('orbit');
     setHasLanded(false);
+    setIsSidebarsCollapsed(false);
     if (universeRef.current?.resetToMacro) {
       universeRef.current.resetToMacro();
     }
@@ -231,7 +257,8 @@ export function App() {
           selectedSiteId={selectedSiteId}
           onSelectSite={handleSelectSite}
           onReachedOrbit={handleReachedOrbit}
-          onLanderTouchdown={handleLanderTouchdown}
+          onLanderTouchdown={() => setHasLanded(true)}
+          onUpdateCraterScreenPos={setCraterScreenPos}
           sunEl={live.sunEl}
           sunAz={live.sunAz}
           earthEl={live.earthEl}
@@ -248,6 +275,16 @@ export function App() {
               terrainType: coords.lat < -80 ? 'crater-rim' : 'plain'
             });
           }}
+        />
+      )}
+
+      {/* 2. GAME-LIKE TARGETING RETICLE & DYNAMIC SVG CALLOUT LINE (CENTER VIEWPORT) */}
+      {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && (
+        <TargetingReticle
+          targetName={site.name}
+          targetCoords={{ lat: site.lat, lon: site.lon }}
+          craterScreenPos={craterScreenPos}
+          isLocked={true}
         />
       )}
 
@@ -320,7 +357,7 @@ export function App() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-display font-bold text-white tracking-wider">
-                    {viewMode === 'surface' ? 'SURFACE EVA MAST // ARTEMIS BASE' : 'ARTEMIS POLAR OPS // ORBITAL HUD'}
+                    {viewMode === 'surface' ? 'SURFACE EVA MAST // ARTEMIS BASE' : 'ARTEMIS POLAR OPS // TARGETING COMPUTER'}
                   </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                     JPL HORIZONS
@@ -418,62 +455,43 @@ export function App() {
             </div>
           </header>
 
-          {/* 3.2 DATA-DRIVEN UI: SINGLE-VALUE RESULT CARDS GRID */}
-          <div className="pt-3 pointer-events-auto max-w-7xl mx-auto w-full">
-            <ResultCardsGrid
-              live={live}
-              stats={stats}
-              verdict={verdict}
-              powerEfficiencyPct={powerEfficiencyPct}
-              timeToSunset={timeToSunset}
-              timeToEarthset={timeToEarthset}
-            />
-          </div>
+          {/* 3.2 THE "EDGE HUD" TELEMETRY SIDEBARS (LEFT & RIGHT MARGINS) */}
+          <EdgeHudSidebars
+            sites={sites}
+            selectedSiteId={selectedSiteId}
+            customSite={customSite}
+            onSelectSite={handleSelectSite}
+            live={live}
+            stats={stats}
+            verdict={verdict}
+            powerEfficiencyPct={powerEfficiencyPct}
+            timeToSunset={timeToSunset}
+            timeToEarthset={timeToEarthset}
+            isCollapsed={isSidebarsCollapsed}
+          />
 
-          {/* 3.3 TARGETING RETICLE & INTERACTIVE SITE SELECTOR STRIP */}
-          {viewMode === 'orbit' && (
-            <div className="flex justify-center pointer-events-none py-2">
-              <div className="pointer-events-auto bg-[#070e1c]/85 border border-slate-800/80 backdrop-blur-xl rounded-2xl px-4 py-2 shadow-xl flex items-center gap-2 text-xs font-mono">
-                <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
-                  Target Polar Landing Site:
-                </span>
-                <div className="flex gap-1.5 overflow-x-auto">
-                  {sites.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => handleSelectSite(s.id)}
-                      className={`px-2.5 py-1 rounded-xl text-[10px] font-mono transition cursor-pointer border ${
-                        selectedSiteId === s.id && !customSite
-                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold shadow-[0_0_10px_rgba(56,189,248,0.4)]'
-                          : 'bg-black/40 border-slate-800 text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {s.name.split(' ')[0]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 3.4 PROMINENT CTA: "ENTER SURFACE VIEW" BUTTON (Fades in once landing sequence completes) */}
-          {hasLanded && viewMode === 'orbit' && (
-            <div className="flex justify-center pointer-events-none pb-2 animate-in fade-in zoom-in-95 duration-400">
+          {/* 3.3 PROMINENT DESCENT TRIGGER BUTTON (CENTER BOTTOM) */}
+          {sceneState === 'orbit' && viewMode === 'orbit' && (
+            <div className="flex justify-center pointer-events-none pb-2 z-30">
               <button
-                onClick={() => {
-                  playTelemetryPing(2500, 0.15);
-                  setViewMode('surface');
-                }}
-                className="pointer-events-auto py-4 px-10 rounded-2xl bg-gradient-to-r from-[#0B3D91] via-cyan-500 to-sky-400 hover:from-blue-700 hover:to-cyan-300 text-black font-extrabold text-sm tracking-widest uppercase font-mono transition-all transform hover:scale-[1.04] shadow-[0_0_40px_rgba(0,240,255,0.6)] cursor-pointer flex items-center gap-3 border border-white/40 animate-pulse"
+                onClick={handleTriggerDescent}
+                disabled={isDescending}
+                className={`pointer-events-auto py-3.5 px-8 rounded-2xl font-mono font-bold text-xs tracking-widest uppercase transition-all transform hover:scale-[1.04] cursor-pointer flex items-center gap-3 border shadow-[0_0_30px_rgba(0,240,255,0.4)] ${
+                  isDescending
+                    ? 'bg-cyan-900/50 text-cyan-300 border-cyan-400/30 cursor-wait animate-pulse'
+                    : 'bg-black text-cyan-300 border-cyan-400 hover:bg-cyan-950 relative overflow-hidden'
+                }`}
               >
-                <span>ENTER SURFACE VIEW</span>
-                <span className="text-lg">&darr;</span>
+                {/* Warning Stripe Accent Bar */}
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                <span>{isDescending ? 'DESCENT SEQUENCE ACTIVE…' : 'ENTER SURFACE VIEW ↓'}</span>
+                <span className="text-sm">&darr;</span>
               </button>
             </div>
           )}
 
-          {/* 3.5 BOTTOM VIDEO-STYLE TEMPORAL SCRUBBER */}
-          <div className="pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] space-y-3 animate-in slide-in-from-bottom duration-400">
+          {/* 3.4 BOTTOM VIDEO-STYLE TEMPORAL SCRUBBER */}
+          <div className="pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] space-y-3 animate-in slide-in-from-bottom duration-400 z-20">
             {/* Scrubber Header: Transport controls, MET time & Date Sliders */}
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
               <div className="flex items-center gap-3">
