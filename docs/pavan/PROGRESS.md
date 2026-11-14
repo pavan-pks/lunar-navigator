@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 50 / 100**
+**Current score: 60 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** P-07: Sky: stars, Sun disk, Earth marker
+**Currently working on:** P-08: Orbit camera
 
 ## Core tasks
 
@@ -19,7 +19,8 @@
 | P-04 | Lander model | 8 | Done | 100 | 8 | Procedural lunar lander in lander.js (cabin, gold foil stage, 4 legs, footpads, engine bell, solar panels, dish antenna) + OrbitControls |
 | P-05 | Rocks and scatter | 5 | Done | 100 | 5 | Single InstancedMesh of distorted icosahedron rocks (40-250 by tier), landmark boulders, clear pad radius, cast/receive shadows |
 | P-06 | Sun light and shadows | 12 | Done | 100 | 12 | Harsh DirectionalLight (intensity 3.0), sub-2° grazing shadow coverage, -0.27° lunar horizon cutoff, 0.02 ambient & faint Earthshine |
-| P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |
+| P-07 | Sky: stars, Sun disk, Earth marker | 10 | Done | 100 | 10 | sky.js: 800-2500 stars Points with day/night dimming, emissive Sun disk (0.53° angular size), procedural canvas textured Earth (1.9°) & text sprite |
+| P-08 | Orbit camera | 5 | Not started | 0 | 0 | |
 | P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
 | P-06 | Sun light and shadows | 12 | Not started | 0 | 0 | |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |

@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
 import { buildLander } from './lander.js'
 import { buildRocks } from './rocks.js'
+import { buildSky } from './sky.js'
 import { createCameraController } from './cameraModes.js'
 
 /**
@@ -117,6 +118,10 @@ export default function Scene3D({
     const lander = buildLander(landerHeight)
     scene.add(lander.group)
 
+    // Sky system: Stars, Sun disk, Earth marker
+    const sky = buildSky({ quality })
+    scene.add(sky.group)
+
     // Invalidate function for on-demand rendering
     const invalidate = () => {
       if (isDisposed || renderRequested) return
@@ -162,6 +167,7 @@ export default function Scene3D({
       ambientLight,
       earthLight,
       lander,
+      sky,
       rocksData: null,
       cameraController,
       terrainData: null,
@@ -179,6 +185,7 @@ export default function Scene3D({
         }
 
         lander.dispose()
+        sky.dispose()
 
         if (ctxRef.current?.rocksData) {
           ctxRef.current.rocksData.dispose()
@@ -203,19 +210,16 @@ export default function Scene3D({
     }
   }, [quality])
 
-  // (b) Lightweight effect for angles, sun light, shadows, earthshine, and lander scale
+  // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, and sky bodies
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
 
-    // Safe fallbacks for angles
     const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
     const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
     const safeEarthEl = Number.isFinite(earthEl) ? earthEl : 5.0
     const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0
 
-    // Coordinate convention: +Y up, +X east, -Z north
-    // Direction toward body: x = cos(el) * sin(az), y = sin(el), z = -cos(el) * cos(az)
     const sunElRad = (safeSunEl * Math.PI) / 180
     const sunAzRad = (safeSunAz * Math.PI) / 180
 
@@ -223,7 +227,6 @@ export default function Scene3D({
     const sunDirY = Math.sin(sunElRad)
     const sunDirZ = -Math.cos(sunElRad) * Math.cos(sunAzRad)
 
-    // Compute Sun intensity with short 0.1° fade around -0.27° (horizon upper edge)
     let sunIntensity = 0.0
     if (safeSunEl > -0.27) {
       sunIntensity = 3.0
@@ -246,7 +249,6 @@ export default function Scene3D({
       ctx.sunLight.intensity = sunIntensity
     }
 
-    // Earthshine: faint bluish light when Earth is above horizon
     const earthElRad = (safeEarthEl * Math.PI) / 180
     const earthAzRad = (safeEarthAz * Math.PI) / 180
 
@@ -264,6 +266,10 @@ export default function Scene3D({
       ctx.earthLight.target.position.set(0, padY, 0)
       ctx.earthLight.target.updateMatrixWorld()
       ctx.earthLight.intensity = safeEarthEl > 0 ? 0.04 : 0.0
+    }
+
+    if (ctx.sky) {
+      ctx.sky.update(safeSunEl, safeSunAz, safeEarthEl, safeEarthAz, padY)
     }
 
     if (ctx.lander) {
@@ -314,7 +320,7 @@ export default function Scene3D({
       ctx.cameraController.updateTarget(terrain.originPadHeight)
     }
 
-    // Update sun & earth light targets
+    // Update sun & earth light targets and sky bodies
     if (ctx.sunLight) {
       ctx.sunLight.target.position.set(0, terrain.originPadHeight, 0)
       ctx.sunLight.target.updateMatrixWorld()
@@ -323,6 +329,9 @@ export default function Scene3D({
     if (ctx.earthLight) {
       ctx.earthLight.target.position.set(0, terrain.originPadHeight, 0)
       ctx.earthLight.target.updateMatrixWorld()
+    }
+    if (ctx.sky) {
+      ctx.sky.update(sunEl, sunAz, earthEl, earthAz, terrain.originPadHeight)
     }
 
     ctx.invalidate()

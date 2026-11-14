@@ -12,8 +12,9 @@
 - `src/components/scene/terrain.js`: Deterministic 400m x 400m lunar terrain builder supporting `crater-rim`, `massif`, and `plain` profiles with flat 8m landing pad, craterlet scatter, regolith vertex colors, and fast bilinear `heightAt(x, z)`.
 - `src/components/scene/lander.js`: Detailed procedural lunar lander model (octagonal cabin, gold foil descent stage, 4 articulated legs with footpads, descent engine bell, solar panel wings, steerable dish antenna, and height-scale reactivity).
 - `src/components/scene/rocks.js`: Procedural rock and boulder scatter utilizing a single `InstancedMesh` with vertex-jittered icosahedrons, tier scaling (40/120/250), 3-5 landmark boulders, and terrain grounding.
+- `src/components/scene/sky.js`: Deep space procedural sky system with starfield Points (radius 900, 800-2500 by tier) dimming to 0.35 during daytime, emissive white Sun disk (angular size 0.53°), procedural canvas textured Earth sphere (angular size 1.9°), and callout text sprite.
 - `src/components/scene/cameraModes.js`: OrbitControls controller constrained to terrain height with target tracking.
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls, harsh directional Sun lighting, wide orthographic shadow camera, -0.27° horizon cutoff, faint Earthshine, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
@@ -28,6 +29,7 @@
 - All rocks combined into a single `InstancedMesh` draw call, sinking slightly into the terrain to prevent any floating artifacts.
 - Shadow camera frustum bounds set to `±240m` with `near=5`, `far=1300`, `bias=-0.0003`, `normalBias=0.25` ensuring full coverage across entire 400m patch even at grazing sun elevations (sub-2°).
 - Hard vacuum lunar illumination: Sun intensity 3.0 when `sunEl > -0.27°` with a 0.1° fade preventing pop-in, 0.02 baseline ambient, and 0.04 faint bluish Earthshine active only when `earthEl > 0°`.
+- Sun disk and Earth marker placed at distance 800 with realistic physical angular diameters (Sun ~0.53°, Earth ~1.9°, ratio ~3.5:1).
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -36,9 +38,10 @@
 - Terrain resolution: `low` = 129, `medium`/`auto` = 257, `high` = 385. Generates under 100ms at 257x257.
 - Shadow map size: `low` = 1024, `medium`/`high` = 2048.
 - Rock scatter takes <8ms to generate in 1 single draw call for all instances.
+- Stars rendered as single `THREE.Points` draw call with zero texture overhead.
 
 ## Known issues
-- Sky visuals (stars, Sun disk, Earth marker sphere) are next in P-07.
+- Orbit camera refinements (verifying exact polar angles, damping on high tier, and astronaut camera mode in P-09) are up next in P-08.
 
 ## Requests to the other member / human
 - None at this time.
