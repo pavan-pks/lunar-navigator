@@ -6,6 +6,7 @@ import { buildRocks } from './rocks.js'
 import { buildSky } from './sky.js'
 import { buildCompassRing } from './compass.js'
 import { createCameraController } from './cameraModes.js'
+import Hud from './Hud.jsx'
 
 /**
  * Scene3D component
@@ -16,7 +17,7 @@ import { createCameraController } from './cameraModes.js'
  * @param {number} earthAz - Earth azimuth in degrees (0 to 360)
  * @param {string} siteId - Site identifier (e.g. 'shackleton', 'malapert')
  * @param {string} terrainType - 'crater-rim' | 'massif' | 'plain'
- * @param {string} viewMode - 'orbit' | 'astronaut'
+ * @param {string} viewMode - 'orbit' | 'astronaut' (optional; if omitted or toggled, uses internal state)
  * @param {string} quality - 'auto' | 'low' | 'medium' | 'high'
  * @param {string} label - Display label
  * @param {number} landerHeight - Lander height in meters (default 3)
@@ -31,7 +32,7 @@ export default function Scene3D({
   earthAz = 20.0,
   siteId = 'shackleton',
   terrainType = 'plain',
-  viewMode = 'orbit',
+  viewMode: propViewMode,
   quality = 'auto',
   label = '',
   landerHeight = 3,
@@ -41,7 +42,11 @@ export default function Scene3D({
 }) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
+  const [internalViewMode, setInternalViewMode] = useState('orbit')
   const [notification, setNotification] = useState('')
+
+  // Active viewMode: prop takes precedence if explicitly passed, otherwise internal state
+  const activeViewMode = propViewMode || internalViewMode
 
   const getResolution = (q) => {
     if (q === 'low') return 129
@@ -289,7 +294,7 @@ export default function Scene3D({
     }
 
     if (ctx.cameraController) {
-      ctx.cameraController.setMode(viewMode, {
+      ctx.cameraController.setMode(activeViewMode, {
         sunEl: safeSunEl,
         sunAz: safeSunAz,
         earthEl: safeEarthEl,
@@ -298,7 +303,7 @@ export default function Scene3D({
     }
 
     ctx.invalidate()
-  }, [sunEl, sunAz, earthEl, earthAz, landerHeight, viewMode])
+  }, [sunEl, sunAz, earthEl, earthAz, landerHeight, activeViewMode])
 
   // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, quality, heightmapUrl)
   useEffect(() => {
@@ -375,107 +380,22 @@ export default function Scene3D({
         background: '#000000',
       }}
     >
-      {/* Top watermark tags */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          left: '12px',
-          color: '#e2e8f0',
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          pointerEvents: 'none',
-          background: 'rgba(15, 23, 42, 0.75)',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          border: '1px solid #334155',
-        }}
-      >
-        {label || siteId} · {terrainType} · {viewMode === 'astronaut' ? 'Astronaut 1.7m view' : 'Orbit view'}
-      </div>
-
-      <div
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          color: '#cbd5e1',
-          fontSize: '11px',
-          fontFamily: 'sans-serif',
-          pointerEvents: 'none',
-          background: 'rgba(30, 41, 59, 0.85)',
-          padding: '4px 8px',
-          borderRadius: '4px',
-          border: '1px solid #475569',
-        }}
-      >
-        Illustrative terrain
-      </div>
-
-      {/* Astronaut view quick-look action bar */}
-      {viewMode === 'astronaut' && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '16px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            gap: '8px',
-            background: 'rgba(15, 23, 42, 0.85)',
-            padding: '6px 12px',
-            borderRadius: '24px',
-            border: '1px solid #334155',
-            backdropFilter: 'blur(4px)',
-            zIndex: 10,
-          }}
-        >
-          <button
-            onClick={() => ctxRef.current?.cameraController?.lookAtSun(sunEl, sunAz)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '16px',
-              border: '1px solid #eab308',
-              background: 'rgba(234, 179, 8, 0.15)',
-              color: '#fef08a',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            ☀️ Look at Sun
-          </button>
-          <button
-            onClick={() => ctxRef.current?.cameraController?.lookAtEarth(earthEl, earthAz)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '16px',
-              border: '1px solid #38bdf8',
-              background: 'rgba(56, 189, 248, 0.15)',
-              color: '#bae6fd',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            🌍 Look at Earth
-          </button>
-          <button
-            onClick={() => ctxRef.current?.cameraController?.lookNorth()}
-            style={{
-              padding: '6px 12px',
-              borderRadius: '16px',
-              border: '1px solid #94a3b8',
-              background: 'rgba(148, 163, 184, 0.15)',
-              color: '#f1f5f9',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
-            🧭 Look North
-          </button>
-        </div>
+      {/* Dynamic HUD overlay */}
+      {showHud && (
+        <Hud
+          label={label || siteId}
+          sunEl={sunEl}
+          sunAz={sunAz}
+          earthEl={earthEl}
+          earthAz={earthAz}
+          landerHeight={landerHeight}
+          viewMode={activeViewMode}
+          onToggleViewMode={(newMode) => setInternalViewMode(newMode)}
+          onLookSun={() => ctxRef.current?.cameraController?.lookAtSun(sunEl, sunAz)}
+          onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(earthEl, earthAz)}
+          onLookNorth={() => ctxRef.current?.cameraController?.lookNorth()}
+          quality={quality}
+        />
       )}
 
       {/* Toast Notification message */}

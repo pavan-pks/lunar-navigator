@@ -15,7 +15,8 @@
 - `src/components/scene/sky.js`: Deep space procedural sky system with starfield Points (radius 900, 800-2500 by tier) dimming to 0.35 during daytime, emissive white Sun disk (angular size 0.53°), procedural canvas textured Earth sphere (angular size 1.9°), and callout text sprite.
 - `src/components/scene/compass.js`: Procedural 3D compass ring at 190m radius with circular baseline and cardinal sprites (N at -Z, E at +X, S at +Z, W at -X).
 - `src/components/scene/cameraModes.js`: Dual-mode camera controller supporting OrbitControls (fov 50, limits, terrain clamping) and Astronaut mode (fov 70, 1.7m eye height, pitch ±60° drag look, arrow keys, smooth look-at animation to Sun, Earth, and North).
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, on-demand `invalidate()` scheduling, and full StrictMode disposal.
+- `src/components/scene/Hud.jsx`: Dedicated DOM overlay with site label, "Illustrative terrain" honesty badge, live 0.1° Sun/Earth coordinate readouts, real-time lander shadow length and multiplier ratio, interactive view mode toggle, and astronaut quick-look actions.
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
@@ -33,6 +34,7 @@
 - Sun disk and Earth marker placed at distance 800 with realistic physical angular diameters (Sun ~0.53°, Earth ~1.9°, ratio ~3.5:1).
 - Camera clamped above local terrain `y >= heightAt(x, z) + 1.0` and max polar angle set to `1.45 rad` so camera never penetrates lunar surface or clips beneath ground.
 - Astronaut camera mode places user 8-11m from lander at 1.7m eye height with fov 70; includes quick-look helpers with ease-out cubic transitions.
+- HUD overlay keeps `pointer-events: none` overall to allow seamless click/drag canvas controls, enabling `pointer-events: auto` strictly on interactive toggle buttons.
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -44,7 +46,7 @@
 - Stars rendered as single `THREE.Points` draw call with zero texture overhead.
 
 ## Known issues
-- Modular HUD overlay extraction (`Hud.jsx` with real-time shadow ratio computation and responsive layout) is up next in P-10.
+- Auto quality benchmark and downgrade calibration logic is up next in P-11.
 
 ## Requests to the other member / human
 - None at this time.
