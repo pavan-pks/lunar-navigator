@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 14 / 100**
+**Current score: 20 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** R-03: geometry.js (with tests)
+**Currently working on:** R-04: config.js and metrics.js (with tests)
 **Data status:** REAL NASA/JPL Horizons data (`fake: false`)
 
 ## Core tasks
@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|
 | R-01 | Fake data generator and `sites.json` | 5 | Done | 100 | 5 | Generated 9504 hours of plausible global ephemeris, 6 preset sites, and validation script. All PASS. |
 | R-02 | Real Horizons fetch script and verification | 9 | Done | 100 | 9 | Fetched 9,504 hourly steps from NASA/JPL Horizons (target 301, center 500@399, quantities 14, 15). Verified against topocentric Horizons queries (Sun ΔEl ≤ 0.001°, Earth ΔEl ≤ 0.273° due to geocenter parallax). All PASS. |
-| R-03 | `geometry.js` (with tests) | 6 | Not started | 0 | 0 | |
+| R-03 | `geometry.js` (with tests) | 6 | Done | 100 | 6 | Implemented analytical spherical astronomy module (`sunAltAz`, `earthAltAz`, `sampleSeries`, `valuesAt`, `lerpAzimuth`, `lerpAngle180`) with 11 Vitest unit tests passing. |
 | R-04 | `config.js` and `metrics.js` (with tests) | 12 | Not started | 0 | 0 | |
 | R-05 | `energy.js` (with tests) | 5 | Not started | 0 | 0 | |
 | R-06 | App shell, data loader, time controller | 7 | Not started | 0 | 0 | |

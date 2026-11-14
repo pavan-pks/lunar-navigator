@@ -10,6 +10,8 @@
 - `scripts/validate_data.py`: Schema and range validation suite for all static JSON datasets.
 - `public/data/sites.json`: 6 curated preset landing regions (`shackleton`, `malapert`, `haworth`, `chandrayaan3`, `nobile`, `apollo11`).
 - `public/data/global_ephem.json`: Real NASA/JPL Horizons lunar sub-solar and sub-Earth coordinates (`fake: false`, 9,504 hourly records).
+- `src/lib/geometry.js`: Analytical spherical astronomy module (`sunAltAz`, `earthAltAz`, `sampleSeries`, `valuesAt`, `calculateElAz`).
+- `src/lib/geometry.test.js`: Vitest test suite with 11 tests covering zenith, antipode, equator, polar stability, azimuth wrapping (359°->0°), and longitude wrapping (±180°).
 
 ## Data status
 - Status: REAL NASA/JPL Horizons data (`fake: false`).
