@@ -455,24 +455,25 @@ export default function PavanSandbox() {
           />
         </div>
 
-        {compareTest && (
-          <div style={{ flex: 1, height: '100%', position: 'relative' }}>
-            <Scene3D
-              sunEl={sunEl}
-              sunAz={sunAz}
-              earthEl={earthEl}
-              earthAz={earthAz}
-              siteId={secondSite.id}
-              terrainType={secondSite.terrainType}
-              viewMode={viewMode}
-              quality={quality}
-              label={`${secondSite.name} [Scene B]`}
-              landerHeight={landerHeight}
-              showHud={showHud}
-              showShadowRuler={showShadowRuler}
-            />
-          </div>
-        )}
+          {compareTest && (
+            <div style={{ flex: 1, height: '100%', position: 'relative' }}>
+              <Scene3D
+                sunEl={sunEl}
+                sunAz={sunAz}
+                earthEl={earthEl}
+                earthAz={earthAz}
+                siteId={secondSite.id}
+                terrainType={secondSite.terrainType}
+                viewMode={viewMode}
+                quality={quality}
+                label={`${secondSite.name} [Scene B]`}
+                landerHeight={landerHeight}
+                showHud={showHud}
+                showShadowRuler={showShadowRuler}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
