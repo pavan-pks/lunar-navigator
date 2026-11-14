@@ -58,6 +58,8 @@ function Scene3DInner({
   earthEl = 5.0,
   earthAz = 0.0,
   siteId = 'shackleton',
+  sites = [],
+  onSelectSite,
   terrainType = 'plain',
   viewMode: propViewMode,
   quality = 'auto',
@@ -72,6 +74,8 @@ function Scene3DInner({
   onToggleSimulation,
   onToggleShadowRuler,
   onViewModeChange,
+  isComparison = false,
+  comparisonData = null,
 }) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
@@ -79,6 +83,31 @@ function Scene3DInner({
   const [activeTier, setActiveTier] = useState(quality === 'auto' ? 'medium' : quality)
   const [notification, setNotification] = useState('')
   const [webglError, setWebglError] = useState(false)
+  const isAscendingRef = useRef(false)
+
+  // Apollo-style staging: Detaches ascentStage, leaves descentStage grounded
+  const handleReturnToOrbit = () => {
+    if (isAscendingRef.current) return
+    isAscendingRef.current = true
+
+    if (ctxRef.current?.lander?.triggerAscent) {
+      setNotification('Ascent stage ignited · Detaching from descent stage into orbit')
+      setTimeout(() => setNotification(''), 3500)
+
+      ctxRef.current.lander.triggerAscent({
+        onUpdate: () => {
+          ctxRef.current?.invalidate()
+        },
+        onComplete: () => {
+          isAscendingRef.current = false
+          if (onReturnToOrbit) onReturnToOrbit()
+        },
+      })
+    } else if (onReturnToOrbit) {
+      isAscendingRef.current = false
+      onReturnToOrbit()
+    }
+  }
 
   // Sync internal view mode when prop changes
   useEffect(() => {
@@ -522,10 +551,13 @@ function Scene3DInner({
         background: '#000000',
       }}
     >
-      {/* Dynamic HUD overlay */}
+      {/* Dynamic Context-Aware HUD overlay */}
       {showHud && (
         <Hud
           label={label || siteId}
+          siteId={siteId}
+          sites={sites}
+          onSelectSite={onSelectSite}
           sunEl={validSunEl}
           sunAz={validSunAz}
           earthEl={validEarthEl}
@@ -542,9 +574,11 @@ function Scene3DInner({
           quality={activeTier}
           isSimulating={isSimulating}
           onToggleSimulation={onToggleSimulation}
-          onReturnToOrbit={onReturnToOrbit}
+          onReturnToOrbit={handleReturnToOrbit}
           showShadowRuler={showShadowRuler}
           onToggleShadowRuler={onToggleShadowRuler}
+          isComparison={isComparison}
+          comparisonData={comparisonData}
         />
       )}
 

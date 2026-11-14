@@ -419,10 +419,15 @@ function UniverseScene({
   hasLanded,
   viewMode,
   isComparing = false,
-  orbitControlsRef
+  orbitControlsRef,
+  onRegisterInvalidate,
 }) {
-  const { camera } = useThree();
+  const { camera, invalidate } = useThree();
   const orbitAngleRef = useRef(0);
+
+  useEffect(() => {
+    if (onRegisterInvalidate) onRegisterInvalidate(invalidate);
+  }, [invalidate, onRegisterInvalidate]);
 
   // Target vector and normal
   const targetPos = useMemo(() => {
@@ -559,6 +564,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
 ) {
   const spacecraftRef = useRef(null);
   const orbitControlsRef = useRef(null);
+  const invalidateRef = useRef(null);
   const [thrusterActive, setThrusterActive] = useState(false);
 
   const selectedSite = useMemo(() => {
@@ -571,7 +577,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     };
   }, [sites, selectedSiteId, customCoords]);
 
-  // Trigger Multi-Phase GSAP Physics-Based Descent Trajectory
+  // High-Orbital Arc Descent Trajectory using QuadraticBezierCurve3 (Zero Moon Clipping)
   const triggerCinematicDescent = (onComplete) => {
     if (!spacecraftRef.current) return;
     setIsDescending?.(true);
@@ -582,96 +588,124 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     const targetPos = latLonToVector3(lat, lon, MOON_RADIUS + disp);
     const targetNormal = targetPos.clone().normalize();
 
-    // Start position in orbit
-    const p0 = spacecraftRef.current.position.clone();
+    // 1. Start Vector3 (current orbit) and End Vector3 (landing site)
+    const start = spacecraftRef.current.position.clone();
+    const end = targetPos.clone().addScaledVector(targetNormal, 0.28);
 
-    // Intermediate braking waypoint (parabolic arc corridor)
-    const midPoint = p0.clone()
-      .lerp(targetPos, 0.55)
-      .normalize()
-      .multiplyScalar(MOON_RADIUS + 2.8);
+    // 2. Midpoint calculation:
+    let mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
 
-    // High gate / approach point directly above target
-    const pApproach = targetPos.clone().addScaledVector(targetNormal, 1.4);
+    // 3. Elevate midpoint to clear the Moon:
+    mid.normalize().multiplyScalar(MOON_RADIUS * 1.5);
 
-    // Final touchdown location (footpads resting on the surface)
-    const pTouchdown = targetPos.clone().addScaledVector(targetNormal, 0.28);
+    // 4. Calculate high orbital arc using THREE.QuadraticBezierCurve3
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
 
-    // Orientations
+    // Upright landing normal orientation
     const uprightQuat = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
       targetNormal
     );
 
-    const animState = { progress: 0 };
-    const tl = gsap.timeline({
+    setThrusterActive(true);
+
+    // 5. Animate dummy progress value (t: 0 to 1) with GSAP
+    const animState = { t: 0 };
+    gsap.to(animState, {
+      t: 1.0,
+      duration: 5.5,
+      ease: 'power2.inOut',
+      onStart: () => setThrusterActive(true),
+      onUpdate: () => {
+        if (!spacecraftRef.current) return;
+        const currentT = animState.t;
+
+        // Position from Bezier curve
+        const pos = curve.getPoint(currentT);
+        spacecraftRef.current.position.copy(pos);
+
+        // Orient spacecraft to the curve's tangent
+        const tangent = curve.getTangent(currentT).normalize();
+        const flightQuat = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          tangent
+        );
+
+        // Near touchdown (last 20%), smoothly blend orientation to upright landing normal
+        if (currentT > 0.8) {
+          const blend = (currentT - 0.8) / 0.2;
+          spacecraftRef.current.quaternion.copy(flightQuat).slerp(uprightQuat, blend);
+        } else {
+          spacecraftRef.current.quaternion.slerp(flightQuat, 0.2);
+        }
+
+        // Explicitly call invalidate() for render-on-demand performance
+        if (invalidateRef.current) {
+          invalidateRef.current();
+        }
+      },
       onComplete: () => {
-        // Snap thrusters off the exact millisecond of touchdown!
         setThrusterActive(false);
         setIsDescending?.(false);
         setHasLanded?.(true);
+        if (spacecraftRef.current) {
+          spacecraftRef.current.position.copy(end);
+          spacecraftRef.current.quaternion.copy(uprightQuat);
+        }
+        if (invalidateRef.current) invalidateRef.current();
         onLanderTouchdown?.();
         onComplete?.();
       },
     });
+  };
 
-    // Phase 1: De-orbit Burn (1.2s)
-    // Rotate engine nozzle forward retrograde, activate thrusters
-    tl.to(
-      {},
-      {
-        duration: 1.2,
-        onStart: () => setThrusterActive(true),
-        onUpdate: function () {
-          const t = this.progress();
-          if (spacecraftRef.current) {
-            // Retrograde pitch maneuver
-            const retrogradeQuat = new THREE.Quaternion().setFromUnitVectors(
-              new THREE.Vector3(0, 1, 0),
-              targetNormal.clone().negate()
-            );
-            spacecraftRef.current.quaternion.slerp(retrogradeQuat, t);
-          }
-        },
-      }
-    );
+  // High-Orbital Arc Ascent Trajectory (Apollo-Style Return to Orbit Staging)
+  const triggerCinematicAscent = (onComplete) => {
+    if (!spacecraftRef.current) return;
+    setIsDescending?.(false);
 
-    // Phase 2: Parabolic Braking Curve (3.4s)
-    // Follows parabolic arc down toward the target entry corridor
-    tl.to(animState, {
-      progress: 0.75,
-      duration: 3.4,
-      ease: 'power1.inOut',
+    const lat = selectedSite.lat;
+    const lon = selectedSite.lon;
+    const disp = getSouthPoleDisplacement(lat, lon);
+    const targetPos = latLonToVector3(lat, lon, MOON_RADIUS + disp);
+    const targetNormal = targetPos.clone().normalize();
+
+    // Start on surface
+    const start = spacecraftRef.current.position.clone();
+    // Return to orbit altitude
+    const orbitTarget = targetNormal.clone().multiplyScalar(ORBIT_RADIUS);
+    let mid = new THREE.Vector3().addVectors(start, orbitTarget).multiplyScalar(0.5);
+    mid.normalize().multiplyScalar(MOON_RADIUS * 1.45);
+
+    const curve = new THREE.QuadraticBezierCurve3(start, mid, orbitTarget);
+    const animState = { t: 0 };
+    setThrusterActive(true);
+
+    gsap.to(animState, {
+      t: 1.0,
+      duration: 3.5,
+      ease: 'power2.in',
+      onStart: () => setThrusterActive(true),
       onUpdate: () => {
         if (!spacecraftRef.current) return;
-        const normT = animState.progress / 0.75;
-        // Quadratic bezier interpolation p0 -> midPoint -> pApproach
-        const pos = new THREE.Vector3();
-        pos.x = (1 - normT) * (1 - normT) * p0.x + 2 * (1 - normT) * normT * midPoint.x + normT * normT * pApproach.x;
-        pos.y = (1 - normT) * (1 - normT) * p0.y + 2 * (1 - normT) * normT * midPoint.y + normT * normT * pApproach.y;
-        pos.z = (1 - normT) * (1 - normT) * p0.z + 2 * (1 - normT) * normT * midPoint.z + normT * normT * pApproach.z;
+        const currentT = animState.t;
+        const pos = curve.getPoint(currentT);
         spacecraftRef.current.position.copy(pos);
 
-        // Transition orientation toward upright normal
-        spacecraftRef.current.quaternion.slerp(uprightQuat, 0.08);
-      },
-    });
+        const tangent = curve.getTangent(currentT).normalize();
+        const flightQuat = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          tangent
+        );
+        spacecraftRef.current.quaternion.slerp(flightQuat, 0.25);
 
-    // Phase 3: Terminal Descent & Smooth Touchdown (2.0s, power2.out)
-    // Straight vertical descent with upright alignment
-    tl.to(animState, {
-      progress: 1.0,
-      duration: 2.0,
-      ease: 'power2.out',
-      onUpdate: () => {
-        if (!spacecraftRef.current) return;
-        const normT = (animState.progress - 0.75) / 0.25;
-        spacecraftRef.current.position.lerpVectors(pApproach, pTouchdown, normT);
-        spacecraftRef.current.quaternion.slerp(uprightQuat, 0.2);
+        if (invalidateRef.current) invalidateRef.current();
       },
       onComplete: () => {
-        // Snap thrusters off the exact millisecond it touches the surface!
         setThrusterActive(false);
+        setHasLanded?.(false);
+        if (invalidateRef.current) invalidateRef.current();
+        onComplete?.();
       },
     });
   };
@@ -681,6 +715,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
       onReachedOrbit?.();
     },
     triggerCinematicDescent,
+    triggerCinematicAscent,
     resetToMacro: () => {
       setThrusterActive(false);
       setIsDescending?.(false);
@@ -734,6 +769,9 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
             viewMode={viewMode}
             isComparing={isComparing}
             orbitControlsRef={orbitControlsRef}
+            onRegisterInvalidate={(inv) => {
+              invalidateRef.current = inv;
+            }}
           />
         )}
       </Canvas>

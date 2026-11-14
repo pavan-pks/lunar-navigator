@@ -268,7 +268,10 @@ export function App() {
             sunAz={live.sunAz}
             earthEl={live.earthEl}
             earthAz={live.earthAz}
-            onReturnToOrbit={() => setViewMode('orbit')}
+            onReturnToOrbit={() => {
+              setViewMode('orbit');
+              setHasLanded(false);
+            }}
           />
         </div>
       )}
@@ -384,7 +387,10 @@ export function App() {
             <div className="flex items-center gap-6 text-xs font-sans tracking-wider">
               {viewMode === 'surface' ? (
                 <button
-                  onClick={() => setViewMode('orbit')}
+                  onClick={() => {
+                    setViewMode('orbit');
+                    setHasLanded(false);
+                  }}
                   className="text-[#f5f5f5] border-b border-white/30 hover:border-white transition cursor-none pb-0.5"
                 >
                   Return to Orbital Survey ↖
@@ -463,7 +469,10 @@ export function App() {
                 isDescending={isDescending}
                 hasLanded={hasLanded}
                 viewMode={viewMode}
-                onReturnToOrbit={() => setViewMode('orbit')}
+                onReturnToOrbit={() => {
+                  setViewMode('orbit');
+                  setHasLanded(false);
+                }}
               />
             ) : null}
           </AnimatePresence>

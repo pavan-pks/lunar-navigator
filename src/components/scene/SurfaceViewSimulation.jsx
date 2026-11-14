@@ -22,7 +22,7 @@ export function SurfaceViewSimulation({
   onReturnToOrbit,
   quality = 'auto',
 }) {
-  const [viewMode, setViewMode] = useState('orbit');
+  const [viewMode, setViewMode] = useState('astronaut');
   const [showShadowRuler, setShowShadowRuler] = useState(true);
 
   // 20s sweeping lunar day cycle state

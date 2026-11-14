@@ -1,29 +1,38 @@
 import * as THREE from 'three'
+import gsap from 'gsap'
 
 /**
  * src/components/scene/lander.js
  * High-fidelity procedural lunar lander model (Artemis CLPS / Apollo LM archetype).
  * Baseline height: 3.0m with footpads resting precisely at Y = 0.
  *
- * Detailed features:
- * - Multi-faceted gold MLI thermal foil descent stage with equipment bays
- * - 4 external spherical propellant tanks (titanium / thermal wrapped)
- * - 4 articulated shock-absorbing landing legs with chrome pistons & honeycomb footpads
- * - Surface contact light probes beneath each footpad
- * - Crew egress ladder on the forward (+Z) strut
- * - Multi-faceted white/silver avionics cabin with dark reflective visor windows
- * - 4 Reaction Control System (RCS) thruster quads with 16 miniature nozzles
- * - Dual articulated solar array wings with photovoltaic grid divisions & gold backings
- * - Steerable high-gain parabolic antenna with tripod subreflector feed horn
- * - Star tracker / LiDAR navigation mast and EVA handrails
- * - Throttleable descent engine bell with cooling ribs and thermal heat shield
- * - Starboard (green), Port (red), and Zenith (white) navigation beacons
+ * Staging Architecture:
+ * - descentStage: Multi-faceted gold MLI thermal foil chassis, 4 propellant tanks,
+ *                 descent engine bell, equipment bays, 4 articulated landing legs,
+ *                 honeycomb footpads, contact light probes, and crew egress ladder.
+ * - ascentStage:  Upper white/silver crew cabin, reflective visor observation windows,
+ *                 docking hatch, EVA handrails, 4 RCS thruster quads with 16 nozzles,
+ *                 dual solar array wings, high-gain parabolic antenna dish, and beacons.
  *
  * @param {number} [initialHeight=3] - Target height in meters
- * @returns {{ group: THREE.Group, setHeight: (h: number) => void, dispose: () => void }}
+ * @returns {{
+ *   group: THREE.Group,
+ *   descentStage: THREE.Group,
+ *   ascentStage: THREE.Group,
+ *   triggerAscent: (options?: { onUpdate?: () => void, onComplete?: () => void }) => gsap.core.Tween,
+ *   resetLander: () => void,
+ *   setHeight: (h: number) => void,
+ *   dispose: () => void
+ * }}
  */
 export function buildLander(initialHeight = 3) {
   const group = new THREE.Group()
+  const descentStage = new THREE.Group()
+  const ascentStage = new THREE.Group()
+
+  group.add(descentStage)
+  group.add(ascentStage)
+
   const BASELINE_HEIGHT = 3.0
 
   // Aerospace Materials Palette
@@ -131,21 +140,22 @@ export function buildLander(initialHeight = 3) {
   }
 
   // =========================================================================
-  // 1. LOWER DESCENT STAGE (Y: 0.55 to 1.35)
+  // 1. DESCENT STAGE (Remains permanently grounded at Y = 0 on the terrain)
   // =========================================================================
+
   // Primary octagonal chassis wrapped in gold MLI thermal foil
   const descentBaseGeo = new THREE.CylinderGeometry(1.35, 1.45, 0.75, 8)
   const descentBase = trackMesh(descentBaseGeo, matGoldFoil)
   descentBase.position.set(0, 0.92, 0)
   descentBase.rotation.y = Math.PI / 8
-  group.add(descentBase)
+  descentStage.add(descentBase)
 
   // Lower heat shield bulkhead barrier
   const heatShieldGeo = new THREE.CylinderGeometry(1.42, 1.42, 0.08, 8)
   const heatShield = trackMesh(heatShieldGeo, matTitanium)
   heatShield.position.set(0, 0.53, 0)
   heatShield.rotation.y = Math.PI / 8
-  group.add(heatShield)
+  descentStage.add(heatShield)
 
   // 4 Spherical propellant tanks (2 oxidizer, 2 fuel) nested in quadrant pockets
   const tankRadius = 0.32
@@ -156,14 +166,14 @@ export function buildLander(initialHeight = 3) {
     const tankMat = i % 2 === 0 ? matSilverFoil : matTitanium
     const tank = trackMesh(tankGeo, tankMat)
     tank.position.set(Math.cos(angle) * tankDist, 0.92, Math.sin(angle) * tankDist)
-    group.add(tank)
+    descentStage.add(tank)
 
     // Tank mounting bands
     const bandGeo = new THREE.TorusGeometry(tankRadius * 1.02, 0.015, 6, 24)
     const band = trackMesh(bandGeo, matTitanium)
     band.position.copy(tank.position)
     band.rotation.x = Math.PI / 2
-    group.add(band)
+    descentStage.add(band)
   }
 
   // Scientific equipment bays & modular payload lockers on chassis facets
@@ -177,7 +187,7 @@ export function buildLander(initialHeight = 3) {
     const bay = trackMesh(bayGeo, matSilverFoil)
     bay.position.set(pos.x, 0.95, pos.z)
     bay.rotation.y = pos.rotY
-    group.add(bay)
+    descentStage.add(bay)
   })
 
   // Main throttleable descent engine bell
@@ -185,7 +195,7 @@ export function buildLander(initialHeight = 3) {
   const engineBell = trackMesh(engineBellGeo, matEngine)
   engineBell.position.set(0, 0.46, 0)
   engineBell.rotation.x = Math.PI // Flared downward
-  group.add(engineBell)
+  descentStage.add(engineBell)
 
   // Engine cooling ring ribs
   for (let r = 0; r < 3; r++) {
@@ -194,11 +204,11 @@ export function buildLander(initialHeight = 3) {
     const rib = trackMesh(ribGeo, matTitanium)
     rib.position.set(0, 0.55 - r * 0.12, 0)
     rib.rotation.x = Math.PI / 2
-    group.add(rib)
+    descentStage.add(rib)
   }
 
   // =========================================================================
-  // 2. LANDING GEAR ASSEMBLY (Y: 0.0 to 1.1)
+  // LANDING GEAR ASSEMBLY (Part of Descent Stage, Y: 0.0 to 1.1)
   // =========================================================================
   const legRadius = 2.45
   const footpadRadius = 0.34
@@ -217,21 +227,21 @@ export function buildLander(initialHeight = 3) {
     const padGeo = new THREE.CylinderGeometry(footpadRadius * 0.85, footpadRadius, footpadHeight, 20)
     const footpad = trackMesh(padGeo, matGoldFoil)
     footpad.position.set(footX, footY, footZ)
-    group.add(footpad)
+    descentStage.add(footpad)
 
     // Outer footpad retention rim
     const rimGeo = new THREE.TorusGeometry(footpadRadius, 0.015, 6, 20)
     const rim = trackMesh(rimGeo, matTitanium)
     rim.position.set(footX, footY + 0.02, footZ)
     rim.rotation.x = Math.PI / 2
-    group.add(rim)
+    descentStage.add(rim)
 
     // Surface contact probe wire ("Contact Light!") extending beneath footpad
     const probeGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.28, 4)
     const probe = trackMesh(probeGeo, matTitanium)
     probe.position.set(footX, footY + 0.05, footZ)
     probe.rotation.z = 0.2
-    group.add(probe)
+    descentStage.add(probe)
 
     // Primary shock-absorber strut: Outer titanium cylinder + Inner chrome piston
     const strutVec = new THREE.Vector3(footX - hipX, footY - hipY, footZ - hipZ)
@@ -247,7 +257,7 @@ export function buildLander(initialHeight = 3) {
       : strutMid
     outerSleeve.position.copy(sleevePos)
     outerSleeve.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strutDir)
-    group.add(outerSleeve)
+    descentStage.add(outerSleeve)
 
     // Inner chrome hydraulic piston (lower half)
     const innerPistonGeo = new THREE.CylinderGeometry(0.038, 0.038, strutLen * 0.52, 12)
@@ -255,7 +265,7 @@ export function buildLander(initialHeight = 3) {
     const pistonPos = new THREE.Vector3(footX, footY, footZ).sub(strutDir.clone().multiplyScalar(strutLen * 0.26))
     innerPiston.position.copy(pistonPos)
     innerPiston.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), strutDir)
-    group.add(innerPiston)
+    descentStage.add(innerPiston)
 
     // Dual A-frame secondary deployment trusses
     for (let side = -1; side <= 1; side += 2) {
@@ -266,7 +276,7 @@ export function buildLander(initialHeight = 3) {
       const braceMesh = trackMesh(braceGeo, matTitanium)
       braceMesh.position.set((footX + braceHipX) / 2, (footY + 0.72) / 2, (footZ + braceHipZ) / 2)
       braceMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), braceVec.clone().normalize())
-      group.add(braceMesh)
+      descentStage.add(braceMesh)
     }
 
     // Crew Egress Ladder on Forward (+Z quadrant, angle ~ 45° or 135°) Strut
@@ -281,27 +291,28 @@ export function buildLander(initialHeight = 3) {
         rungMesh.position.copy(rungPos).add(new THREE.Vector3(0, 0.04, 0))
         rungMesh.rotation.y = angle + Math.PI / 2
         rungMesh.rotation.z = Math.PI / 2
-        group.add(rungMesh)
+        descentStage.add(rungMesh)
       }
     }
   }
 
   // =========================================================================
-  // 3. UPPER AVIONICS / CREW CABIN (Y: 1.3 to 2.25)
+  // 2. ASCENT STAGE (Crew Cabin, RCS, Antenna, Solar Panels, Navigation)
   // =========================================================================
+
   // Faceted white thermal barrier avionics deck
   const upperCabinGeo = new THREE.CylinderGeometry(1.05, 1.25, 0.92, 8)
   const upperCabin = trackMesh(upperCabinGeo, matCabinWhite)
   upperCabin.position.set(0, 1.76, 0)
   upperCabin.rotation.y = Math.PI / 8
-  group.add(upperCabin)
+  ascentStage.add(upperCabin)
 
   // Silver mid-deck interstage adapter ring
   const interstageGeo = new THREE.CylinderGeometry(1.28, 1.32, 0.12, 8)
   const interstage = trackMesh(interstageGeo, matSilverFoil)
   interstage.position.set(0, 1.32, 0)
   interstage.rotation.y = Math.PI / 8
-  group.add(interstage)
+  ascentStage.add(interstage)
 
   // Forward Cockpit Observation Windows (Reflective Visor Glass)
   const windowGeo = new THREE.BoxGeometry(0.32, 0.22, 0.04)
@@ -309,37 +320,34 @@ export function buildLander(initialHeight = 3) {
   windowLeft.position.set(-0.35, 1.9, 1.05)
   windowLeft.rotation.y = -0.25
   windowLeft.rotation.x = -0.15
-  group.add(windowLeft)
+  ascentStage.add(windowLeft)
 
   const windowRight = trackMesh(windowGeo, matVisorGlass)
   windowRight.position.set(0.35, 1.9, 1.05)
   windowRight.rotation.y = 0.25
   windowRight.rotation.x = -0.15
-  group.add(windowRight)
+  ascentStage.add(windowRight)
 
   // Top Crew Hatch / Docking Collar Ring
   const hatchGeo = new THREE.TorusGeometry(0.36, 0.04, 8, 24)
   const hatch = trackMesh(hatchGeo, matTitanium)
   hatch.position.set(0, 2.24, 0)
   hatch.rotation.x = Math.PI / 2
-  group.add(hatch)
+  ascentStage.add(hatch)
 
   const hatchDoorGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.03, 16)
   const hatchDoor = trackMesh(hatchDoorGeo, matSilverFoil)
   hatchDoor.position.set(0, 2.23, 0)
-  group.add(hatchDoor)
+  ascentStage.add(hatchDoor)
 
   // Safety EVA Tubular Handrails
   const railGeo = new THREE.TorusGeometry(0.95, 0.015, 6, 24, Math.PI * 1.2)
   const handrail = trackMesh(railGeo, matTitanium)
   handrail.position.set(0, 2.26, 0)
   handrail.rotation.x = Math.PI / 2
-  group.add(handrail)
+  ascentStage.add(handrail)
 
-  // =========================================================================
-  // 4. REACTION CONTROL SYSTEM (RCS) THRUSTER QUADS
-  // =========================================================================
-  // 4 outrigger pods mounted on the 4 diagonal corners of the cabin
+  // 4 RCS Thruster Pods mounted on diagonal corners of the cabin
   const rcsRadius = 1.15
   for (let i = 0; i < 4; i++) {
     const angle = (i * Math.PI) / 2 + Math.PI / 4
@@ -352,9 +360,9 @@ export function buildLander(initialHeight = 3) {
     const podBox = trackMesh(podBoxGeo, matTitanium)
     podBox.position.set(podX, podY, podZ)
     podBox.rotation.y = angle
-    group.add(podBox)
+    ascentStage.add(podBox)
 
-    // 4 Miniature Thruster Nozzles per cluster (pointing forward, aft, up, down)
+    // 4 Miniature Thruster Nozzles per cluster
     const nozzleDirections = [
       { dx: 0.07, dy: 0, dz: 0, rotZ: -Math.PI / 2 },
       { dx: -0.07, dy: 0, dz: 0, rotZ: Math.PI / 2 },
@@ -366,115 +374,97 @@ export function buildLander(initialHeight = 3) {
       const nozzle = trackMesh(nozzleGeo, matTitanium)
       nozzle.position.set(podX + nd.dx, podY + nd.dy, podZ + nd.dz)
       nozzle.rotation.z = nd.rotZ
-      group.add(nozzle)
+      ascentStage.add(nozzle)
     })
   }
 
-  // =========================================================================
-  // 5. ARTICULATED HIGH-EFFICIENCY SOLAR ARRAY WINGS
-  // =========================================================================
+  // Articulated Solar Array Wings (Attached to Ascent Stage)
   const panelW = 1.12
   const panelH = 0.62
   const panelT = 0.025
 
-  // Left & Right Solar Panels with gold substrate backs & photovoltaic cell grids
   for (let s = -1; s <= 1; s += 2) {
     const panelGroup = new THREE.Group()
     panelGroup.position.set(s * 1.25, 2.38, 0)
-    panelGroup.rotation.z = -s * 0.32 // Optimal sun angle tilt
+    panelGroup.rotation.z = -s * 0.32
 
-    // Panel structural frame & gold backing
     const frameGeo = new THREE.BoxGeometry(panelW, panelH, panelT)
     const frame = trackMesh(frameGeo, matGoldFoil)
     panelGroup.add(frame)
 
-    // Photovoltaic cell array (front face)
     const cellGeo = new THREE.PlaneGeometry(panelW * 0.94, panelH * 0.92)
     const cells = trackMesh(cellGeo, matSolar)
     cells.position.set(0, 0, panelT / 2 + 0.002)
     panelGroup.add(cells)
 
-    // Hinge support boom connecting wing to cabin deck
     const boomGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.42, 8)
     const boom = trackMesh(boomGeo, matTitanium)
     boom.position.set(-s * 0.22, -0.15, 0)
     boom.rotation.z = s * (Math.PI / 4)
     panelGroup.add(boom)
 
-    group.add(panelGroup)
+    ascentStage.add(panelGroup)
   }
 
-  // =========================================================================
-  // 6. HIGH-GAIN STEERABLE DISH ANTENNA & INSTRUMENT MAST (Y: 2.25 to 3.0)
-  // =========================================================================
-  // Communications mast riser
+  // High-Gain Parabolic Dish Antenna & Communications Mast
   const mastGeo = new THREE.CylinderGeometry(0.032, 0.038, 0.48, 8)
   const commMast = trackMesh(mastGeo, matTitanium)
   commMast.position.set(0.42, 2.45, 0.42)
-  group.add(commMast)
+  ascentStage.add(commMast)
 
-  // Dual-axis steerable gimbal head
   const gimbalGeo = new THREE.SphereGeometry(0.065, 12, 12)
   const gimbal = trackMesh(gimbalGeo, matTitanium)
   gimbal.position.set(0.42, 2.7, 0.42)
-  group.add(gimbal)
+  ascentStage.add(gimbal)
 
-  // High-gain parabolic antenna dish (gold mesh reflector)
   const dishGeo = new THREE.ConeGeometry(0.38, 0.12, 24, 1, true)
   const dish = trackMesh(dishGeo, matAntennaGold)
   dish.position.set(0.42, 2.78, 0.42)
-  dish.rotation.x = -Math.PI / 3.2 // Tilted towards Earth
+  dish.rotation.x = -Math.PI / 3.2
   dish.rotation.z = Math.PI / 5.5
-  group.add(dish)
+  ascentStage.add(dish)
 
-  // Parabolic subreflector feed horn & tripod struts
   const hornGeo = new THREE.ConeGeometry(0.035, 0.09, 8)
   const horn = trackMesh(hornGeo, matTitanium)
   horn.position.set(0.42, 2.86, 0.46)
   horn.rotation.x = -Math.PI / 3.2
-  group.add(horn)
+  ascentStage.add(horn)
 
-  // Optical Navigation / LiDAR & Mastcam sensor mast (Port side)
+  // LiDAR / Mastcam Sensor Mast
   const navMastGeo = new THREE.CylinderGeometry(0.022, 0.022, 0.58, 8)
   const navMast = trackMesh(navMastGeo, matTitanium)
   navMast.position.set(-0.45, 2.48, -0.35)
-  group.add(navMast)
+  ascentStage.add(navMast)
 
   const navSensorGeo = new THREE.BoxGeometry(0.14, 0.08, 0.12)
   const navSensor = trackMesh(navSensorGeo, matSilverFoil)
   navSensor.position.set(-0.45, 2.78, -0.35)
-  group.add(navSensor)
+  ascentStage.add(navSensor)
 
-  // Dual stereo camera lenses
   for (let c = -1; c <= 1; c += 2) {
     const lensGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.03, 12)
     const lens = trackMesh(lensGeo, matVisorGlass)
     lens.position.set(-0.45 + c * 0.04, 2.78, -0.28)
     lens.rotation.x = Math.PI / 2
-    group.add(lens)
+    ascentStage.add(lens)
   }
 
-  // =========================================================================
-  // 7. NAVIGATION BEACONS & SURFACE SEARCHLIGHT
-  // =========================================================================
-  // Starboard Beacon (Green LED - Right side)
+  // Navigation Beacons
   const beaconGeo = new THREE.SphereGeometry(0.03, 8, 8)
   const beaconGreen = trackMesh(beaconGeo, matBeaconGreen)
   beaconGreen.position.set(1.18, 2.15, 0)
-  group.add(beaconGreen)
+  ascentStage.add(beaconGreen)
 
-  // Port Beacon (Red LED - Left side)
   const beaconRed = trackMesh(beaconGeo, matBeaconRed)
   beaconRed.position.set(-1.18, 2.15, 0)
-  group.add(beaconRed)
+  ascentStage.add(beaconRed)
 
-  // Zenith Strobe Beacon (White LED - Top of mast)
   const beaconZenith = trackMesh(beaconGeo, matBeaconWhite)
   beaconZenith.position.set(0, 2.32, -0.7)
-  group.add(beaconZenith)
+  ascentStage.add(beaconZenith)
 
   // =========================================================================
-  // Dynamic scaling and cleanup
+  // Dynamic scaling and Apollo-Style Ascent Staging
   // =========================================================================
   const setHeight = (h) => {
     const validH = Number.isFinite(h) && h > 0 ? h : BASELINE_HEIGHT
@@ -484,6 +474,52 @@ export function buildLander(initialHeight = 3) {
 
   setHeight(initialHeight)
 
+  /**
+   * Triggers realistic Apollo-style lunar ascent staging.
+   * Animates only the ascentStage moving up and arcing downrange into orbit,
+   * leaving descentStage permanently grounded at heightAt(0, 0).
+   */
+  const triggerAscent = ({ onUpdate, onComplete } = {}) => {
+    // Starting relative position (0, 0, 0)
+    const p0 = new THREE.Vector3(0, 0, 0)
+    // Vertical climb to 18m, then pitchover downrange (+X east, -Z north)
+    const pMid = new THREE.Vector3(12, 45, -25)
+    // Insertion into high lunar orbit altitude
+    const pOrbit = new THREE.Vector3(75, 140, -160)
+
+    const curve = new THREE.QuadraticBezierCurve3(p0, pMid, pOrbit)
+    const animState = { t: 0 }
+
+    return gsap.to(animState, {
+      t: 1.0,
+      duration: 3.2,
+      ease: 'power2.in',
+      onUpdate: () => {
+        const t = animState.t
+        const pos = curve.getPoint(t)
+        ascentStage.position.copy(pos)
+
+        // Pitch downrange along flight tangent
+        const tangent = curve.getTangent(t).normalize()
+        const flightQuat = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          tangent
+        )
+        ascentStage.quaternion.slerp(flightQuat, 0.25)
+
+        if (onUpdate) onUpdate()
+      },
+      onComplete: () => {
+        if (onComplete) onComplete()
+      },
+    })
+  }
+
+  const resetLander = () => {
+    ascentStage.position.set(0, 0, 0)
+    ascentStage.quaternion.identity()
+  }
+
   const dispose = () => {
     geometries.forEach((g) => g.dispose())
     materials.forEach((m) => m.dispose())
@@ -491,6 +527,10 @@ export function buildLander(initialHeight = 3) {
 
   return {
     group,
+    descentStage,
+    ascentStage,
+    triggerAscent,
+    resetLander,
     setHeight,
     dispose,
   }

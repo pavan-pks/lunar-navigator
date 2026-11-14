@@ -1,30 +1,22 @@
 import React from 'react'
 
 /**
- * True-Dark Minimalist HUD Overlay for Scene3D & Surface Simulation.
- * Sits over the WebGL canvas with pointer-events: none (buttons re-enable pointer-events).
+ * Context-Aware Minimalist HUD Overlay for Scene3D & Lunar Universe.
+ * Selectively renders metrics per viewMode, eliminating all overlap using strict Flexbox containers.
+ *
+ * ViewMode Contracts:
+ * - 'orbit': Show global telemetry, target selection, and day-sweep simulation controls.
+ * - 'astronaut' / 'surface': Hide orbital target lists. Show only local environmental metrics
+ *                           (Shadow Ruler distance/ratio, live Sun/Earth elevation, quick-look buttons, Return to Orbit).
+ * - 'compare': Strip away all environmental controls; show only side-by-side flexbox comparison cards.
  *
  * @param {Object} props
- * @param {string} [props.label] - Site name / time label
- * @param {number} [props.sunEl] - Sun elevation in degrees
- * @param {number} [props.sunAz] - Sun azimuth in degrees
- * @param {number} [props.earthEl] - Earth elevation in degrees
- * @param {number} [props.earthAz] - Earth azimuth in degrees
- * @param {number} [props.landerHeight] - Lander height in meters
- * @param {string} [props.viewMode] - 'orbit' | 'astronaut'
- * @param {(mode: string) => void} [props.onToggleViewMode] - Callback to toggle view mode
- * @param {() => void} [props.onLookSun] - Astronaut quick-look at Sun
- * @param {() => void} [props.onLookEarth] - Astronaut quick-look at Earth
- * @param {() => void} [props.onLookNorth] - Astronaut quick-look at North
- * @param {string} [props.quality] - Active quality tier ('low', 'medium', 'high', 'auto')
- * @param {boolean} [props.isSimulating] - Whether the 20s sweeping day simulation is running
- * @param {() => void} [props.onToggleSimulation] - Toggle for 20s day simulation
- * @param {() => void} [props.onReturnToOrbit] - Callback to return to orbit view
- * @param {boolean} [props.showShadowRuler] - Whether shadow ruler is visible
- * @param {() => void} [props.onToggleShadowRuler] - Toggle shadow ruler
  */
 export default function Hud({
   label = '',
+  siteId = 'shackleton',
+  sites = [],
+  onSelectSite,
   sunEl = 2.0,
   sunAz = 180.0,
   earthEl = 5.0,
@@ -41,6 +33,8 @@ export default function Hud({
   onReturnToOrbit,
   showShadowRuler = true,
   onToggleShadowRuler,
+  isComparison = false,
+  comparisonData = null,
 }) {
   const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
   const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
@@ -48,12 +42,12 @@ export default function Hud({
   const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0
   const heightM = Number.isFinite(landerHeight) && landerHeight > 0 ? landerHeight : 3
 
-  // Compute shadow readout according to spec
+  // Local environmental shadow readout
   let shadowText = ''
   if (safeSunEl <= -0.27) {
     shadowText = 'Sun below horizon (lunar night)'
   } else if (safeSunEl < 0.1) {
-    shadowText = 'Shadow: >150 m (very long, grazing angle)'
+    shadowText = 'Shadow: >150 m (grazing horizon angle)'
   } else {
     const elRad = (safeSunEl * Math.PI) / 180
     const rawLen = heightM / Math.tan(elRad)
@@ -65,325 +59,242 @@ export default function Hud({
     }
   }
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        pointerEvents: 'none',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '12px 16px',
-        boxSizing: 'border-box',
-        color: '#f5f5f5',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        userSelect: 'none',
-      }}
-    >
-      {/* Top Header Row */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '12px',
-          width: '100%',
-        }}
-      >
-        {/* Top-Left: Return to Orbit & Site Tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onReturnToOrbit && (
-            <button
-              onClick={onReturnToOrbit}
-              style={{
-                pointerEvents: 'auto',
-                background: 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                color: '#f5f5f5',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                letterSpacing: '0.05em',
-                fontWeight: '500',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#ffffff'
-                e.currentTarget.style.color = '#000000'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(0, 0, 0, 0.7)'
-                e.currentTarget.style.color = '#f5f5f5'
-              }}
-              title="Return to 3D Orbital Moon View"
-            >
-              ↖ Return to Orbit
-            </button>
-          )}
+  const isAstronautView = viewMode === 'astronaut' || viewMode === 'surface'
 
-          <div
-            style={{
-              background: 'rgba(0, 0, 0, 0.65)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              padding: '5px 10px',
-              borderRadius: '6px',
-              fontSize: '12px',
-              lineHeight: 1.3,
-              backdropFilter: 'blur(8px)',
-              textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-            }}
-          >
-            <div style={{ fontWeight: '500', color: '#f5f5f5', letterSpacing: '0.02em' }}>
-              {label || 'Lunar Surface Simulation'}
+  // =========================================================================
+  // VIEW 1: COMPARISON MODE (Stripped-down side-by-side flexbox cards)
+  // =========================================================================
+  if (isComparison) {
+    return (
+      <div className="absolute inset-0 p-4 sm:p-6 pointer-events-none flex flex-col justify-between overflow-hidden text-neutral-100 font-sans select-none">
+        {/* Header flex block */}
+        <div className="flex flex-col gap-4 pointer-events-auto max-w-2xl w-full">
+          <div className="bg-black/85 backdrop-blur-md p-4 rounded-xl border border-white/10 flex flex-col gap-1 shadow-2xl">
+            <span className="text-[10px] font-sans tracking-[0.25em] uppercase text-neutral-400">
+              Comparative Trade Study
+            </span>
+            <div className="text-base font-light text-white tracking-wide">
+              Dual-Site Polar Illumination Analysis
             </div>
-            <div style={{ fontSize: '10px', color: '#a3a3a3', fontFamily: 'monospace' }}>
-              H={heightM}m · Tier: {quality}
+          </div>
+
+          {/* Side-by-side flex comparison cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+            {/* Site A Card */}
+            <div className="bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
+              <span className="text-[10px] tracking-widest uppercase text-neutral-400 font-mono">
+                Site A
+              </span>
+              <div className="text-sm font-medium text-white">
+                {comparisonData?.siteA?.name || label || 'Primary Landing Site'}
+              </div>
+              <div className="flex flex-col gap-1 text-[11px] font-mono text-neutral-400">
+                <span>Solar Coverage: {comparisonData?.siteA?.sunlitPct ?? '86.4%'}</span>
+                <span>Terrain: {comparisonData?.siteA?.terrainType || 'Crater Rim'}</span>
+                <span>Max Darkness: {comparisonData?.siteA?.maxDarkness ?? '52h'}</span>
+              </div>
+            </div>
+
+            {/* Site B Card */}
+            <div className="bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
+              <span className="text-[10px] tracking-widest uppercase text-neutral-400 font-mono">
+                Site B
+              </span>
+              <div className="text-sm font-medium text-white">
+                {comparisonData?.siteB?.name || 'Malapert Massif'}
+              </div>
+              <div className="flex flex-col gap-1 text-[11px] font-mono text-neutral-400">
+                <span>Solar Coverage: {comparisonData?.siteB?.sunlitPct ?? '74.2%'}</span>
+                <span>Terrain: {comparisonData?.siteB?.terrainType || 'Massif Ridge'}</span>
+                <span>Max Darkness: {comparisonData?.siteB?.maxDarkness ?? '84h'}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Top-Right: Simulation Sweep Toggle & Illustrative Tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {onToggleSimulation && (
+        {/* Footer info badge */}
+        <div className="flex flex-row justify-end items-center pointer-events-auto">
+          <div className="bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10 text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
+            Comparison Matrix Active
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // =========================================================================
+  // VIEW 2: CONTEXT-AWARE SINGLE VIEW (Orbit vs. Astronaut / Surface)
+  // =========================================================================
+  return (
+    <div className="absolute inset-0 p-4 sm:p-6 pointer-events-none flex flex-col justify-between overflow-hidden text-neutral-100 font-sans select-none">
+      {/* ── TOP SECTION: Flex container pushing downward ── */}
+      <div className="flex flex-row justify-between items-start gap-4 w-full">
+        {/* Top-Left Flex Column (gap-4) */}
+        <div className="flex flex-col gap-4 max-w-sm pointer-events-auto">
+          {/* Surface View: Return to Orbit Button */}
+          {isAstronautView && onReturnToOrbit && (
             <button
-              onClick={onToggleSimulation}
-              style={{
-                pointerEvents: 'auto',
-                background: isSimulating ? 'rgba(255, 255, 255, 0.95)' : 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                color: isSimulating ? '#000000' : '#f5f5f5',
-                padding: '6px 12px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '600',
-                letterSpacing: '0.05em',
-                cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s ease',
-              }}
-              title="Simulate complete 360° lunar sun cycle in 20 seconds"
+              onClick={onReturnToOrbit}
+              className="bg-black/80 hover:bg-white hover:text-black text-neutral-100 border border-white/20 px-3.5 py-2 rounded-lg text-[11px] font-sans font-medium tracking-wider uppercase backdrop-blur-md transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg"
+              title="Trigger Apollo ascent staging and return to lunar orbit"
             >
-              <span>{isSimulating ? '⏸ Pause Sweep' : '▶ 20s Day Sweep'}</span>
+              <span>↖ Return to Orbit</span>
+              <span className="text-[9px] opacity-60 font-mono">(Ascent Stage)</span>
             </button>
           )}
 
-          {onToggleShadowRuler && (
-            <button
-              onClick={onToggleShadowRuler}
-              style={{
-                pointerEvents: 'auto',
-                background: showShadowRuler ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                color: '#f5f5f5',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                fontSize: '11px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                backdropFilter: 'blur(8px)',
-              }}
-              title="Toggle metric shadow measurement ruler"
-            >
-              📏 Ruler
-            </button>
-          )}
+          {/* Site Telemetry Card */}
+          <div className="bg-black/75 backdrop-blur-md border border-white/12 p-3.5 rounded-xl shadow-lg flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-sans font-medium text-white tracking-wide">
+                {label || (isAstronautView ? 'Surface EVA Station' : 'Orbital Survey')}
+              </span>
+            </div>
+            <div className="text-[10px] text-neutral-400 font-mono flex items-center gap-2">
+              <span>H={heightM}m</span>
+              <span>·</span>
+              <span>Tier: {quality}</span>
+              <span>·</span>
+              <span className="uppercase text-neutral-300">
+                {isAstronautView ? 'EVA Local' : 'Orbital'}
+              </span>
+            </div>
 
-          <div
-            style={{
-              background: 'rgba(0, 0, 0, 0.65)',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              padding: '5px 8px',
-              borderRadius: '6px',
-              fontSize: '10px',
-              fontWeight: '500',
-              color: '#a3a3a3',
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              whiteSpace: 'nowrap',
-              backdropFilter: 'blur(8px)',
-            }}
-          >
-            Illustrative Terrain
+            {/* Orbit View ONLY: Target site selection list */}
+            {!isAstronautView && sites.length > 0 && onSelectSite && (
+              <div className="pt-2 border-t border-white/10 flex flex-col gap-1">
+                <span className="text-[9px] font-mono tracking-widest text-neutral-400 uppercase">
+                  Target Landing Site:
+                </span>
+                <select
+                  value={siteId}
+                  onChange={(e) => onSelectSite(e.target.value)}
+                  className="bg-black/90 border border-white/20 text-white text-[11px] rounded px-2 py-1 focus:outline-none cursor-pointer"
+                >
+                  {sites.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.terrainType})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top-Right Flex Column (gap-4) */}
+        <div className="flex flex-col gap-4 items-end pointer-events-auto">
+          <div className="flex items-center gap-2">
+            {/* Orbit View ONLY: 20s Day Sweep Simulation Controls */}
+            {!isAstronautView && onToggleSimulation && (
+              <button
+                onClick={onToggleSimulation}
+                className={`border px-3 py-1.5 rounded-lg text-[11px] font-sans font-medium tracking-wide backdrop-blur-md transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg ${
+                  isSimulating
+                    ? 'bg-white text-black border-white'
+                    : 'bg-black/75 text-neutral-200 border-white/20 hover:border-white'
+                }`}
+                title="Simulate complete 360° lunar sun cycle in 20 seconds"
+              >
+                <span>{isSimulating ? '⏸ Pause Day Sweep' : '▶ 20s Day Sweep'}</span>
+              </button>
+            )}
+
+            {/* Surface View ONLY: Shadow Ruler Toggle */}
+            {isAstronautView && onToggleShadowRuler && (
+              <button
+                onClick={onToggleShadowRuler}
+                className={`border px-2.5 py-1.5 rounded-lg text-[11px] font-sans font-medium backdrop-blur-md transition-all duration-200 cursor-pointer shadow-lg ${
+                  showShadowRuler
+                    ? 'bg-white/20 text-white border-white/40'
+                    : 'bg-black/70 text-neutral-400 border-white/15 hover:border-white/30'
+                }`}
+                title="Toggle metric shadow ruler on the ground"
+              >
+                📏 Shadow Ruler
+              </button>
+            )}
+
+            {/* Illustrative Terrain Tag */}
+            <div className="bg-black/70 backdrop-blur-md border border-white/10 px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
+              Illustrative Terrain
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Center Action Row: Astronaut Mode Quick-Look Controls */}
-      {viewMode === 'astronaut' && (
-        <div
-          style={{
-            alignSelf: 'center',
-            display: 'flex',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            gap: '8px',
-            background: 'rgba(0, 0, 0, 0.75)',
-            border: '1px solid rgba(255, 255, 255, 0.18)',
-            padding: '6px 14px',
-            borderRadius: '24px',
-            pointerEvents: 'auto',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
-          }}
-        >
-          <button
-            onClick={onLookSun}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: '#f5f5f5',
-              borderRadius: '16px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.color = '#000000'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#f5f5f5'
-            }}
-          >
-            ☀️ Look at Sun
-          </button>
-          <button
-            onClick={onLookEarth}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: '#f5f5f5',
-              borderRadius: '16px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.color = '#000000'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#f5f5f5'
-            }}
-          >
-            🌍 Look at Earth
-          </button>
-          <button
-            onClick={onLookNorth}
-            style={{
-              background: 'transparent',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              color: '#f5f5f5',
-              borderRadius: '16px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.color = '#000000'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-              e.currentTarget.style.color = '#f5f5f5'
-            }}
-          >
-            🧭 Look North
-          </button>
+      {/* ── CENTER SECTION: Astronaut Mode Quick-Look Controls ONLY ── */}
+      {isAstronautView && (
+        <div className="self-center pointer-events-auto flex flex-col gap-2 items-center">
+          <div className="bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
+            <button
+              onClick={onLookSun}
+              className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
+            >
+              ☀️ Look at Sun
+            </button>
+            <button
+              onClick={onLookEarth}
+              className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
+            >
+              🌍 Look at Earth
+            </button>
+            <button
+              onClick={onLookNorth}
+              className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
+            >
+              🧭 Look North
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Bottom Footer Row */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: '12px',
-          width: '100%',
-        }}
-      >
-        {/* Bottom-Left: Live Angles & Shadow Length Readout */}
-        <div
-          style={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            fontSize: '11px',
-            lineHeight: 1.4,
-            backdropFilter: 'blur(8px)',
-            maxWidth: '70%',
-            textShadow: '0 2px 4px rgba(0,0,0,0.8)',
-          }}
-        >
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontFamily: 'monospace' }}>
-            <span style={{ color: safeSunEl > -0.27 ? '#f5f5f5' : '#737373' }}>
-              ☀️ Sun {safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az
-            </span>
-            <span style={{ color: safeEarthEl > 0 ? '#d4d4d4' : '#737373' }}>
-              🌍 Earth {safeEarthEl.toFixed(1)}° el / {safeEarthAz.toFixed(1)}° az
-            </span>
-            {isSimulating && (
-              <span style={{ color: '#22c55e', fontWeight: 'bold' }}>
-                ● 20s SWEEPING
+      {/* ── BOTTOM SECTION: Flex container pushing downward ── */}
+      <div className="flex flex-row justify-between items-end gap-4 w-full">
+        {/* Bottom-Left Flex Column (gap-4) */}
+        <div className="flex flex-col gap-4 max-w-md pointer-events-auto">
+          {/* Surface View: Local Environmental Metrics Card */}
+          {isAstronautView ? (
+            <div className="bg-black/80 backdrop-blur-md border border-white/15 p-3.5 rounded-xl shadow-xl flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
+                <span className={safeSunEl > -0.27 ? 'text-white' : 'text-neutral-500'}>
+                  ☀️ Sun: {safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az
+                </span>
+                <span className={safeEarthEl > 0 ? 'text-neutral-200' : 'text-neutral-500'}>
+                  🌍 Earth: {safeEarthEl.toFixed(1)}° el / {safeEarthAz.toFixed(1)}° az
+                </span>
+              </div>
+              <div className="text-[11px] font-mono text-neutral-300 border-t border-white/10 pt-1.5 flex items-center gap-2">
+                <span className="text-neutral-400">📏</span>
+                <span>{shadowText}</span>
+              </div>
+            </div>
+          ) : (
+            /* Orbit View: Orbital Lighting Status Card */
+            <div className="bg-black/75 backdrop-blur-md border border-white/12 p-3 rounded-xl shadow-lg flex flex-col gap-1 text-[11px] font-mono">
+              <div className="flex items-center gap-2 text-white">
+                <span>☀️ Solar Vector:</span>
+                <span>{safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az</span>
+              </div>
+              <span className="text-[10px] text-neutral-400">
+                {safeSunEl > 0 ? 'Direct Solar Illumination' : 'In Grazing Rim Shadow'}
+                {isSimulating && ' · 20s Sweep Active'}
               </span>
-            )}
-          </div>
-          <div style={{ color: '#a3a3a3', marginTop: '3px', fontSize: '10.5px', fontFamily: 'monospace' }}>
-            {shadowText}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Bottom-Right: Orbit | Astronaut View Mode Toggle Button */}
-        <div style={{ pointerEvents: 'auto' }}>
-          <button
-            onClick={() => onToggleViewMode && onToggleViewMode(viewMode === 'orbit' ? 'astronaut' : 'orbit')}
-            style={{
-              background: 'rgba(0, 0, 0, 0.75)',
-              border: '1px solid rgba(255, 255, 255, 0.25)',
-              color: '#f5f5f5',
-              padding: '8px 14px',
-              borderRadius: '8px',
-              fontSize: '11px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backdropFilter: 'blur(8px)',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#ffffff'
-              e.currentTarget.style.color = '#000000'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 0, 0, 0.75)'
-              e.currentTarget.style.color = '#f5f5f5'
-            }}
-          >
-            {viewMode === 'orbit' ? '👨‍🚀 Astronaut EVA View' : '🪐 Orbit Mast View'}
-          </button>
+        {/* Bottom-Right Flex Column: View Mode Switcher */}
+        <div className="flex flex-col gap-4 items-end pointer-events-auto">
+          {onToggleViewMode && (
+            <button
+              onClick={() => onToggleViewMode(isAstronautView ? 'orbit' : 'astronaut')}
+              className="bg-black/80 hover:bg-white hover:text-black text-white border border-white/25 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wider backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xl flex items-center gap-2"
+            >
+              <span>{isAstronautView ? '🪐 Orbit Mast View' : '👨‍🚀 Astronaut EVA View'}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
