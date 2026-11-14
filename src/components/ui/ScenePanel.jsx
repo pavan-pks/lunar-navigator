@@ -22,12 +22,21 @@ export function ScenePanel({
   showShadowRuler = true
 }) {
   return (
-    <div className="w-full h-80 sm:h-96 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 relative shadow-inner">
+    <div className="w-full h-80 sm:h-96 bg-[#02040a] rounded-2xl overflow-hidden border border-white/10 relative shadow-[0_8px_30px_rgba(0,0,0,0.8)] group">
+      {/* Subtle corner reticles for aerospace HUD feel */}
+      <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-sky-400/40 pointer-events-none z-10"></div>
+      <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-sky-400/40 pointer-events-none z-10"></div>
+      <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-sky-400/40 pointer-events-none z-10"></div>
+      <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-sky-400/40 pointer-events-none z-10"></div>
+
       <Suspense
         fallback={
-          <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-slate-400 text-xs space-y-2">
-            <div className="w-8 h-8 border-2 border-sky-500/30 border-t-sky-400 rounded-full animate-spin"></div>
-            <span className="font-mono">Initializing Three.js WebGL Engine…</span>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-[#02040a] text-slate-400 text-xs space-y-3">
+            <div className="w-9 h-9 border-2 border-sky-500/20 border-t-sky-400 rounded-full animate-spin"></div>
+            <div className="text-center font-mono">
+              <span className="text-slate-300 block font-semibold text-xs tracking-wider uppercase">Loading WebGL Synthetic Lunar Mesh</span>
+              <span className="text-[10px] text-slate-500">LOLA DEM Elevation & Ray-Casting Shadows</span>
+            </div>
           </div>
         }
       >

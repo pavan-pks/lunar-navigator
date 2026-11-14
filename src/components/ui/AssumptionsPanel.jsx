@@ -35,16 +35,16 @@ export function AssumptionsPanel({ isOpen, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 max-w-2xl w-full rounded-2xl p-6 shadow-2xl space-y-4 max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl">⚖️</span>
-            <h3 className="font-bold text-white text-base">Model Assumptions & Scientific Simplifications</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#050914] border border-sky-500/30 max-w-2xl w-full rounded-3xl p-6 shadow-[0_16px_50px_rgba(0,0,0,0.9)] space-y-4 max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl text-amber-400">⚖️</span>
+            <h3 className="font-display font-bold text-white text-base">Model Assumptions & Scientific Simplifications</h3>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center transition-colors cursor-pointer border border-white/10"
           >
             ✕
           </button>
@@ -52,17 +52,17 @@ export function AssumptionsPanel({ isOpen, onClose }) {
 
         <div className="overflow-y-auto space-y-3 pr-1 text-xs">
           {assumptions.map((a, idx) => (
-            <div key={idx} className="p-3 bg-slate-950/80 rounded-lg border border-slate-800/80 space-y-1">
+            <div key={idx} className="p-3.5 bg-black/60 rounded-2xl border border-white/5 space-y-1">
               <span className="font-bold text-amber-400 font-mono text-xs block">{a.title}</span>
-              <p className="text-slate-300 leading-relaxed text-[11px]">{a.desc}</p>
+              <p className="text-slate-300 leading-relaxed text-[11px] font-mono">{a.desc}</p>
             </div>
           ))}
         </div>
 
-        <div className="pt-2 border-t border-slate-800 text-right">
+        <div className="pt-3 border-t border-white/10 text-right">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+            className="px-5 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-colors cursor-pointer shadow-[0_0_15px_rgba(56,189,248,0.3)]"
           >
             Acknowledge & Close
           </button>

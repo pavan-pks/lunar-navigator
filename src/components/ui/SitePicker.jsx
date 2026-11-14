@@ -8,7 +8,7 @@ export function SitePicker({
   sites = [],
   selectedSite,
   onSelectSite,
-  colorVariant = 'sky' // 'sky' for Scenario A, 'amber' for Scenario B
+  colorVariant = 'sky'
 }) {
   const isCustom = selectedSite?.id?.startsWith('custom-');
   const [showCustomModal, setShowCustomModal] = useState(isCustom);
@@ -84,8 +84,8 @@ export function SitePicker({
   return (
     <div className="space-y-2 text-xs">
       <div className="flex items-center justify-between">
-        <label className="text-slate-400 font-medium">Landing Site</label>
-        <span className={`font-mono text-[11px] ${accentColor}`}>
+        <label className="text-slate-400 font-mono text-[11px] uppercase tracking-wider font-semibold">Landing Target</label>
+        <span className={`font-mono text-[11px] ${accentColor} font-bold`}>
           {selectedSite.lat > 0 ? `+${selectedSite.lat.toFixed(2)}°` : `${selectedSite.lat.toFixed(2)}°`},{' '}
           {selectedSite.lon > 0 ? `+${selectedSite.lon.toFixed(2)}°` : `${selectedSite.lon.toFixed(2)}°`}
         </span>
@@ -95,9 +95,9 @@ export function SitePicker({
         <select
           value={isCustom ? 'custom' : selectedSite.id}
           onChange={handleSelectPreset}
-          className={`flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-slate-100 text-xs cursor-pointer focus:outline-none ${borderFocus}`}
+          className={`flex-1 bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-slate-100 text-xs cursor-pointer focus:outline-none ${borderFocus} hover:border-white/20 transition`}
         >
-          <optgroup label="Curated Artemis & Polar Presets">
+          <optgroup label="NASA Artemis South Pole Candidate Regions">
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.lat.toFixed(1)}°, {s.lon.toFixed(1)}°) — {s.terrainType}
@@ -105,17 +105,17 @@ export function SitePicker({
             ))}
           </optgroup>
           <optgroup label="Custom Coordinates">
-            <option value="custom">★ Custom Coordinates…</option>
+            <option value="custom">★ Enter Custom Surface Coordinates…</option>
           </optgroup>
         </select>
       </div>
 
       {/* Custom Coordinates Sub-panel */}
       {showCustomModal && (
-        <div className="p-3 bg-slate-950/90 border border-slate-800 rounded-lg space-y-2 mt-2">
+        <div className="p-3 bg-black/80 border border-white/10 rounded-2xl space-y-2.5 mt-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Latitude (-90 to +90°)</label>
+              <label className="text-[10px] text-slate-400 block mb-1 font-mono">Latitude (-90° to +90°)</label>
               <input
                 type="number"
                 step="0.01"
@@ -123,11 +123,11 @@ export function SitePicker({
                 max="90"
                 value={customLat}
                 onChange={handleLatChange}
-                className={`w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none ${borderFocus}`}
+                className={`w-full bg-[#03060c] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none ${borderFocus}`}
               />
             </div>
             <div>
-              <label className="text-[10px] text-slate-400 block mb-0.5">Longitude (-180 to +180°)</label>
+              <label className="text-[10px] text-slate-400 block mb-1 font-mono">Longitude (-180° to +180°)</label>
               <input
                 type="number"
                 step="0.01"
@@ -135,29 +135,29 @@ export function SitePicker({
                 max="180"
                 value={customLon}
                 onChange={handleLonChange}
-                className={`w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none ${borderFocus}`}
+                className={`w-full bg-[#03060c] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none ${borderFocus}`}
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] text-slate-400 block mb-0.5">Label (Optional)</label>
+            <label className="text-[10px] text-slate-400 block mb-1 font-mono">Mission Identifier (Optional)</label>
             <input
               type="text"
               value={customName}
               onChange={handleNameChange}
               placeholder="e.g. VIPER Drill Site Alpha"
-              className={`w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none ${borderFocus}`}
+              className={`w-full bg-[#03060c] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none ${borderFocus}`}
             />
           </div>
 
           {errorMsg && (
-            <p className="text-[11px] text-red-400 font-medium">{errorMsg}</p>
+            <p className="text-[11px] text-red-400 font-medium font-mono">{errorMsg}</p>
           )}
 
           {isHighLatitude && !errorMsg && (
-            <p className="text-[10px] text-amber-400/90 leading-tight">
-              💡 South pole conditions are most dramatic below −80° latitude.
+            <p className="text-[10px] text-amber-400/90 leading-tight font-mono">
+              💡 Polar illumination conditions are most distinct below −80° latitude.
             </p>
           )}
         </div>

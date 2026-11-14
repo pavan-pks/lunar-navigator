@@ -13,55 +13,55 @@ export function BestWindows({
   if (!windows || windows.length === 0) return null;
 
   return (
-    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
+    <div className="bg-[#070b14]/80 p-5 rounded-3xl border border-white/10 space-y-4 shadow-lg backdrop-blur-md">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-          <span>🌟</span>
-          <span>Top Landing Windows: {site?.name}</span>
+        <h3 className="text-xs font-display font-bold text-slate-100 uppercase tracking-widest flex items-center gap-2">
+          <span className="text-amber-400">★</span>
+          <span>Ranked Optimal Landing Windows: {site?.name}</span>
         </h3>
-        <span className="text-[10px] text-slate-500 font-mono">Ranked by Solar Coverage</span>
+        <span className="text-[10px] text-slate-500 font-mono">RANKED BY ILLUMINATION DURATION</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {windows.map((w, idx) => (
           <div
             key={w.dateStr}
-            className="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col justify-between space-y-2"
+            className="bg-[#020409]/90 p-4 rounded-2xl border border-white/10 flex flex-col justify-between space-y-3 hover:border-sky-500/40 transition-all duration-200 shadow-md group"
           >
-            <div className="flex items-center justify-between border-b border-slate-800/60 pb-1.5">
-              <span className="font-mono font-bold text-xs text-sky-400">
-                #{idx + 1} {w.dateStr}
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="font-mono font-bold text-xs text-sky-400 flex items-center gap-1.5">
+                <span className="text-[10px] text-slate-500">#{idx + 1}</span> {w.dateStr}
               </span>
               <VerdictBadge verdict={{ level: w.level }} compact />
             </div>
 
-            <div className="space-y-1 font-mono text-[11px] text-slate-400">
+            <div className="space-y-1.5 font-mono text-[11px] text-slate-400">
               <div className="flex justify-between">
-                <span>Sunlit:</span>
-                <span className="text-slate-200 font-bold">{(w.sunlitFraction * 100).toFixed(0)}%</span>
+                <span>Total Illumination:</span>
+                <span className="text-slate-100 font-bold">{(w.sunlitFraction * 100).toFixed(0)}%</span>
               </div>
               <div className="flex justify-between">
-                <span>Max Dark:</span>
-                <span className="text-slate-200 font-bold">{w.longestDarkHours} h</span>
+                <span>Peak Night Blackout:</span>
+                <span className="text-amber-300 font-bold">{w.longestDarkHours} h</span>
               </div>
               <div className="flex justify-between">
-                <span>Earth LOS:</span>
-                <span className="text-slate-200 font-bold">{(w.earthVisibleFraction * 100).toFixed(0)}%</span>
+                <span>Direct Earth RF Link:</span>
+                <span className="text-emerald-400 font-bold">{(w.earthVisibleFraction * 100).toFixed(0)}%</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10">
               <button
                 onClick={() => onLoadScenario('A', site, `${w.dateStr}T00:00:00Z`)}
-                className="py-1 px-2 bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/30 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                className="py-1.5 px-2 bg-sky-500/10 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 rounded-xl text-[10px] font-medium transition-colors cursor-pointer text-center"
               >
-                Load into A
+                Load Alpha
               </button>
               <button
                 onClick={() => onLoadScenario('B', site, `${w.dateStr}T00:00:00Z`)}
-                className="py-1 px-2 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 border border-amber-500/30 rounded text-[10px] font-medium transition-colors cursor-pointer"
+                className="py-1.5 px-2 bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-xl text-[10px] font-medium transition-colors cursor-pointer text-center"
               >
-                Load into B
+                Load Bravo
               </button>
             </div>
           </div>

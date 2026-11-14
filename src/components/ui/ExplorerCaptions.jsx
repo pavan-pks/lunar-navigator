@@ -22,29 +22,29 @@ export function ExplorerCaptions({
   });
 
   return (
-    <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
-      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-base">🧭</span>
-          <span className="font-bold text-slate-200 uppercase tracking-wider text-xs">
+    <div className="bg-[#070b14]/85 p-5 rounded-3xl border border-white/10 space-y-4 shadow-lg backdrop-blur-md">
+      <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-base text-amber-400">🧭</span>
+          <span className="font-display font-bold text-slate-100 uppercase tracking-wider text-xs">
             Explorer Mode Insights: {siteName}
           </span>
         </div>
         <button
           onClick={() => setShowGlossary(true)}
-          className="text-xs text-sky-400 hover:text-sky-300 font-medium underline underline-offset-2 transition-colors cursor-pointer"
+          className="text-xs text-sky-400 hover:text-sky-300 font-mono transition-colors cursor-pointer px-2.5 py-1 rounded-lg bg-sky-500/10 border border-sky-500/20"
         >
           Open Lunar Glossary ↗
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
         {captions.map((c, idx) => (
           <div
             key={idx}
-            className="p-3 bg-slate-950/80 rounded-lg border border-slate-800/80 space-y-1"
+            className="p-3.5 bg-black/60 rounded-2xl border border-white/5 space-y-1.5 shadow-sm"
           >
-            <div className="flex items-center gap-1.5 text-slate-200 font-semibold text-xs">
+            <div className="flex items-center gap-2 text-slate-200 font-semibold text-xs">
               <span>{c.icon}</span>
               <span>{c.title}</span>
             </div>

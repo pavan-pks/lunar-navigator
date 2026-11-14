@@ -84,97 +84,111 @@ export function Compare({
     const darkDiff = statsB.longestDarkHours - statsA.longestDarkHours;
 
     if (Math.abs(sunDiff) < 1.0 && Math.abs(darkDiff) < 2.0) {
-      return `Both scenarios show comparable solar profiles (${(statsA.sunlitFraction * 100).toFixed(0)}% vs ${(statsB.sunlitFraction * 100).toFixed(0)}% sunlight).`;
+      return `Both landing profiles present nearly identical solar regimes (${(statsA.sunlitFraction * 100).toFixed(0)}% vs ${(statsB.sunlitFraction * 100).toFixed(0)}% illuminated).`;
     }
     if (statsA.sunlitFraction > statsB.sunlitFraction) {
-      return `Scenario A receives ${(statsA.sunlitFraction * 100).toFixed(0)}% sunlight vs Scenario B's ${(statsB.sunlitFraction * 100).toFixed(0)}%; Scenario B experiences ${darkDiff > 0 ? `${darkDiff}h more darkness` : 'shorter windows'}.`;
+      return `Scenario A yields ${(statsA.sunlitFraction * 100).toFixed(0)}% continuous solar coverage vs ${(statsB.sunlitFraction * 100).toFixed(0)}% for Scenario B. Scenario B suffers ${darkDiff > 0 ? `${darkDiff}h longer thermal blackout` : 'intermittent shadow intervals'}.`;
     } else {
-      return `Scenario B receives ${(statsB.sunlitFraction * 100).toFixed(0)}% sunlight vs Scenario A's ${(statsA.sunlitFraction * 100).toFixed(0)}%; Scenario A experiences ${statsA.longestDarkHours}h of continuous darkness.`;
+      return `Scenario B commands ${(statsB.sunlitFraction * 100).toFixed(0)}% illumination vs ${(statsA.sunlitFraction * 100).toFixed(0)}% for Scenario A; Scenario A requires battery endurance for a ${statsA.longestDarkHours}h blackout period.`;
     }
   }, [statsA, statsB]);
 
   return (
-    <div className="space-y-4">
-      {/* Top Controls Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/40 p-3 rounded-xl border border-slate-800 text-xs">
+    <div className="space-y-6">
+      {/* Top Operations & Mode Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#070b14]/80 p-3.5 rounded-2xl border border-white/10 shadow-lg text-xs backdrop-blur-md">
         {/* Left: Mode toggles */}
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-medium">Comparison Study:</span>
-          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+        <div className="flex items-center gap-3">
+          <span className="text-slate-400 font-mono text-[11px] uppercase tracking-wider">Mission Architecture:</span>
+          <div className="flex items-center bg-[#03060c] p-1 rounded-xl border border-white/10">
             <button
               onClick={() => setCompareMode('sites')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-                compareMode === 'sites' ? 'bg-sky-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
+                compareMode === 'sites' 
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 shadow-xs' 
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
-              Two Sites
+              Dual Site Assessment
             </button>
             <button
               onClick={() => setCompareMode('dates')}
-              className={`px-3 py-1 rounded transition-colors cursor-pointer ${
-                compareMode === 'dates' ? 'bg-sky-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
+              className={`px-3.5 py-1.5 rounded-lg transition-all duration-200 cursor-pointer font-medium ${
+                compareMode === 'dates' 
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30 shadow-xs' 
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
-              Launch Slip
+              Launch Window Slip (±30d)
             </button>
           </div>
 
           <button
             onClick={handleSwap}
-            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
-            title="Swap Scenario A and B"
+            className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white border border-white/10 transition-colors flex items-center gap-1.5 cursor-pointer text-xs"
+            title="Swap Scenario A and B targets"
           >
-            ⇄ Swap A/B
+            <span>⇄</span>
+            <span>Invert A/B</span>
           </button>
         </div>
 
         {/* Right: Camera view & Quality */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
-            <span className="text-[10px] text-slate-500 px-1.5 uppercase font-mono">View:</span>
+          <div className="flex items-center gap-1 bg-[#03060c] p-1 rounded-xl border border-white/10">
+            <span className="text-[10px] text-slate-500 px-2 uppercase font-mono tracking-wider">3D View:</span>
             <button
               onClick={() => setViewMode('orbit')}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                viewMode === 'orbit' ? 'bg-slate-800 text-sky-400 font-bold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                viewMode === 'orbit' 
+                  ? 'bg-sky-500/20 text-sky-300 border border-sky-400/30 font-bold' 
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
-              Orbit
+              Orbital Nadir
             </button>
             <button
               onClick={() => setViewMode('astronaut')}
-              className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
-                viewMode === 'astronaut' ? 'bg-slate-800 text-amber-400 font-bold' : 'text-slate-400 hover:text-white'
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all cursor-pointer ${
+                viewMode === 'astronaut' 
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30 font-bold' 
+                  : 'text-slate-400 hover:text-white border border-transparent'
               }`}
             >
-              Astronaut
+              Astronaut EVA
             </button>
           </div>
         </div>
       </div>
 
       {/* Auto Summary Narrative Banner */}
-      <div className="bg-slate-900/70 border border-slate-800 rounded-lg px-4 py-2.5 text-xs text-slate-300 flex items-center gap-2">
-        <span className="text-sky-400 font-bold">Analysis:</span>
-        <span>{summarySentence}</span>
+      <div className="bg-[#050914]/85 border border-sky-500/20 rounded-2xl px-5 py-3.5 text-xs text-slate-200 flex items-start sm:items-center gap-3 shadow-[0_4px_24px_rgba(0,0,0,0.6)] backdrop-blur-md">
+        <span className="w-2 h-2 rounded-full bg-sky-400 mt-1 sm:mt-0 shadow-[0_0_8px_#38bdf8] shrink-0"></span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 leading-relaxed">
+          <span className="text-sky-400 font-mono text-[11px] uppercase tracking-wider font-bold">MISSION TRADE STUDY //</span>
+          <span>{summarySentence}</span>
+        </div>
       </div>
 
       {/* Comparison Grid (Two Columns) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Scenario A Column */}
-        <div className="bg-slate-900/50 border border-sky-500/30 rounded-xl p-4 space-y-4 flex flex-col">
-          <div className="flex items-center justify-between border-b border-sky-500/20 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
-              <span className="font-bold text-sm text-sky-400 tracking-wider">SCENARIO A</span>
-              <span className="text-xs font-mono text-slate-300">({siteA.name})</span>
+        <div className="glass-panel-cyan rounded-3xl p-5 space-y-5 flex flex-col transition-all duration-300">
+          <div className="flex items-center justify-between border-b border-sky-500/20 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-sky-400 shadow-[0_0_10px_#38bdf8] animate-pulse"></span>
+              <span className="font-display font-bold text-sm text-sky-400 tracking-wider">SCENARIO ALPHA</span>
+              <span className="text-xs font-mono text-slate-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                {siteA.name}
+              </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Landing: {landingA.toISOString().slice(0, 10)}
+              Touchdown: <strong className="text-sky-300">{landingA.toISOString().slice(0, 10)}</strong>
             </span>
           </div>
 
           {/* Controls Header */}
-          <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+          <div className="space-y-3 bg-[#03060c]/80 p-4 rounded-2xl border border-sky-500/15">
             <SitePicker
               sites={sites}
               selectedSite={siteA}
@@ -209,7 +223,7 @@ export function Compare({
             earthAz={liveA.earthAz}
             viewMode={viewMode}
             quality={quality}
-            label={`${siteA.name} (Scenario A)`}
+            label={`${siteA.name} [ALPHA]`}
             landerHeight={objectHeightM}
           />
 
@@ -237,20 +251,22 @@ export function Compare({
         </div>
 
         {/* Scenario B Column */}
-        <div className="bg-slate-900/50 border border-amber-500/30 rounded-xl p-4 space-y-4 flex flex-col">
-          <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_#fb923c]"></span>
-              <span className="font-bold text-sm text-amber-400 tracking-wider">SCENARIO B</span>
-              <span className="text-xs font-mono text-slate-300">({siteB.name})</span>
+        <div className="glass-panel-amber rounded-3xl p-5 space-y-5 flex flex-col transition-all duration-300">
+          <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_#fb923c] animate-pulse"></span>
+              <span className="font-display font-bold text-sm text-amber-400 tracking-wider">SCENARIO BRAVO</span>
+              <span className="text-xs font-mono text-slate-300 px-2 py-0.5 rounded-md bg-white/5 border border-white/10">
+                {siteB.name}
+              </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Landing: {landingB.toISOString().slice(0, 10)}
+              Touchdown: <strong className="text-amber-300">{landingB.toISOString().slice(0, 10)}</strong>
             </span>
           </div>
 
           {/* Controls Header */}
-          <div className="space-y-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800/80">
+          <div className="space-y-3 bg-[#0a0604]/80 p-4 rounded-2xl border border-amber-500/15">
             {compareMode === 'sites' ? (
               <SitePicker
                 sites={sites}
@@ -265,8 +281,8 @@ export function Compare({
                 colorVariant="amber"
               />
             ) : (
-              <div className="text-xs text-slate-400 font-mono py-1 px-2 bg-slate-950 rounded border border-slate-800">
-                Site: <span className="text-slate-200 font-bold">{siteA.name}</span> (Locked to Scenario A)
+              <div className="text-xs text-slate-400 font-mono py-2 px-3 bg-black/50 rounded-xl border border-amber-500/20">
+                Anchor Site: <span className="text-amber-300 font-bold">{siteA.name}</span> (Locked for Slip Sensitivity Study)
               </div>
             )}
 
@@ -299,7 +315,7 @@ export function Compare({
             earthAz={liveB.earthAz}
             viewMode={viewMode}
             quality={quality}
-            label={`${siteB.name} (Scenario B)`}
+            label={`${siteB.name} [BRAVO]`}
             landerHeight={objectHeightM}
           />
 

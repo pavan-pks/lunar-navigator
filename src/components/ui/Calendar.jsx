@@ -36,31 +36,31 @@ export function Calendar({
   return (
     <div className="space-y-6">
       {/* Overview header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-500/20 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>Mission Window Opportunity Calendar</span>
-            <span className="text-xs font-mono font-normal px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-              2027 – 2028
+          <h2 className="text-xl font-display font-bold text-white flex items-center gap-2.5">
+            <span>Mission Window Opportunity Matrix</span>
+            <span className="text-xs font-mono font-normal px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">
+              2027 – 2028 EPHEMERIS
             </span>
           </h2>
-          <p className="text-xs text-slate-400">
-            Full-year evaluation matrix for {missionDays}-day landing sorties. Click any date cell to stage into your comparison.
+          <p className="text-xs text-slate-400 mt-1">
+            Full-year evaluation matrix for {missionDays}-day landing sorties. Click any matrix opportunity to stage into Flight Comparison.
           </p>
         </div>
 
         {/* Site selector for best windows */}
-        <div className="flex items-center gap-2 text-xs">
-          <label htmlFor="calendar-site-inspect" className="text-slate-400">Inspect Site:</label>
+        <div className="flex items-center gap-2.5 text-xs bg-[#070b14]/80 p-1.5 rounded-xl border border-white/10 backdrop-blur-md">
+          <label htmlFor="calendar-site-inspect" className="text-slate-400 font-mono text-[11px] pl-2">Target Site:</label>
           <select
             id="calendar-site-inspect"
             value={selectedSiteId}
             onChange={(e) => setSelectedSiteId(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-200 text-xs cursor-pointer focus:outline-none focus:border-sky-500"
+            className="bg-[#03060c] border border-white/10 rounded-lg px-3 py-1.5 text-slate-200 text-xs cursor-pointer focus:outline-none focus:border-sky-500 hover:border-sky-500/40 transition"
           >
             {sites.map(s => (
               <option key={s.id} value={s.id}>
-                {s.name} ({s.lat.toFixed(1)}°)
+                {s.name} ({s.lat.toFixed(1)}° S)
               </option>
             ))}
           </select>
@@ -77,37 +77,39 @@ export function Calendar({
       />
 
       {/* Heatmap Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800 text-xs">
-        <span className="text-slate-400 font-mono text-[11px]">Heatmap Legend:</span>
-        <div className="flex items-center gap-4 text-[11px] font-mono">
-          <span className="flex items-center gap-1.5 text-emerald-400">
-            <span className="w-3.5 h-3.5 rounded bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-[9px]">V</span>
-            Viable (Sunlit &gt;75%, Dark &lt;48h)
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#070b14]/80 p-3 rounded-2xl border border-white/10 text-xs shadow-md">
+        <span className="text-slate-400 font-mono text-[11px] uppercase tracking-wider font-semibold">
+          Flight Rule Viability Thresholds:
+        </span>
+        <div className="flex items-center gap-5 text-[11px] font-mono">
+          <span className="flex items-center gap-2 text-emerald-300">
+            <span className="w-4 h-4 rounded-md bg-emerald-500/25 border border-emerald-500/50 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(16,185,129,0.3)]">V</span>
+            Viable (Sun &gt;75%, Night &lt;48h)
           </span>
-          <span className="flex items-center gap-1.5 text-amber-400">
-            <span className="w-3.5 h-3.5 rounded bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-[9px]">R</span>
-            Risky (Marginal power/thermal)
+          <span className="flex items-center gap-2 text-amber-300">
+            <span className="w-4 h-4 rounded-md bg-amber-500/25 border border-amber-500/50 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(245,158,11,0.3)]">R</span>
+            Risky (Sub-Optimal Power)
           </span>
-          <span className="flex items-center gap-1.5 text-red-400">
-            <span className="w-3.5 h-3.5 rounded bg-red-500/20 border border-red-500/40 flex items-center justify-center font-bold text-[9px]">N</span>
-            Not Viable (&gt;120h dark)
+          <span className="flex items-center gap-2 text-red-400">
+            <span className="w-4 h-4 rounded-md bg-red-500/20 border border-red-500/40 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(239,68,68,0.3)]">N</span>
+            No-Go (&gt;120h Blackout)
           </span>
         </div>
       </div>
 
       {/* Heatmap Grid Matrix */}
-      <div className="border border-slate-800 rounded-xl bg-slate-950 overflow-hidden shadow-inner relative">
+      <div className="border border-white/10 rounded-3xl bg-[#03060c] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] relative">
         <div className="overflow-x-auto max-h-[500px]">
           <table className="w-full border-collapse text-left font-mono text-[10px]">
-            <thead className="bg-slate-900 sticky top-0 z-20 text-slate-400 border-b border-slate-800">
+            <thead className="bg-[#070b14] sticky top-0 z-20 text-slate-400 border-b border-white/10">
               <tr>
-                <th className="p-2.5 sticky left-0 bg-slate-900 z-30 font-semibold text-slate-200 border-r border-slate-800 min-w-[180px]">
-                  Site / Coordinates
+                <th className="p-3 sticky left-0 bg-[#070b14] z-30 font-semibold text-slate-200 border-r border-white/10 min-w-[190px]">
+                  CANDIDATE SITE // COORDS
                 </th>
                 {calendarData.dates.map((dStr) => (
-                  <th key={dStr} className="p-1 text-center min-w-[28px] border-r border-slate-800/40">
+                  <th key={dStr} className="p-1.5 text-center min-w-[32px] border-r border-white/5">
                     <span className="block text-[9px] text-slate-500">{dStr.slice(5, 7)}/</span>
-                    <span>{dStr.slice(8, 10)}</span>
+                    <span className="text-slate-300 font-semibold">{dStr.slice(8, 10)}</span>
                   </th>
                 ))}
               </tr>
@@ -116,10 +118,10 @@ export function Calendar({
               {sites.map((site) => {
                 const siteRow = calendarData.matrix[site.id] || {};
                 return (
-                  <tr key={site.id} className="border-b border-slate-800/60 hover:bg-slate-900/40">
+                  <tr key={site.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                     {/* Sticky site header */}
-                    <td className="p-2 sticky left-0 bg-slate-950 z-10 border-r border-slate-800 font-sans font-medium text-xs text-slate-300">
-                      <div>{site.name}</div>
+                    <td className="p-2.5 sticky left-0 bg-[#03060c] z-10 border-r border-white/10 font-sans font-medium text-xs text-slate-200">
+                      <div className="font-semibold text-slate-100">{site.name}</div>
                       <div className="text-[10px] text-slate-500 font-mono">
                         {site.lat.toFixed(1)}°, {site.lon.toFixed(1)}°
                       </div>
@@ -132,18 +134,18 @@ export function Calendar({
                       const isR = cell.level === 'risky';
 
                       const cellBg = isV
-                        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/40'
+                        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.5)]'
                         : isR
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 hover:bg-amber-500/40'
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.5)]'
                         : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/30';
 
                       const letter = isV ? 'V' : isR ? 'R' : 'N';
 
                       return (
-                        <td key={dStr} className="p-0.5 text-center border-r border-slate-800/20">
+                        <td key={dStr} className="p-1 text-center border-r border-white/5">
                           <button
                             onClick={() => handleCellClick(site, dStr, cell)}
-                            className={`w-6 h-6 rounded flex items-center justify-center font-bold border cursor-pointer transition-transform hover:scale-110 ${cellBg}`}
+                            className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center font-bold border cursor-pointer transition-all duration-150 hover:scale-115 ${cellBg}`}
                             title={`${site.name} on ${dStr}: ${cell.level.toUpperCase()} (Sunlit ${(cell.sunlitFraction * 100).toFixed(0)}%, Max Dark ${cell.longestDarkHours}h)`}
                           >
                             {letter}
@@ -161,47 +163,49 @@ export function Calendar({
 
       {/* Selected Cell Action Popover / Drawer */}
       {popoverCell && (
-        <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-white text-sm">{popoverCell.site.name}</span>
-              <span className="text-xs font-mono text-sky-400">Touchdown {popoverCell.dateStr}</span>
-              <span className={`text-[10px] font-bold font-mono px-2 py-0.5 rounded uppercase ${
-                popoverCell.level === 'viable' ? 'bg-emerald-500/20 text-emerald-300' :
-                popoverCell.level === 'risky' ? 'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300'
+        <div className="bg-[#050914] border border-sky-500/40 p-5 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col sm:flex-row items-center justify-between gap-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <span className="font-display font-bold text-white text-base">{popoverCell.site.name}</span>
+              <span className="text-xs font-mono text-sky-400 px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20">
+                Touchdown {popoverCell.dateStr}
+              </span>
+              <span className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full uppercase ${
+                popoverCell.level === 'viable' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                popoverCell.level === 'risky' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-red-500/20 text-red-300 border border-red-500/40'
               }`}>
                 {popoverCell.level}
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono">
-              Sunlit: <span className="text-slate-200">{(popoverCell.sunlitFraction * 100).toFixed(0)}%</span> |
-              Longest darkness: <span className="text-slate-200">{popoverCell.longestDarkHours}h</span> |
-              Earth LOS: <span className="text-slate-200">{(popoverCell.earthVisibleFraction * 100).toFixed(0)}%</span>
+            <p className="text-xs text-slate-300 font-mono">
+              Illuminated: <strong className="text-white">{(popoverCell.sunlitFraction * 100).toFixed(0)}%</strong> |
+              Longest darkness: <strong className="text-white">{popoverCell.longestDarkHours}h</strong> |
+              Earth Direct LOS: <strong className="text-white">{(popoverCell.earthVisibleFraction * 100).toFixed(0)}%</strong>
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <button
               onClick={() => {
                 onSelectOpportunity('A', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
                 setPopoverCell(null);
               }}
-              className="py-1.5 px-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              className="py-2 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:scale-102"
             >
-              Stage to Scenario A
+              Stage to Scenario Alpha
             </button>
             <button
               onClick={() => {
                 onSelectOpportunity('B', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
                 setPopoverCell(null);
               }}
-              className="py-1.5 px-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              className="py-2 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:scale-102"
             >
-              Stage to Scenario B
+              Stage to Scenario Bravo
             </button>
             <button
               onClick={() => setPopoverCell(null)}
-              className="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg text-xs transition-colors cursor-pointer"
+              className="py-2 px-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl text-xs transition-colors cursor-pointer border border-white/10"
             >
               ✕
             </button>

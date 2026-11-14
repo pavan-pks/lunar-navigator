@@ -3,7 +3,6 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Line,
-  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -59,7 +58,6 @@ export function Timeline({
         sunEl: sEl,
         earthEl: eEl,
         utc: utcStr,
-        // Visual indicator bands
         sunUp: isSunlit ? 1 : 0,
         darkness: isSunlit ? null : 0,
         earthVis: isEarthVis ? 1 : 0
@@ -70,8 +68,8 @@ export function Timeline({
 
   if (chartData.length === 0) {
     return (
-      <div className="h-44 bg-slate-950/60 rounded-lg border border-slate-800/80 flex items-center justify-center text-xs text-slate-500">
-        No ephemeris timeline data available.
+      <div className="h-44 bg-black/50 rounded-2xl border border-white/10 flex items-center justify-center text-xs text-slate-500 font-mono">
+        AWAITING EPHEMERIS TIME-SERIES TELEMETRY…
       </div>
     );
   }
@@ -84,23 +82,28 @@ export function Timeline({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-slate-300">Elevation Profile (14 Days)</span>
+        <span className="font-display font-semibold text-slate-200 tracking-wide text-xs">
+          Elevation Profile (14-Day Horizon Vector)
+        </span>
         <div className="flex items-center gap-3 font-mono text-[10px]">
-          <span className="flex items-center gap-1 text-slate-400">
-            <span className="w-2.5 h-0.5 rounded" style={{ backgroundColor: lineColor }}></span> Sun
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-1 rounded-sm shadow-xs" style={{ backgroundColor: lineColor }}></span>
+            <span>Sun</span>
           </span>
-          <span className="flex items-center gap-1 text-slate-400">
-            <span className="w-2.5 h-0.5 rounded" style={{ backgroundColor: earthColor }}></span> Earth
+          <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="w-2.5 h-1 rounded-sm shadow-xs" style={{ backgroundColor: earthColor }}></span>
+            <span>Earth Direct LOS</span>
           </span>
-          <span className="flex items-center gap-1 text-slate-500">
-            <span className="w-2 h-2 bg-slate-800 border border-slate-700 rounded-sm"></span> Night
+          <span className="flex items-center gap-1.5 text-slate-500">
+            <span className="w-2 h-2 bg-slate-900 border border-slate-700 rounded-xs"></span>
+            <span>Thermal Night</span>
           </span>
         </div>
       </div>
 
-      <div className="h-48 w-full bg-slate-950/80 rounded-lg p-2 border border-slate-800/80">
+      <div className="h-48 w-full bg-[#020409]/90 rounded-2xl p-2.5 border border-white/10 shadow-inner relative">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={chartData}
@@ -110,14 +113,14 @@ export function Timeline({
             <XAxis
               dataKey="t"
               tickLine={false}
-              stroke="#64748b"
+              stroke="#475569"
               fontSize={10}
               tickFormatter={(v) => `T+${v}h`}
             />
             <YAxis
               domain={['auto', 'auto']}
               tickLine={false}
-              stroke="#64748b"
+              stroke="#475569"
               fontSize={10}
               tickFormatter={(v) => `${v}°`}
             />
@@ -127,8 +130,8 @@ export function Timeline({
                 if (!active || !payload || !payload.length) return null;
                 const p = payload[0].payload;
                 return (
-                  <div className="bg-slate-900/95 border border-slate-700 p-2 rounded shadow-xl font-mono text-xs text-slate-200">
-                    <div className="text-[10px] text-slate-400 border-b border-slate-800 pb-1 mb-1">
+                  <div className="bg-[#03060c]/95 border border-sky-500/30 p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.8)] font-mono text-xs text-slate-200 backdrop-blur-md">
+                    <div className="text-[10px] text-slate-400 border-b border-white/10 pb-1 mb-1.5 font-semibold">
                       T+{p.t}h ({p.day}d) — {p.utc} UTC
                     </div>
                     <div className="flex justify-between gap-4">
@@ -149,7 +152,7 @@ export function Timeline({
             />
 
             {/* Lunar Horizon line */}
-            <ReferenceLine y={0} stroke="#475569" strokeDasharray="3 3" />
+            <ReferenceLine y={0} stroke="#64748b" strokeDasharray="3 3" />
 
             {/* Earth LOS Threshold */}
             <ReferenceLine y={EARTH_UP_DEG} stroke="#059669" strokeDasharray="2 2" strokeOpacity={0.4} />
@@ -184,8 +187,8 @@ export function Timeline({
       {/* Accessible Telemetry Narrative */}
       {stats && (
         <p className="text-[11px] text-slate-400 font-mono leading-tight px-1">
-          Sun is up <span className="text-slate-200 font-bold">{(stats.sunlitFraction * 100).toFixed(0)}%</span> of window ({stats.sunlitHours}h);{' '}
-          longest night is <span className="text-slate-200 font-bold">{stats.longestDarkHours}h</span> starting day {(stats.longestDarkStartT / 24).toFixed(1)}.
+          Sun remains illuminated across <span className="text-slate-200 font-bold">{(stats.sunlitFraction * 100).toFixed(0)}%</span> of sortie duration ({stats.sunlitHours}h);{' '}
+          longest survival blackout spans <span className="text-amber-300 font-bold">{stats.longestDarkHours}h</span> commencing Day {(stats.longestDarkStartT / 24).toFixed(1)}.
         </p>
       )}
     </div>
