@@ -5,17 +5,21 @@
 
 ## What is built so far
 - `scripts/make_fake_data.py`: Synthetic lunar ephemeris generator for 2027-01-01 to 2028-01-31 (9,504 hourly steps).
+- `scripts/fetch_horizons.py`: NASA/JPL Horizons fetcher for 2027-01-01 to 2028-01-31 (quantities 14, 15 from Moon/geocenter) chunked monthly with cache in `scripts/cache/`.
+- `scripts/verify_against_horizons.py`: Cross-check test suite comparing analytical spherical geometry against topocentric Horizons queries (`CENTER='coord@301'`).
 - `scripts/validate_data.py`: Schema and range validation suite for all static JSON datasets.
 - `public/data/sites.json`: 6 curated preset landing regions (`shackleton`, `malapert`, `haworth`, `chandrayaan3`, `nobile`, `apollo11`).
-- `public/data/global_ephem.json`: Plausible synthetic lunar sub-solar and sub-Earth coordinates.
+- `public/data/global_ephem.json`: Real NASA/JPL Horizons lunar sub-solar and sub-Earth coordinates (`fake: false`, 9,504 hourly records).
 
 ## Data status
-- Status: FAKE sample data (`fake: true`).
+- Status: REAL NASA/JPL Horizons data (`fake: false`).
+- Source: `NASA/JPL Horizons System (ephemeris type: OBSERVER, center: 500@399 geocenter, target: 301 Moon, quantities: 14, 15)`.
 - Date range: 2027-01-01T00:00:00Z to 2028-01-31T23:00:00Z (9,504 hours).
 - Regeneration commands:
   ```powershell
-  python scripts/make_fake_data.py
+  python scripts/fetch_horizons.py
   python scripts/validate_data.py
+  python scripts/verify_against_horizons.py
   ```
 
 ## How to use it (functions and components)
@@ -24,13 +28,20 @@
 
 ## Verification results
 - Ran `python scripts/validate_data.py`: 6 sites valid, 9504 ephemeris entries pass all range and schema constraints.
+- Ran `python scripts/verify_against_horizons.py`:
+  - Sun elevation error: max 0.0011° (threshold 0.3°)
+  - Sun azimuth error: max 0.0006° (threshold 0.5°)
+  - Earth elevation error: max 0.2729° (threshold 0.6° - due to geocenter parallax up to 0.26°)
+  - Earth azimuth error: max 0.0054° (threshold 0.5°)
+  - All 12 test assertions PASSED.
 
 ## Decisions
-- Used 29.530589-day synodic period and seasonal 1.54° solar latitude oscillation for realistic day/night prototyping.
-- Set `verified: false` on site coordinates pending explicit cross-check against LROC / Moon Trek references in R-02.
+- Wrapped longitudes to `[-180, 180]` East positive.
+- Rounded coordinates to 3 decimals (~30m precision on Moon surface).
+- Saved cache files in `scripts/cache/` (ignored by git).
 
 ## Known issues
-- Ephemeris is synthetic; switching to real JPL Horizons ephemeris in R-02.
+- None; real Horizons data is operational and verified.
 
 ## Requests to the other member / human
 - None at this time.
