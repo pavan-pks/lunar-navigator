@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
 import { buildLander } from './lander.js'
+import { buildRocks } from './rocks.js'
 import { createCameraController } from './cameraModes.js'
 
 /**
@@ -104,7 +105,7 @@ export default function Scene3D({
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
     scene.add(ambientLight)
 
-    // P-04 Lander Model
+    // Lander Model
     const lander = buildLander(landerHeight)
     scene.add(lander.group)
 
@@ -119,7 +120,7 @@ export default function Scene3D({
       })
     }
 
-    // Camera controller (OrbitControls with terrain height constraint)
+    // Camera controller
     const cameraController = createCameraController({
       camera,
       domElement: canvas,
@@ -151,6 +152,7 @@ export default function Scene3D({
       camera,
       sunLight,
       lander,
+      rocksData: null,
       cameraController,
       terrainData: null,
       originPadHeight: 0,
@@ -167,6 +169,10 @@ export default function Scene3D({
         }
 
         lander.dispose()
+
+        if (ctxRef.current?.rocksData) {
+          ctxRef.current.rocksData.dispose()
+        }
 
         if (ctxRef.current?.terrainData) {
           ctxRef.current.terrainData.dispose()
@@ -195,8 +201,6 @@ export default function Scene3D({
     const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
     const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
 
-    // Coordinate convention: +Y up, +X east, -Z north
-    // Direction toward body: x = cos(el) * sin(az), y = sin(el), z = -cos(el) * cos(az)
     const elRad = (safeSunEl * Math.PI) / 180
     const azRad = (safeSunAz * Math.PI) / 180
 
@@ -220,10 +224,17 @@ export default function Scene3D({
     ctx.invalidate()
   }, [sunEl, sunAz, earthEl, earthAz, landerHeight, viewMode])
 
-  // (c) Terrain rebuild effect (only on siteId, terrainType, quality, heightmapUrl)
+  // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, quality, heightmapUrl)
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
+
+    // Clean up previous rocks
+    if (ctx.rocksData) {
+      ctx.scene.remove(ctx.rocksData.mesh)
+      ctx.rocksData.dispose()
+      ctx.rocksData = null
+    }
 
     // Clean up previous terrain
     if (ctx.terrainData) {
@@ -243,6 +254,11 @@ export default function Scene3D({
     if (ctx.lander) {
       ctx.lander.group.position.set(0, terrain.originPadHeight, 0)
     }
+
+    // Build rocks and landmark scatter
+    const rocks = buildRocks({ siteId, quality, heightAt: terrain.heightAt })
+    ctx.rocksData = rocks
+    ctx.scene.add(rocks.mesh)
 
     // Update camera controls focus to lander
     if (ctx.cameraController) {
