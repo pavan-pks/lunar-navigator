@@ -1,17 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import Scene3D from './Scene3D.jsx';
 
 /**
  * SurfaceViewSimulation.jsx
  *
- * Restores the beloved high-performance sandbox surface simulation:
+ * Restores the high-performance local surface view:
  * - 400x400m procedural terrain tailored to the selected landing site
  * - Artemis / Apollo high-fidelity procedural lander grounded flush at pad height
- * - 20-second 360° sweeping lunar day simulation (18°/sec, polar grazing sun, libration)
  * - Orbit Mast View & Astronaut EVA Mode (1.7m eye-level, clamped pitch [-60°, +60°])
- * - Quick-look buttons: Look at Sun, Look at Earth, Look North
+ * - Quick-look controls: Look at Sun, Look at Earth, Look North
  * - Dynamic Metric Shadow Ruler opposite the sun
- * - True-Dark Minimalist HUD with live telemetry and Return to Orbit button
+ * - Clean floating controls avoiding any HUD overlap with the main app navigation
  */
 export function SurfaceViewSimulation({
   site = { id: 'shackleton', name: 'Shackleton Crater Rim', terrainType: 'crater-rim' },
@@ -24,98 +23,84 @@ export function SurfaceViewSimulation({
 }) {
   const [viewMode, setViewMode] = useState('astronaut');
   const [showShadowRuler, setShowShadowRuler] = useState(true);
+  const scene3DRef = useRef(null);
 
-  // 20s sweeping lunar day cycle state
-  const [isSimulating, setIsSimulating] = useState(true);
-  const [simSunEl, setSimSunEl] = useState(Number.isFinite(sunEl) ? sunEl : 2.0);
-  const [simSunAz, setSimSunAz] = useState(Number.isFinite(sunAz) ? sunAz : 180.0);
-  const [simEarthEl, setSimEarthEl] = useState(Number.isFinite(earthEl) ? earthEl : 5.0);
-  const [simEarthAz, setSimEarthAz] = useState(Number.isFinite(earthAz) ? earthAz : 20.0);
-
-  const simRef = useRef({
-    lastTime: null,
-    azimuth: Number.isFinite(sunAz) ? sunAz : 180.0,
-    baseEarthAz: Number.isFinite(earthAz) ? earthAz : 20.0,
-  });
-
-  // When not simulating, sync seamlessly with the incoming mission timeline / ephemeris
-  useEffect(() => {
-    if (!isSimulating) {
-      if (Number.isFinite(sunEl)) setSimSunEl(sunEl);
-      if (Number.isFinite(sunAz)) setSimSunAz(sunAz);
-      if (Number.isFinite(earthEl)) setSimEarthEl(earthEl);
-      if (Number.isFinite(earthAz)) setSimEarthAz(earthAz);
-    }
-  }, [sunEl, sunAz, earthEl, earthAz, isSimulating]);
-
-  // 20-second 360° sweeping lunar day animation loop (18 deg/sec)
-  useEffect(() => {
-    if (!isSimulating) {
-      simRef.current.lastTime = null;
-      return;
-    }
-
-    let animId;
-    const step = (time) => {
-      if (!simRef.current.lastTime) {
-        simRef.current.lastTime = time;
-        simRef.current.azimuth = simSunAz;
-        simRef.current.baseEarthAz = simEarthAz;
-      }
-
-      const dt = (time - simRef.current.lastTime) / 1000;
-      simRef.current.lastTime = time;
-
-      // 360 degrees in ~20 seconds = 18 deg/sec
-      const newAz = (simRef.current.azimuth + dt * 18) % 360;
-      simRef.current.azimuth = newAz;
-
-      const azRad = (newAz * Math.PI) / 180;
-      // Grazing low-elevation polar solar path (dipping between 0.3° and 2.7°)
-      const newEl = Number((1.5 + 1.2 * Math.sin(2 * azRad)).toFixed(2));
-
-      // Slowly oscillating Earth libration
-      const newEarthAz = Number(((simRef.current.baseEarthAz + Math.sin(azRad) * 3 + 360) % 360).toFixed(1));
-      const newEarthEl = Number((5.0 + Math.cos(azRad) * 1.5).toFixed(1));
-
-      setSimSunAz(Number(newAz.toFixed(1)));
-      setSimSunEl(newEl);
-      setSimEarthAz(newEarthAz);
-      setSimEarthEl(newEarthEl);
-
-      animId = requestAnimationFrame(step);
-    };
-
-    animId = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(animId);
-  }, [isSimulating]);
-
-  const activeSunEl = isSimulating ? simSunEl : sunEl;
-  const activeSunAz = isSimulating ? simSunAz : sunAz;
-  const activeEarthEl = isSimulating ? simEarthEl : earthEl;
-  const activeEarthAz = isSimulating ? simEarthAz : earthAz;
+  const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0;
+  const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0;
+  const safeEarthEl = Number.isFinite(earthEl) ? earthEl : 5.0;
+  const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0;
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-black select-none">
       <Scene3D
+        ref={scene3DRef}
         siteId={site?.id || 'shackleton'}
         terrainType={site?.terrainType || 'crater-rim'}
-        sunEl={activeSunEl}
-        sunAz={activeSunAz}
-        earthEl={activeEarthEl}
-        earthAz={activeEarthAz}
+        sunEl={safeSunEl}
+        sunAz={safeSunAz}
+        earthEl={safeEarthEl}
+        earthAz={safeEarthAz}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         quality={quality}
         label={`${site?.name || 'Lunar Surface'} — Surface EVA`}
         landerHeight={3.0}
-        showHud={true}
+        showHud={false}
         showShadowRuler={showShadowRuler}
         onToggleShadowRuler={() => setShowShadowRuler((prev) => !prev)}
-        isSimulating={isSimulating}
-        onToggleSimulation={() => setIsSimulating((prev) => !prev)}
         onReturnToOrbit={onReturnToOrbit}
       />
+
+      {/* Floating Astronaut Surface Action Bar (Positioned above bottom timeline, zero overlap) */}
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2 bg-black/80 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full shadow-2xl">
+        <button
+          onClick={() => setViewMode((prev) => (prev === 'astronaut' ? 'orbit' : 'astronaut'))}
+          className="border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white px-3 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+          title="Toggle between Astronaut EVA POV and Orbital Mast view"
+        >
+          <span>{viewMode === 'astronaut' ? '🪐 Orbit Mast' : '👨‍🚀 Astronaut View'}</span>
+        </button>
+
+        <div className="w-px h-3.5 bg-white/20 mx-0.5" />
+
+        <button
+          onClick={() => scene3DRef.current?.lookAtSun?.()}
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          title="Orient camera toward the Sun"
+        >
+          <span>☀️ Sun</span>
+        </button>
+
+        <button
+          onClick={() => scene3DRef.current?.lookAtEarth?.()}
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          title="Orient camera toward the Earth"
+        >
+          <span>🌍 Earth</span>
+        </button>
+
+        <button
+          onClick={() => scene3DRef.current?.lookNorth?.()}
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          title="Orient camera toward Lunar True North"
+        >
+          <span>🧭 North</span>
+        </button>
+
+        <div className="w-px h-3.5 bg-white/20 mx-0.5" />
+
+        <button
+          onClick={() => setShowShadowRuler((prev) => !prev)}
+          className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 ${
+            showShadowRuler
+              ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/40'
+              : 'text-neutral-400 hover:text-white hover:bg-white/10'
+          }`}
+          title="Toggle metric shadow ruler"
+        >
+          <span>📏 Ruler</span>
+        </button>
+      </div>
     </div>
   );
 }

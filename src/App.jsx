@@ -285,7 +285,7 @@ export function App() {
               Touchdown Confirmed · {site.name}
             </div>
             <p className="text-[11px] text-[#a3a3a3] leading-relaxed">
-              Lander securely grounded on landing pad. Open local surface simulation to inspect procedural regolith, grazing shadows, and 20s day sweep cycle.
+              Lander securely grounded on landing pad. Open local surface simulation to inspect procedural regolith, grazing shadows, and astronaut EVA POV.
             </p>
             <div className="flex items-center gap-3 w-full mt-1">
               <button

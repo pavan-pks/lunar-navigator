@@ -5,7 +5,7 @@ import React from 'react'
  * Selectively renders metrics per viewMode, eliminating all overlap using strict Flexbox containers.
  *
  * ViewMode Contracts:
- * - 'orbit': Show global telemetry, target selection, and day-sweep simulation controls.
+ * - 'orbit': Show global telemetry, target selection, and view mode toggle.
  * - 'astronaut' / 'surface': Hide orbital target lists. Show only local environmental metrics
  *                           (Shadow Ruler distance/ratio, live Sun/Earth elevation, quick-look buttons, Return to Orbit).
  * - 'compare': Strip away all environmental controls; show only side-by-side flexbox comparison cards.
@@ -28,8 +28,6 @@ export default function Hud({
   onLookEarth,
   onLookNorth,
   quality = 'auto',
-  isSimulating = false,
-  onToggleSimulation,
   onReturnToOrbit,
   showShadowRuler = true,
   onToggleShadowRuler,
@@ -186,21 +184,6 @@ export default function Hud({
         {/* Top-Right Flex Column (gap-4) */}
         <div className="flex flex-col gap-4 items-end pointer-events-auto">
           <div className="flex items-center gap-2">
-            {/* Orbit View ONLY: 20s Day Sweep Simulation Controls */}
-            {!isAstronautView && onToggleSimulation && (
-              <button
-                onClick={onToggleSimulation}
-                className={`border px-3 py-1.5 rounded-lg text-[11px] font-sans font-medium tracking-wide backdrop-blur-md transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg ${
-                  isSimulating
-                    ? 'bg-white text-black border-white'
-                    : 'bg-black/75 text-neutral-200 border-white/20 hover:border-white'
-                }`}
-                title="Simulate complete 360° lunar sun cycle in 20 seconds"
-              >
-                <span>{isSimulating ? '⏸ Pause Day Sweep' : '▶ 20s Day Sweep'}</span>
-              </button>
-            )}
-
             {/* Surface View ONLY: Shadow Ruler Toggle */}
             {isAstronautView && onToggleShadowRuler && (
               <button
@@ -279,7 +262,6 @@ export default function Hud({
               </div>
               <span className="text-[10px] text-neutral-400">
                 {safeSunEl > 0 ? 'Direct Solar Illumination' : 'In Grazing Rim Shadow'}
-                {isSimulating && ' · 20s Sweep Active'}
               </span>
             </div>
           )}

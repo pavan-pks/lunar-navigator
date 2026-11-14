@@ -1,4 +1,4 @@
-import React, { Component, useEffect, useRef, useState } from 'react'
+import React, { Component, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
 import { buildLander } from './lander.js'
@@ -52,31 +52,32 @@ class SceneErrorBoundary extends Component {
 /**
  * Internal 3D scene implementation.
  */
-function Scene3DInner({
-  sunEl = 5.0,
-  sunAz = 180.0,
-  earthEl = 5.0,
-  earthAz = 0.0,
-  siteId = 'shackleton',
-  sites = [],
-  onSelectSite,
-  terrainType = 'plain',
-  viewMode: propViewMode,
-  quality = 'auto',
-  label = '',
-  landerHeight = 3,
-  showHud = true,
-  showShadowRuler = true,
-  heightmapUrl,
-  onTierChange,
-  onReturnToOrbit,
-  isSimulating = false,
-  onToggleSimulation,
-  onToggleShadowRuler,
-  onViewModeChange,
-  isComparison = false,
-  comparisonData = null,
-}) {
+const Scene3DInner = forwardRef(function Scene3DInner(
+  {
+    sunEl = 5.0,
+    sunAz = 180.0,
+    earthEl = 5.0,
+    earthAz = 0.0,
+    siteId = 'shackleton',
+    sites = [],
+    onSelectSite,
+    terrainType = 'plain',
+    viewMode: propViewMode,
+    quality = 'auto',
+    label = '',
+    landerHeight = 3,
+    showHud = true,
+    showShadowRuler = true,
+    heightmapUrl,
+    onTierChange,
+    onReturnToOrbit,
+    onToggleShadowRuler,
+    onViewModeChange,
+    isComparison = false,
+    comparisonData = null,
+  },
+  ref
+) {
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
   const [internalViewMode, setInternalViewMode] = useState(propViewMode || 'orbit')
@@ -135,6 +136,19 @@ function Scene3DInner({
   const validLanderHeight = Number.isFinite(landerHeight) && landerHeight > 0 ? landerHeight : 3
 
   const activeViewMode = propViewMode || internalViewMode
+
+  // Expose camera quick looks, staging ascent, and invalidate methods via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      lookAtSun: () => ctxRef.current?.cameraController?.lookAtSun(validSunEl, validSunAz),
+      lookAtEarth: () => ctxRef.current?.cameraController?.lookAtEarth(validEarthEl, validEarthAz),
+      lookNorth: () => ctxRef.current?.cameraController?.lookNorth(),
+      triggerAscent: (opts) => ctxRef.current?.lander?.triggerAscent(opts),
+      invalidate: () => ctxRef.current?.invalidate(),
+    }),
+    [validSunEl, validSunAz, validEarthEl, validEarthAz]
+  )
 
   useEffect(() => {
     const nextTier = quality === 'auto' ? 'medium' : quality
@@ -572,8 +586,6 @@ function Scene3DInner({
           onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(validEarthEl, validEarthAz)}
           onLookNorth={() => ctxRef.current?.cameraController?.lookNorth()}
           quality={activeTier}
-          isSimulating={isSimulating}
-          onToggleSimulation={onToggleSimulation}
           onReturnToOrbit={handleReturnToOrbit}
           showShadowRuler={showShadowRuler}
           onToggleShadowRuler={onToggleShadowRuler}
@@ -606,15 +618,17 @@ function Scene3DInner({
       )}
     </div>
   )
-}
+})
 
 /**
  * Scene3D wrapped with ErrorBoundary
  */
-export default function Scene3D(props) {
+export const Scene3D = forwardRef(function Scene3D(props, ref) {
   return (
     <SceneErrorBoundary {...props}>
-      <Scene3DInner {...props} />
+      <Scene3DInner ref={ref} {...props} />
     </SceneErrorBoundary>
   )
-}
+})
+
+export default Scene3D
