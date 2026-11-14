@@ -10,6 +10,7 @@ import { SpaceIntroScene } from './components/story/SpaceIntroScene.jsx';
 import { Compare } from './components/ui/Compare.jsx';
 import { Timeline } from './components/ui/Timeline.jsx';
 import { Calendar } from './components/ui/Calendar.jsx';
+import { NasaResourcesModal } from './components/ui/NasaResourcesModal.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
 
 export function App() {
@@ -37,6 +38,7 @@ export function App() {
   const [isZooming, setIsZooming] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
+  const [showResourcesModal, setShowResourcesModal] = useState(false);
 
   // Time controller for 14-day mission scrub
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 12 });
@@ -245,6 +247,16 @@ export function App() {
 
         {/* Right: Modal Action Buttons */}
         <div className="flex items-center gap-2 pointer-events-auto">
+          {/* NASA & Partner Resources Portal */}
+          <button
+            onClick={() => setShowResourcesModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-black/45 hover:bg-black/60 backdrop-blur-2xl border border-white/15 hover:border-sky-400/50 text-slate-200 text-xs font-mono font-semibold transition-all shadow-xl cursor-pointer"
+            title="Access QuickMap, Moon Trek, JPL Horizons, and CSA Moon Exploration"
+          >
+            <span>🛰️</span>
+            <span className="hidden sm:inline">NASA Resources</span>
+          </button>
+
           {/* Compare Sites Button */}
           <button
             onClick={() => setShowCompareModal(true)}
@@ -563,6 +575,13 @@ export function App() {
           }}
         />
       )}
+
+      {/* 9. MODAL: NASA & SPACE AGENCY PARTNER RESOURCES */}
+      <NasaResourcesModal
+        isOpen={showResourcesModal}
+        onClose={() => setShowResourcesModal(false)}
+        selectedSite={site}
+      />
     </div>
   );
 }
