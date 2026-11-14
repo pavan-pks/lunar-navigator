@@ -86,24 +86,32 @@ export default function Scene3D({
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2500)
     camera.position.set(28, 16, 36)
 
-    // Directional light & target setup
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.8)
+    // Harsh directional Sun light with tuned orthographic shadow frustum
+    const sunLight = new THREE.DirectionalLight(0xffffff, 3.0)
     sunLight.castShadow = true
-    sunLight.shadow.mapSize.width = quality === 'low' ? 1024 : 2048
-    sunLight.shadow.mapSize.height = quality === 'low' ? 1024 : 2048
-    sunLight.shadow.camera.left = -220
-    sunLight.shadow.camera.right = 220
-    sunLight.shadow.camera.top = 220
-    sunLight.shadow.camera.bottom = -220
-    sunLight.shadow.camera.near = 1
+    const shadowMapDim = quality === 'low' ? 1024 : 2048
+    sunLight.shadow.mapSize.width = shadowMapDim
+    sunLight.shadow.mapSize.height = shadowMapDim
+    sunLight.shadow.camera.left = -240
+    sunLight.shadow.camera.right = 240
+    sunLight.shadow.camera.top = 240
+    sunLight.shadow.camera.bottom = -240
+    sunLight.shadow.camera.near = 5
     sunLight.shadow.camera.far = 1300
-    sunLight.shadow.bias = -0.0005
-    sunLight.shadow.normalBias = 0.3
+    sunLight.shadow.bias = -0.0003
+    sunLight.shadow.normalBias = 0.25
     scene.add(sunLight)
     scene.add(sunLight.target)
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
+    // Faint baseline ambient mimicking deep space starlight (0.02)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.02)
     scene.add(ambientLight)
+
+    // Faint bluish Earthshine directional light (no shadow)
+    const earthLight = new THREE.DirectionalLight(0x7dd3fc, 0.04)
+    earthLight.castShadow = false
+    scene.add(earthLight)
+    scene.add(earthLight.target)
 
     // Lander Model
     const lander = buildLander(landerHeight)
@@ -151,6 +159,8 @@ export default function Scene3D({
       scene,
       camera,
       sunLight,
+      ambientLight,
+      earthLight,
       lander,
       rocksData: null,
       cameraController,
@@ -193,28 +203,67 @@ export default function Scene3D({
     }
   }, [quality])
 
-  // (b) Lightweight effect for angle, light, and lander scale changes
+  // (b) Lightweight effect for angles, sun light, shadows, earthshine, and lander scale
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
 
+    // Safe fallbacks for angles
     const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
     const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
+    const safeEarthEl = Number.isFinite(earthEl) ? earthEl : 5.0
+    const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0
 
-    const elRad = (safeSunEl * Math.PI) / 180
-    const azRad = (safeSunAz * Math.PI) / 180
+    // Coordinate convention: +Y up, +X east, -Z north
+    // Direction toward body: x = cos(el) * sin(az), y = sin(el), z = -cos(el) * cos(az)
+    const sunElRad = (safeSunEl * Math.PI) / 180
+    const sunAzRad = (safeSunAz * Math.PI) / 180
 
-    const dirX = Math.cos(elRad) * Math.sin(azRad)
-    const dirY = Math.sin(elRad)
-    const dirZ = -Math.cos(elRad) * Math.cos(azRad)
+    const sunDirX = Math.cos(sunElRad) * Math.sin(sunAzRad)
+    const sunDirY = Math.sin(sunElRad)
+    const sunDirZ = -Math.cos(sunElRad) * Math.cos(sunAzRad)
+
+    // Compute Sun intensity with short 0.1° fade around -0.27° (horizon upper edge)
+    let sunIntensity = 0.0
+    if (safeSunEl > -0.27) {
+      sunIntensity = 3.0
+    } else if (safeSunEl > -0.37) {
+      sunIntensity = 3.0 * ((safeSunEl - (-0.37)) / 0.1)
+    }
+
+    const padY = ctx.originPadHeight || 0
 
     if (ctx.sunLight) {
-      const dist = 500
-      const padY = ctx.originPadHeight || 0
-      ctx.sunLight.position.set(dirX * dist, padY + Math.max(dirY * dist, 0.5), dirZ * dist)
+      const sunDist = 500
+      ctx.sunLight.position.set(
+        sunDirX * sunDist,
+        padY + Math.max(sunDirY * sunDist, 0.1),
+        sunDirZ * sunDist
+      )
       ctx.sunLight.target.position.set(0, padY, 0)
       ctx.sunLight.target.updateMatrixWorld()
-      ctx.sunLight.intensity = safeSunEl > -0.27 ? 2.8 : 0.0
+      ctx.sunLight.shadow.camera.updateProjectionMatrix()
+      ctx.sunLight.intensity = sunIntensity
+    }
+
+    // Earthshine: faint bluish light when Earth is above horizon
+    const earthElRad = (safeEarthEl * Math.PI) / 180
+    const earthAzRad = (safeEarthAz * Math.PI) / 180
+
+    const earthDirX = Math.cos(earthElRad) * Math.sin(earthAzRad)
+    const earthDirY = Math.sin(earthElRad)
+    const earthDirZ = -Math.cos(earthElRad) * Math.cos(earthAzRad)
+
+    if (ctx.earthLight) {
+      const earthDist = 300
+      ctx.earthLight.position.set(
+        earthDirX * earthDist,
+        padY + Math.max(earthDirY * earthDist, 0.1),
+        earthDirZ * earthDist
+      )
+      ctx.earthLight.target.position.set(0, padY, 0)
+      ctx.earthLight.target.updateMatrixWorld()
+      ctx.earthLight.intensity = safeEarthEl > 0 ? 0.04 : 0.0
     }
 
     if (ctx.lander) {
@@ -265,10 +314,15 @@ export default function Scene3D({
       ctx.cameraController.updateTarget(terrain.originPadHeight)
     }
 
-    // Update sun light target
+    // Update sun & earth light targets
     if (ctx.sunLight) {
       ctx.sunLight.target.position.set(0, terrain.originPadHeight, 0)
       ctx.sunLight.target.updateMatrixWorld()
+      ctx.sunLight.shadow.camera.updateProjectionMatrix()
+    }
+    if (ctx.earthLight) {
+      ctx.earthLight.target.position.set(0, terrain.originPadHeight, 0)
+      ctx.earthLight.target.updateMatrixWorld()
     }
 
     ctx.invalidate()
