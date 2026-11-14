@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { buildTerrain } from './terrain.js'
 
 /**
  * Scene3D component
@@ -36,7 +37,14 @@ export default function Scene3D({
   const containerRef = useRef(null)
   const ctxRef = useRef(null)
 
-  // (a) Initialize Three.js scene, renderer, camera, and basic scaffolding
+  // Resolve resolution tier
+  const getResolution = (q) => {
+    if (q === 'low') return 129
+    if (q === 'high') return 385
+    return 257 // 'medium' or 'auto'
+  }
+
+  // (a) Initialize Three.js scene, renderer, camera
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -45,11 +53,9 @@ export default function Scene3D({
     let renderRequested = false
     let animFrameId = null
 
-    // Determine max pixel ratio based on quality tier
     const tierMaxDpr = quality === 'low' ? 1.0 : quality === 'medium' ? 1.5 : 2.0
     const pixelRatio = Math.min(window.devicePixelRatio || 1, tierMaxDpr)
 
-    // Renderer setup
     let renderer
     try {
       renderer = new THREE.WebGLRenderer({
@@ -76,40 +82,35 @@ export default function Scene3D({
     // Scene & Camera
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000)
-    // Starting position (+Y up, +X east, -Z north)
     camera.position.set(70, 40, 90)
     camera.lookAt(0, 0, 0)
 
-    // P-02 Test cube and basic lighting
-    const cubeGeo = new THREE.BoxGeometry(6, 6, 6)
-    const cubeMat = new THREE.MeshStandardMaterial({
-      color: 0x94a3b8,
-      roughness: 0.8,
-      metalness: 0.1,
-    })
-    const testCube = new THREE.Mesh(cubeGeo, cubeMat)
-    testCube.position.set(0, 3, 0)
-    testCube.castShadow = true
-    testCube.receiveShadow = true
-    scene.add(testCube)
+    // Directional light & Ambient light setup
+    const sunLight = new THREE.DirectionalLight(0xffffff, 2.8)
+    sunLight.position.set(40, 30, -50)
+    sunLight.castShadow = true
+    sunLight.shadow.mapSize.width = quality === 'low' ? 1024 : 2048
+    sunLight.shadow.mapSize.height = quality === 'low' ? 1024 : 2048
+    sunLight.shadow.camera.left = -220
+    sunLight.shadow.camera.right = 220
+    sunLight.shadow.camera.top = 220
+    sunLight.shadow.camera.bottom = -220
+    sunLight.shadow.camera.near = 1
+    sunLight.shadow.camera.far = 1300
+    sunLight.shadow.bias = -0.0005
+    sunLight.shadow.normalBias = 0.3
+    scene.add(sunLight)
 
-    // Simple test ground plane
-    const groundGeo = new THREE.PlaneGeometry(80, 80)
-    groundGeo.rotateX(-Math.PI / 2)
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 })
-    const testGround = new THREE.Mesh(groundGeo, groundMat)
-    testGround.position.set(0, 0, 0)
-    testGround.receiveShadow = true
-    scene.add(testGround)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.05)
+    scene.add(ambientLight)
 
-    // Test directional light & ambient
-    const testLight = new THREE.DirectionalLight(0xffffff, 2.5)
-    testLight.position.set(40, 30, -50)
-    testLight.castShadow = true
-    scene.add(testLight)
-
-    const testAmbient = new THREE.AmbientLight(0xffffff, 0.15)
-    scene.add(testAmbient)
+    // Temporary placeholder marker on pad until P-04 lander
+    const markerGeo = new THREE.BoxGeometry(2, 3, 2)
+    const markerMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.5 })
+    const markerCube = new THREE.Mesh(markerGeo, markerMat)
+    markerCube.castShadow = true
+    markerCube.receiveShadow = true
+    scene.add(markerCube)
 
     // Invalidate function for on-demand rendering
     const invalidate = () => {
@@ -122,7 +123,6 @@ export default function Scene3D({
       })
     }
 
-    // ResizeObserver handler
     const handleResize = () => {
       if (isDisposed || !container) return
       const width = container.clientWidth || 360
@@ -139,31 +139,31 @@ export default function Scene3D({
     resizeObserver.observe(container)
     handleResize()
 
-    // Store references in ctxRef for props update effects
     ctxRef.current = {
       renderer,
       scene,
       camera,
-      testCube,
-      testLight,
+      sunLight,
+      markerCube,
+      terrainData: null,
+      heightAt: () => 0,
       invalidate,
       dispose: () => {
         isDisposed = true
         if (animFrameId) cancelAnimationFrame(animFrameId)
         resizeObserver.disconnect()
 
-        // Remove canvas from DOM
         if (canvas.parentNode) {
           canvas.parentNode.removeChild(canvas)
         }
 
-        // Dispose geometries and materials
-        cubeGeo.dispose()
-        cubeMat.dispose()
-        groundGeo.dispose()
-        groundMat.dispose()
+        markerGeo.dispose()
+        markerMat.dispose()
 
-        // Dispose renderer & force context loss
+        if (ctxRef.current?.terrainData) {
+          ctxRef.current.terrainData.dispose()
+        }
+
         renderer.dispose()
         if (renderer.forceContextLoss) {
           renderer.forceContextLoss()
@@ -179,12 +179,11 @@ export default function Scene3D({
     }
   }, [quality])
 
-  // (b) Lightweight effect for angle and prop changes (never rebuilds scene)
+  // (b) Lightweight effect for angle and prop changes
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
 
-    // Safe clamp for incoming angles
     const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
     const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
 
@@ -197,25 +196,43 @@ export default function Scene3D({
     const dirY = Math.sin(elRad)
     const dirZ = -Math.cos(elRad) * Math.cos(azRad)
 
-    // Update test light position and test cube rotation to verify prop reactivity
-    if (ctx.testLight) {
-      ctx.testLight.position.set(dirX * 60, Math.max(dirY * 60, 0.5), dirZ * 60)
-    }
-    if (ctx.testCube) {
-      ctx.testCube.rotation.y = azRad
+    if (ctx.sunLight) {
+      const dist = 500
+      ctx.sunLight.position.set(dirX * dist, Math.max(dirY * dist, 0.5), dirZ * dist)
+      ctx.sunLight.intensity = safeSunEl > -0.27 ? 2.8 : 0.0
     }
 
     ctx.invalidate()
   }, [sunEl, sunAz, earthEl, earthAz, landerHeight, viewMode])
 
-  // (c) Terrain / site / heightmap updates
+  // (c) Terrain rebuild effect (only on siteId, terrainType, quality, heightmapUrl)
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
 
-    // For P-02, trigger an invalidate on site change
+    // Clean up previous terrain
+    if (ctx.terrainData) {
+      ctx.scene.remove(ctx.terrainData.mesh)
+      ctx.terrainData.dispose()
+      ctx.terrainData = null
+    }
+
+    const resolution = getResolution(quality)
+    const terrain = buildTerrain({ siteId, terrainType, resolution })
+    ctx.terrainData = terrain
+    ctx.heightAt = terrain.heightAt
+    ctx.scene.add(terrain.mesh)
+
+    // Update marker position on landing pad
+    if (ctx.markerCube) {
+      const padY = terrain.heightAt(0, 0)
+      ctx.markerCube.position.set(0, padY + 1.5, 0)
+      // Adjust camera target to look at pad center
+      ctx.camera.lookAt(0, padY + 2, 0)
+    }
+
     ctx.invalidate()
-  }, [siteId, terrainType, heightmapUrl])
+  }, [siteId, terrainType, quality, heightmapUrl])
 
   return (
     <div
@@ -229,7 +246,6 @@ export default function Scene3D({
         background: '#000000',
       }}
     >
-      {/* P-02 skeleton info watermark */}
       <div
         style={{
           position: 'absolute',
@@ -245,7 +261,25 @@ export default function Scene3D({
           border: '1px solid #334155',
         }}
       >
-        {label || siteId} · P-02 Scene Skeleton
+        {label || siteId} · {terrainType} · 400m patch
+      </div>
+
+      <div
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          color: '#cbd5e1',
+          fontSize: '11px',
+          fontFamily: 'sans-serif',
+          pointerEvents: 'none',
+          background: 'rgba(30, 41, 59, 0.85)',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          border: '1px solid #475569',
+        }}
+      >
+        Illustrative terrain
       </div>
     </div>
   )
