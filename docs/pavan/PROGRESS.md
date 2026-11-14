@@ -5,16 +5,16 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 5 / 100**
+**Current score: 13 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** P-02: Scene skeleton (renderer, camera, resize, cleanup)
+**Currently working on:** P-03: Terrain generator
 
 ## Core tasks
 
 | ID | Task | Weight | Status | Done % | Points | Last update / note |
 |---|---|---|---|---|---|---|
 | P-01 | Sandbox harness | 5 | Done | 100 | 5 | Sandbox harness with sliders, presets, simulation loop, dual-scene compare test & FPS counter |
-| P-02 | Scene skeleton (renderer, camera, resize, cleanup) | 8 | Not started | 0 | 0 | |
+| P-02 | Scene skeleton (renderer, camera, resize, cleanup) | 8 | Done | 100 | 8 | WebGLRenderer, PerspectiveCamera, PCFShadowMap, ResizeObserver, on-demand invalidate(), StrictMode disposal |
 | P-03 | Terrain generator | 12 | Not started | 0 | 0 | |
 | P-04 | Lander model | 8 | Not started | 0 | 0 | |
 | P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
