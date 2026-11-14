@@ -59,6 +59,83 @@ function createLandingReticle() {
 }
 
 /**
+ * Creates a detailed 3D Artemis / CLPS orbital spacecraft model.
+ * Features conical command module, cylindrical service module with gold MLI blanket,
+ * 4 X-wing photovoltaic solar arrays, and high-gain antenna.
+ */
+function createOrbitalSpacecraft() {
+  const group = new THREE.Group();
+
+  // 1. Crew Capsule / Command Module (conical aeroshell)
+  const capsuleGeo = new THREE.ConeGeometry(0.32, 0.42, 16);
+  const capsuleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3, metalness: 0.4 });
+  const capsule = new THREE.Mesh(capsuleGeo, capsuleMat);
+  capsule.position.set(0, 0.32, 0);
+  group.add(capsule);
+
+  // Visor observation window
+  const windowGeo = new THREE.BoxGeometry(0.12, 0.07, 0.04);
+  const windowMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+  const windowMesh = new THREE.Mesh(windowGeo, windowMat);
+  windowMesh.position.set(0, 0.32, 0.2);
+  group.add(windowMesh);
+
+  // Docking mechanism
+  const dockGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.06, 12);
+  const dockMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85 });
+  const dock = new THREE.Mesh(dockGeo, dockMat);
+  dock.position.set(0, 0.54, 0);
+  group.add(dock);
+
+  // 2. Service Module (cylindrical propulsion & power core)
+  const smGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.38, 16);
+  const smMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.35, metalness: 0.6 });
+  const sm = new THREE.Mesh(smGeo, smMat);
+  sm.position.set(0, 0, 0);
+  group.add(sm);
+
+  // Gold foil MLI thermal blanket segment
+  const goldBandGeo = new THREE.CylinderGeometry(0.325, 0.325, 0.16, 16);
+  const goldMat = new THREE.MeshStandardMaterial({ color: 0xdf8a08, roughness: 0.25, metalness: 0.88 });
+  const goldBand = new THREE.Mesh(goldBandGeo, goldMat);
+  goldBand.position.set(0, -0.05, 0);
+  group.add(goldBand);
+
+  // Main orbital maneuvering engine nozzle
+  const engineGeo = new THREE.ConeGeometry(0.15, 0.26, 16, 1, true);
+  const engineMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.5, metalness: 0.8 });
+  const engine = new THREE.Mesh(engineGeo, engineMat);
+  engine.position.set(0, -0.3, 0);
+  group.add(engine);
+
+  // 3. Four Solar Array Wings in X-Wing Configuration (Artemis Orion style)
+  const solarMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.18, metalness: 0.85 });
+  const wingW = 0.52;
+  const wingH = 0.15;
+  const wingGeo = new THREE.BoxGeometry(wingW, wingH, 0.015);
+
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2 + Math.PI / 4;
+    const wing = new THREE.Mesh(wingGeo, solarMat);
+    wing.position.set(Math.cos(angle) * 0.55, 0.05, Math.sin(angle) * 0.55);
+    wing.rotation.y = angle;
+    wing.rotation.z = 0.22;
+    group.add(wing);
+  }
+
+  // 4. Steerable High-Gain Antenna
+  const dishGeo = new THREE.ConeGeometry(0.11, 0.045, 12, 1, true);
+  const dishMat = new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3, metalness: 0.85 });
+  const dish = new THREE.Mesh(dishGeo, dishMat);
+  dish.position.set(0.32, 0.12, 0);
+  dish.rotation.z = Math.PI / 3;
+  group.add(dish);
+
+  group.scale.set(1.5, 1.5, 1.5);
+  return group;
+}
+
+/**
  * src/components/story/SpaceIntroScene.jsx
  * 1. Deep Space Overview (Sun, Earth, Moon).
  * 2. Smooth zoom to Lunar Orbit:
@@ -251,6 +328,10 @@ export function SpaceIntroScene({
     targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), initNormal);
     moonMesh.add(targetReticle);
 
+    // Detailed 3D Orbital Spacecraft (Artemis / CLPS orbiter)
+    const orbitalSpacecraft = createOrbitalSpacecraft();
+    moonGroup.add(orbitalSpacecraft);
+
     // Store state in ref
     sceneElementsRef.current = {
       scene,
@@ -262,9 +343,11 @@ export function SpaceIntroScene({
       sunMesh,
       targetReticle,
       landmarkPins,
+      orbitalSpacecraft,
       phase: 'overview',
       progress: 0,
-      startCamPos: null
+      startCamPos: null,
+      craftDescentStart: null
     };
 
     // 7. Interactive Free 3D Drag-to-Rotate & Click-to-Point Landing Target on Moon
@@ -456,6 +539,23 @@ export function SpaceIntroScene({
         if (screenLabels.length > 0) setScreenLabels([]);
       }
 
+      // Orbital Spacecraft motion in moon-orbit
+      if (el.phase === 'moon-orbit' && el.orbitalSpacecraft) {
+        const orbitAngle = elapsed * 0.35;
+        const orbitRadius = MOON_RADIUS + 3.4;
+        el.orbitalSpacecraft.position.set(
+          Math.cos(orbitAngle) * orbitRadius,
+          Math.sin(orbitAngle * 1.4) * 1.5,
+          Math.sin(orbitAngle) * orbitRadius
+        );
+        const tangent = new THREE.Vector3(
+          -Math.sin(orbitAngle),
+          Math.cos(orbitAngle * 1.4) * 0.4,
+          Math.cos(orbitAngle)
+        ).normalize();
+        el.orbitalSpacecraft.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      }
+
       // PHASE A: ZOOMING TO MOON ORBIT
       if (el.phase === 'zooming-to-moon') {
         el.progress = Math.min(1.0, el.progress + delta * 0.5);
@@ -489,6 +589,14 @@ export function SpaceIntroScene({
         const moonWorld = new THREE.Vector3();
         moonMesh.getWorldPosition(moonWorld);
         const normalWorld = targetWorld.clone().sub(moonWorld).normalize();
+
+        // Orbital spacecraft descends directly to targeted landing spot
+        if (el.orbitalSpacecraft) {
+          const craftStart = el.craftDescentStart || el.orbitalSpacecraft.position.clone();
+          const targetHover = targetWorld.clone().add(normalWorld.clone().multiplyScalar(0.3));
+          el.orbitalSpacecraft.position.lerpVectors(craftStart, targetHover, ease);
+          el.orbitalSpacecraft.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), normalWorld);
+        }
 
         const startCam = el.startCamPos || new THREE.Vector3(48, 2, 42);
         const closeCam = targetWorld.clone().add(normalWorld.clone().multiplyScalar(4.5));
@@ -554,6 +662,9 @@ export function SpaceIntroScene({
       sceneElementsRef.current.phase = 'descent';
       sceneElementsRef.current.progress = 0;
       sceneElementsRef.current.startCamPos = sceneElementsRef.current.camera.position.clone();
+      if (sceneElementsRef.current.orbitalSpacecraft) {
+        sceneElementsRef.current.craftDescentStart = sceneElementsRef.current.orbitalSpacecraft.position.clone();
+      }
       setPhase('descent');
     }
   };
