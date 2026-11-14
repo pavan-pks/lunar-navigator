@@ -15,9 +15,13 @@
 }
 
 @layer base {
+  *, *::before, *::after {
+    cursor: none !important;
+  }
+
   body {
-    background-color: #030508;
-    color: #e2e8f0;
+    background-color: #000000;
+    color: #f5f5f5;
     font-family: var(--font-sans);
     overflow-x: hidden;
     background-image: 

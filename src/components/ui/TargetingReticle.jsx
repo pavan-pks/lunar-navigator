@@ -9,23 +9,12 @@ export function TargetingReticle({ targetName, targetCoords, craterScreenPos, is
 
   return (
     <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden select-none">
-      {/* 1. WHISPER-THIN VECTOR LEADER LINE TO TELEMETRY */}
+      {/* 1. MINIMAL PINPOINT DOT ON TARGET (no dashed leader line) */}
       {hasCraterPos && (
         <svg className="absolute inset-0 w-full h-full">
-          <polyline
-            points={`
-              ${craterScreenPos.x},${craterScreenPos.y} 
-              ${craterScreenPos.x - 40},${craterScreenPos.y - 30} 
-              160,${craterScreenPos.y - 30}
-            `}
-            fill="none"
-            stroke="rgba(255, 255, 255, 0.15)"
-            strokeWidth="1"
-            strokeDasharray="3 3"
-          />
           {/* Subtle minimal pinpoint dot */}
-          <circle cx={craterScreenPos.x} cy={craterScreenPos.y} r="2.5" fill="#f5f5f5" />
-          <circle cx={craterScreenPos.x} cy={craterScreenPos.y} r="6" fill="none" stroke="rgba(255, 255, 255, 0.2)" strokeWidth="0.8" />
+          <circle cx={craterScreenPos.x} cy={craterScreenPos.y} r="2.5" fill="#f5f5f5" fillOpacity="0.85" />
+          <circle cx={craterScreenPos.x} cy={craterScreenPos.y} r="7" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="0.8" />
         </svg>
       )}
 

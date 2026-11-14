@@ -18,7 +18,10 @@ export function EdgeHudSidebars({
   powerEfficiencyPct,
   timeToSunset,
   timeToEarthset,
-  isCollapsed = false
+  isCollapsed = false,
+  onEnterSurface,
+  showEnterSurface = false,
+  isDescending = false,
 }) {
   const sunElStr = live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`;
   const earthElStr = live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`;
@@ -66,7 +69,7 @@ export function EdgeHudSidebars({
                 <button
                   key={s.id}
                   onClick={() => onSelectSite(s.id)}
-                  className={`text-[10px] font-sans tracking-wider transition cursor-pointer ${
+                  className={`text-[10px] font-sans tracking-wider transition cursor-none ${
                     selectedSiteId === s.id && !customSite
                       ? 'text-[#f5f5f5] border-b border-white'
                       : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
@@ -76,6 +79,17 @@ export function EdgeHudSidebars({
                 </button>
               ))}
             </div>
+
+            {/* Enter Surface View — contextual button below site picker */}
+            {showEnterSurface && onEnterSurface && (
+              <button
+                onClick={onEnterSurface}
+                disabled={isDescending}
+                className="mt-4 text-[10px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/15 hover:border-white hover:bg-white hover:text-black px-4 py-2 transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
+              >
+                {isDescending ? 'Descent in Progress…' : 'Enter Surface View ↘'}
+              </button>
+            )}
           </div>
 
           {/* Solar & Illumination Floating Metrics */}

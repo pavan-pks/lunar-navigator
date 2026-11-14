@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Play, Pause, BarChart2, FileText } from 'lucide-react';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController, SPEED_OPTIONS } from './lib/useTimeController.js';
 import { getLunarTime } from './lib/lunarTime.js';
@@ -7,11 +8,13 @@ import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/m
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
 
 import { CinematicSpaceUniverse } from './components/scene/CinematicSpaceUniverse.jsx';
+import { LroSurfaceView } from './components/scene/LroSurfaceView.jsx';
 import { TargetingReticle } from './components/ui/TargetingReticle.jsx';
 import { EdgeHudSidebars } from './components/ui/EdgeHudSidebars.jsx';
-import { TradeStudyHolodeck } from './components/ui/TradeStudyHolodeck.jsx';
+import { ComparePanel } from './components/ui/ComparePanel.jsx';
 import { CsaArtemisPanel } from './components/ui/CsaArtemisPanel.jsx';
-import { ScenePanel } from './components/ui/ScenePanel.jsx';
+import { ReportModal } from './components/ui/ReportModal.jsx';
+import { CustomCursor } from './components/ui/CustomCursor.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
 
 export function App() {
@@ -19,10 +22,10 @@ export function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Experience Scene State: 'macro' (Scene 1) | 'transition' (Scene 2) | 'orbit' (Scene 3) | 'compare' (Scene 4)
-  const [sceneState, setSceneState] = useState(() => {
-    return window.location.hash.includes('nointro') ? 'orbit' : 'macro';
-  });
+  // Experience Scene State: 'macro' | 'transition' | 'orbit'
+  const [sceneState, setSceneState] = useState(() =>
+    window.location.hash.includes('nointro') ? 'orbit' : 'macro'
+  );
 
   const universeRef = useRef(null);
 
@@ -30,7 +33,7 @@ export function App() {
   const [selectedSiteId, setSelectedSiteId] = useState('shackleton');
   const [customSite, setCustomSite] = useState(null);
 
-  // Projected 2D screen coordinates of the active crater for subtle vector line
+  // Projected 2D screen coordinates of the active crater
   const [craterScreenPos, setCraterScreenPos] = useState(null);
 
   // Descent & Landing States
@@ -38,14 +41,20 @@ export function App() {
   const [hasLanded, setHasLanded] = useState(false);
   const [isSidebarsCollapsed, setIsSidebarsCollapsed] = useState(false);
 
-  // View modes: 'orbit' (3D space) | 'surface' (local high-res LOLA terrain with lander)
+  // View modes: 'orbit' | 'surface'
   const [viewMode, setViewMode] = useState('orbit');
   const [surfaceCamMode, setSurfaceCamMode] = useState('orbit');
 
-  // Educational CSA Artemis Portal Modal
+  // Compare split-screen panel (overlaid over 3D moon)
+  const [compareOpen, setCompareOpen] = useState(false);
+
+  // Report modal
+  const [showReport, setShowReport] = useState(false);
+
+  // CSA Artemis modal
   const [showCsaPanel, setShowCsaPanel] = useState(false);
 
-  // Flight dynamics & date flexibility
+  // Flight dynamics
   const [launchDate, setLaunchDate] = useState('2027-03-08T00:00:00Z');
   const [transitDays, setTransitDays] = useState(4);
   const [slipDays, setSlipDays] = useState(0);
@@ -56,15 +65,15 @@ export function App() {
   // Audio mute state
   const [audioMuted, setAudioMutedState] = useState(false);
 
-  // Time controller for 14-day mission scrub
+  // Time controller
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 12 });
 
-  // Scenario B for Trade Study
+  // Scenario B for Compare
   const [scenarioB, setScenarioB] = useState({
     siteId: 'malapert',
     launchDate: '2027-03-08T00:00:00Z',
     transitDays: 4,
-    customSite: null
+    customSite: null,
   });
 
   // Real-time lunar clock
@@ -87,11 +96,8 @@ export function App() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
-  // Compute ephemeris series for active site
   const site = useMemo(() => {
     if (customSite) return customSite;
     if (!data?.sites) return { id: 'shackleton', name: 'Shackleton Crater Rim', lat: -89.9, lon: 129.8, terrainType: 'crater-rim' };
@@ -107,9 +113,7 @@ export function App() {
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
-      if (universeRef.current?.focusSite) {
-        universeRef.current.focusSite(newSite);
-      }
+      if (universeRef.current?.focusSite) universeRef.current.focusSite(newSite);
     }
   };
 
@@ -133,8 +137,7 @@ export function App() {
 
   const powerEfficiencyPct = useMemo(() => {
     if (!live || live.sunEl <= 0) return 0;
-    const eff = Math.min(100, Math.max(0, Math.sin((live.sunEl * Math.PI) / 180) * 100 * 2.5));
-    return eff.toFixed(0);
+    return Math.min(100, Math.max(0, Math.sin((live.sunEl * Math.PI) / 180) * 100 * 2.5)).toFixed(0);
   }, [live]);
 
   const metDays = Math.floor(timeCtrl.tRel / 24);
@@ -145,9 +148,7 @@ export function App() {
     playTelemetryPing(2524, 0.12);
     playThrustRumble(2.2);
     setSceneState('transition');
-    if (universeRef.current?.startMissionTransition) {
-      universeRef.current.startMissionTransition();
-    }
+    if (universeRef.current?.startMissionTransition) universeRef.current.startMissionTransition();
   };
 
   const handleReachedOrbit = () => {
@@ -185,9 +186,8 @@ export function App() {
     setViewMode('orbit');
     setHasLanded(false);
     setIsSidebarsCollapsed(false);
-    if (universeRef.current?.resetToMacro) {
-      universeRef.current.resetToMacro();
-    }
+    setCompareOpen(false);
+    if (universeRef.current?.resetToMacro) universeRef.current.resetToMacro();
   };
 
   const toggleAudio = () => {
@@ -199,9 +199,12 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#050505] text-[#f5f5f5] flex flex-col items-center justify-center p-8 space-y-4 font-sans select-none">
-        <div className="w-8 h-8 border border-white/20 border-t-white rounded-full animate-spin"></div>
-        <p className="text-xs font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase">Connecting to JPL Ephemeris…</p>
+      <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] flex flex-col items-center justify-center p-8 space-y-4 font-sans select-none cursor-none">
+        <CustomCursor />
+        <div className="w-6 h-6 border border-white/20 border-t-white rounded-full animate-spin" />
+        <p className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase">
+          Connecting to JPL Ephemeris…
+        </p>
       </div>
     );
   }
@@ -212,29 +215,23 @@ export function App() {
 
   const { sites, ephem } = data;
 
-  const scenarioA = {
-    siteId: selectedSiteId,
-    launchDate,
-    transitDays,
-    customSite
-  };
+  const showEnterSurface = sceneState === 'orbit' && viewMode === 'orbit';
 
   return (
-    <div className="h-screen w-screen bg-[#050505] text-[#f5f5f5] overflow-hidden font-sans select-none relative">
-      {/* 1. THREE.JS VIEWPORT (R3F CANVAS AT 100VW / 100VH) */}
+    <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] overflow-hidden font-sans select-none relative cursor-none">
+      {/* ── Custom crosshair cursor ── */}
+      <CustomCursor />
+
+      {/* ── 1. 3D VIEWPORT ── */}
       {viewMode === 'surface' ? (
         <div className="absolute inset-0 w-full h-full z-0 animate-in fade-in duration-700">
-          <ScenePanel
-            siteId={site.id}
-            terrainType={site.terrainType}
+          <LroSurfaceView
+            targetId={site.id}
+            lat={site.lat}
+            lon={site.lon}
             sunEl={live.sunEl}
             sunAz={live.sunAz}
-            earthEl={live.earthEl}
-            earthAz={live.earthAz}
-            viewMode={surfaceCamMode}
-            quality="high"
             label={site.name}
-            landerHeight={objectHeightM}
           />
         </div>
       ) : (
@@ -260,13 +257,13 @@ export function App() {
               name: `Designated Site (${latStr}, ${lonStr})`,
               lat: coords.lat,
               lon: coords.lon,
-              terrainType: coords.lat < -80 ? 'crater-rim' : 'plain'
+              terrainType: coords.lat < -80 ? 'crater-rim' : 'plain',
             });
           }}
         />
       )}
 
-      {/* 2. MINIMALIST CENTER OPTICAL RETICLE */}
+      {/* ── 2. CENTER RETICLE ── */}
       {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && (
         <TargetingReticle
           targetName={site.name}
@@ -276,11 +273,11 @@ export function App() {
         />
       )}
 
-      {/* ========================================================================= */}
-      {/* SCENE 1: SOLAR SYSTEM MACRO VIEW (MINIMALIST HERO MENU)                   */}
-      {/* ========================================================================= */}
+      {/* ======================================================================= */}
+      {/* SCENE 1: MACRO HERO MENU                                                 */}
+      {/* ======================================================================= */}
       {sceneState === 'macro' && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 pointer-events-none transition-opacity duration-700">
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 pointer-events-none">
           <div className="max-w-xl w-full pointer-events-auto text-center space-y-6">
             <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase block">
               NASA Artemis · Polar Flight Dynamics
@@ -291,20 +288,21 @@ export function App() {
             </h1>
 
             <p className="text-xs sm:text-sm font-sans font-light text-[#a3a3a3] max-w-md mx-auto leading-relaxed">
-              Evaluating polar solar illumination, grazing shadows, and direct-to-Earth communication windows at candidate lunar landing sites.
+              Evaluating polar solar illumination, grazing shadows, and direct-to-Earth
+              communication windows at candidate lunar landing sites.
             </p>
 
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStartMission}
-                className="text-xs font-sans tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-8 py-3.5 rounded-full transition duration-300 cursor-pointer"
+                className="text-xs font-sans tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-8 py-3.5 transition duration-300 cursor-none"
               >
                 Initialize Approach ↗
               </button>
 
               <button
                 onClick={toggleAudio}
-                className="text-xs font-sans tracking-widest text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer px-4 py-2"
+                className="text-xs font-sans tracking-widest text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none px-4 py-2"
               >
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>
@@ -313,23 +311,23 @@ export function App() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* SCENE 2: SMOOTH CINEMATIC TRANSITION                                      */}
-      {/* ========================================================================= */}
+      {/* ======================================================================= */}
+      {/* SCENE 2: TRANSITION                                                      */}
+      {/* ======================================================================= */}
       {sceneState === 'transition' && (
         <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase">
+          <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase animate-pulse">
             Trans-Lunar Approach
           </span>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* SCENE 3: LUNAR ORBIT & MINIMALIST FLOATING HUD (EDGE HUD)                 */}
-      {/* ========================================================================= */}
-      {(sceneState === 'orbit' || sceneState === 'compare') && (
+      {/* ======================================================================= */}
+      {/* SCENE 3 & SURFACE: ORBIT / SURFACE HUD                                  */}
+      {/* ======================================================================= */}
+      {(sceneState === 'orbit' || viewMode === 'surface') && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-8 sm:p-12 lg:p-14">
-          {/* 3.1 TOP BAR: MINIMAL UNBOXED HEADER */}
+          {/* ── TOP BAR ── */}
           <header className="flex items-center justify-between pointer-events-auto">
             <div>
               <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block">
@@ -340,57 +338,59 @@ export function App() {
               </div>
             </div>
 
-            {/* Navigation Actions */}
+            {/* Nav actions */}
             <div className="flex items-center gap-6 text-xs font-sans tracking-wider">
               {viewMode === 'surface' ? (
-                <button
-                  onClick={() => setViewMode('orbit')}
-                  className="text-[#f5f5f5] border-b border-white/20 hover:border-white transition cursor-pointer pb-0.5"
-                >
-                  Return to Orbit ↖
-                </button>
+                <>
+                  <button
+                    onClick={() => setViewMode('orbit')}
+                    className="text-[#f5f5f5] border-b border-white/20 hover:border-white transition cursor-none pb-0.5"
+                  >
+                    Return to Orbit ↖
+                  </button>
+                  <button
+                    onClick={() => setSurfaceCamMode(prev => prev === 'orbit' ? 'astronaut' : 'orbit')}
+                    className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
+                  >
+                    {surfaceCamMode === 'orbit' ? 'Perspective: Mast' : 'Perspective: 1.7m EVA'}
+                  </button>
+                </>
               ) : (
                 <button
-                  onClick={() => setSceneState('compare')}
-                  className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer"
+                  onClick={() => { playTelemetryPing(2000, 0.08); setCompareOpen(v => !v); }}
+                  className={`flex items-center gap-1.5 transition cursor-none ${compareOpen ? 'text-[#f5f5f5]' : 'text-[#a3a3a3] hover:text-[#f5f5f5]'}`}
                 >
-                  Trade Study ↗
-                </button>
-              )}
-
-              {viewMode === 'surface' && (
-                <button
-                  onClick={() => setSurfaceCamMode(prev => prev === 'orbit' ? 'astronaut' : 'orbit')}
-                  className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer"
-                >
-                  {surfaceCamMode === 'orbit' ? 'Perspective: Mast' : 'Perspective: 1.7m EVA'}
+                  <BarChart2 size={12} />
+                  Compare
                 </button>
               )}
 
               <button
+                onClick={() => setShowReport(true)}
+                className="flex items-center gap-1.5 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
+              >
+                <FileText size={12} />
+                Report
+              </button>
+
+              <button
                 onClick={() => setShowCsaPanel(true)}
-                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer"
+                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
               >
                 CSA Alignment ↗
               </button>
 
-              <button
-                onClick={toggleAudio}
-                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer"
-              >
+              <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>
 
-              <button
-                onClick={handleResetToMacro}
-                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer"
-              >
+              <button onClick={handleResetToMacro} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">
                 Overview ↗
               </button>
             </div>
           </header>
 
-          {/* 3.2 UNBOXED FLOATING TELEMETRY COLUMNS (LEFT & RIGHT MARGINS) */}
+          {/* ── FLOATING TELEMETRY SIDEBARS ── */}
           <EdgeHudSidebars
             sites={sites}
             selectedSiteId={selectedSiteId}
@@ -403,37 +403,28 @@ export function App() {
             timeToSunset={timeToSunset}
             timeToEarthset={timeToEarthset}
             isCollapsed={isSidebarsCollapsed}
+            onEnterSurface={handleTriggerDescent}
+            showEnterSurface={showEnterSurface}
+            isDescending={isDescending}
           />
 
-          {/* 3.3 REFINED ACTION BUTTON: "ENTER SURFACE VIEW" */}
-          {sceneState === 'orbit' && viewMode === 'orbit' && (
-            <div className="flex justify-center pointer-events-none pb-4 z-30">
-              <button
-                onClick={handleTriggerDescent}
-                disabled={isDescending}
-                className="pointer-events-auto text-xs font-sans font-light tracking-[0.2em] text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-6 py-2.5 rounded-full transition duration-300 cursor-pointer"
-              >
-                {isDescending ? 'Descent in Progress…' : 'Enter Surface View ↘'}
-              </button>
-            </div>
-          )}
-
-          {/* 3.4 MINIMALIST WHISPER-THIN HORIZONTAL SCRUBBER */}
+          {/* ── BOTTOM SCRUBBER ── */}
           <div className="pointer-events-auto space-y-3 z-20 max-w-4xl mx-auto w-full">
             <div className="flex items-center justify-between text-[11px] font-sans font-light text-[#a3a3a3]">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => timeCtrl.toggle()}
-                  className="text-[#f5f5f5] hover:opacity-80 transition cursor-pointer"
+                  className="text-[#f5f5f5] hover:opacity-70 transition cursor-none flex items-center"
+                  aria-label={timeCtrl.playing ? 'Pause' : 'Play'}
                 >
-                  {timeCtrl.playing ? 'Pause' : 'Play'}
+                  {timeCtrl.playing ? <Pause size={12} /> : <Play size={12} />}
                 </button>
                 <div className="flex items-center gap-2 text-[#a3a3a3]">
                   {SPEED_OPTIONS.map(spd => (
                     <button
                       key={spd.value}
                       onClick={() => timeCtrl.setSpeed(spd.value)}
-                      className={`transition cursor-pointer ${
+                      className={`transition cursor-none ${
                         timeCtrl.speed === spd.value ? 'text-[#f5f5f5] font-normal' : 'hover:text-[#f5f5f5]'
                       }`}
                     >
@@ -443,12 +434,10 @@ export function App() {
                 </div>
               </div>
 
-              {/* Mission Elapsed Time */}
               <div className="font-mono text-xs text-[#f5f5f5]">
                 MET {metDays}d {metHours}h {metMinutes}m
               </div>
 
-              {/* Launch & Transit Controls */}
               <div className="flex items-center gap-4 text-[#a3a3a3]">
                 <div className="flex items-center gap-1.5">
                   <span>Launch:</span>
@@ -456,7 +445,7 @@ export function App() {
                     type="date"
                     value={launchDate.slice(0, 10)}
                     onChange={(e) => setLaunchDate(`${e.target.value}T00:00:00Z`)}
-                    className="bg-transparent border-b border-white/10 pb-0.5 text-xs text-[#f5f5f5] focus:outline-none"
+                    className="bg-transparent border-b border-white/10 pb-0.5 text-xs text-[#f5f5f5] focus:outline-none cursor-none"
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -466,8 +455,8 @@ export function App() {
               </div>
             </div>
 
-            {/* Whisper-Thin Single Horizontal Line with Tiny White Dot Scrubber */}
-            <div className="relative pt-1 flex items-center">
+            {/* Whisper-thin scrubber line */}
+            <div className="relative flex items-center">
               <input
                 type="range"
                 min={0}
@@ -475,39 +464,42 @@ export function App() {
                 step={0.1}
                 value={timeCtrl.tRel}
                 onChange={(e) => timeCtrl.seek(parseFloat(e.target.value))}
-                className="w-full h-[1px] bg-white/20 rounded appearance-none cursor-pointer accent-white"
+                className="w-full h-[1px] bg-white/15 rounded appearance-none cursor-none accent-white"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* SCENE 4: MINIMALIST TRADE STUDY MODAL                                     */}
-      {/* ========================================================================= */}
-      {sceneState === 'compare' && (
-        <TradeStudyHolodeck
+      {/* ======================================================================= */}
+      {/* COMPARE SPLIT-SCREEN OVERLAY (floats OVER 3D moon)                      */}
+      {/* ======================================================================= */}
+      {compareOpen && sceneState === 'orbit' && viewMode === 'orbit' && (
+        <ComparePanel
           sites={sites}
           ephem={ephem}
-          scenarioA={scenarioA}
-          setScenarioA={(newA) => {
-            if (typeof newA !== 'function') {
-              if (newA.siteId) setSelectedSiteId(newA.siteId);
-              if (newA.launchDate) setLaunchDate(newA.launchDate);
-              if (newA.transitDays) setTransitDays(newA.transitDays);
-            }
-          }}
-          scenarioB={scenarioB}
-          setScenarioB={setScenarioB}
           missionDays={missionDays}
-          onClose={() => setSceneState('orbit')}
-          onSelectSiteInUniverse={handleSelectSite}
+          onClose={() => setCompareOpen(false)}
         />
       )}
 
-      {/* ========================================================================= */}
-      {/* EDUCATIONAL / CSA ARTEMIS PARTNERSHIP MODAL                               */}
-      {/* ========================================================================= */}
+      {/* ======================================================================= */}
+      {/* REPORT MODAL                                                             */}
+      {/* ======================================================================= */}
+      <ReportModal
+        isOpen={showReport}
+        onClose={() => setShowReport(false)}
+        site={site}
+        stats={stats}
+        live={live}
+        verdict={verdict}
+        launchDate={launchDate}
+        transitDays={transitDays}
+      />
+
+      {/* ======================================================================= */}
+      {/* CSA ARTEMIS MODAL                                                        */}
+      {/* ======================================================================= */}
       <CsaArtemisPanel
         isOpen={showCsaPanel}
         onClose={() => setShowCsaPanel(false)}
