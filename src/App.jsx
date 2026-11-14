@@ -8,59 +8,10 @@ import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted 
 
 import { CinematicSpaceUniverse } from './components/scene/CinematicSpaceUniverse.jsx';
 import { TradeStudyHolodeck } from './components/ui/TradeStudyHolodeck.jsx';
+import { ResultCardsGrid } from './components/ui/ResultCardsGrid.jsx';
+import { CsaArtemisPanel } from './components/ui/CsaArtemisPanel.jsx';
 import { ScenePanel } from './components/ui/ScenePanel.jsx';
-import { Timeline } from './components/ui/Timeline.jsx';
-import { Calendar } from './components/ui/Calendar.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
-
-/**
- * Circular aerospace elevation gauge with color-coded angle readout.
- */
-function CircularElevationGauge({ angle, maxAngle = 45, color = '#ffd25a', label = 'ELEVATION' }) {
-  const radius = 26;
-  const stroke = 3.5;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const clampedAngle = Math.max(-10, Math.min(maxAngle, angle));
-  const strokeDashoffset = circumference - (Math.max(0, clampedAngle) / maxAngle) * circumference;
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-        <svg height={radius * 2} width={radius * 2} className="transform -rotate-90">
-          <circle
-            stroke="rgba(255, 255, 255, 0.12)"
-            fill="transparent"
-            strokeWidth={stroke}
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-          />
-          <circle
-            stroke={color}
-            fill="transparent"
-            strokeWidth={stroke}
-            strokeDasharray={circumference + ' ' + circumference}
-            style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.25s ease' }}
-            strokeLinecap="round"
-            r={normalizedRadius}
-            cx={radius}
-            cy={radius}
-          />
-        </svg>
-        <span className="absolute font-mono text-[11px] font-bold" style={{ color }}>
-          {angle > 0 ? `+${angle.toFixed(1)}°` : `${angle.toFixed(1)}°`}
-        </span>
-      </div>
-      <div>
-        <span className="text-[9px] text-slate-400 font-mono uppercase tracking-widest block">{label}</span>
-        <span className="text-[11px] font-mono font-bold text-white">
-          {angle > 0 ? 'Above Horizon' : 'Sub-Horizon'}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export function App() {
   const [data, setData] = useState(null);
@@ -79,6 +30,16 @@ export function App() {
   const [selectedSiteId, setSelectedSiteId] = useState('shackleton');
   const [customSite, setCustomSite] = useState(null);
 
+  // Landing sequence state
+  const [hasLanded, setHasLanded] = useState(false);
+
+  // View modes: 'orbit' (3D celestial space) | 'surface' (local high-res LOLA terrain with lander)
+  const [viewMode, setViewMode] = useState('orbit');
+  const [surfaceCamMode, setSurfaceCamMode] = useState('orbit'); // 'orbit' or 'astronaut'
+
+  // Educational CSA Artemis Portal Modal
+  const [showCsaPanel, setShowCsaPanel] = useState(false);
+
   // Flight dynamics & date flexibility
   const [launchDate, setLaunchDate] = useState('2027-03-08T00:00:00Z');
   const [transitDays, setTransitDays] = useState(4);
@@ -87,15 +48,8 @@ export function App() {
   const maxHours = missionDays * 24;
   const objectHeightM = 3.0;
 
-  // View modes: 'orbit' (3D celestial space) | 'surface' (local high-res terrain with lander)
-  const [viewMode, setViewMode] = useState('orbit');
-
   // Audio mute state
   const [audioMuted, setAudioMutedState] = useState(false);
-
-  // Modals & Overlays
-  const [showTimelineModal, setShowTimelineModal] = useState(false);
-  const [showTelemetrySidebars, setShowTelemetrySidebars] = useState(true);
 
   // Time controller for 14-day mission scrub
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 12 });
@@ -141,9 +95,13 @@ export function App() {
 
   const handleSelectSite = (newSite) => {
     playTargetLock();
+    setHasLanded(false);
     if (typeof newSite === 'object' && newSite !== null) {
       setCustomSite(newSite);
       setSelectedSiteId(newSite.id);
+      if (universeRef.current?.triggerLanding) {
+        universeRef.current.triggerLanding();
+      }
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
@@ -173,9 +131,6 @@ export function App() {
   const timeToSunset = useMemo(() => timeToNext(series, timeCtrl.tRel, 'sunset'), [series, timeCtrl.tRel]);
   const timeToEarthset = useMemo(() => timeToNext(series, timeCtrl.tRel, 'earthset'), [series, timeCtrl.tRel]);
 
-  // Shadow length
-  const shadowM = shadowLength(objectHeightM, live?.sunEl ?? 0);
-
   // Power Generation Efficiency (% capability based on solar incidence)
   const powerEfficiencyPct = useMemo(() => {
     if (!live || live.sunEl <= 0) return 0;
@@ -204,10 +159,18 @@ export function App() {
     setSceneState('orbit');
   };
 
+  // Satellite touchdown callback
+  const handleLanderTouchdown = () => {
+    playTelemetryPing(2200, 0.12);
+    setHasLanded(true);
+  };
+
   // Reset to Macro View
   const handleResetToMacro = () => {
     playTelemetryPing(1200, 0.1);
     setSceneState('macro');
+    setViewMode('orbit');
+    setHasLanded(false);
     if (universeRef.current?.resetToMacro) {
       universeRef.current.resetToMacro();
     }
@@ -244,9 +207,9 @@ export function App() {
 
   return (
     <div className="h-screen w-screen bg-[#050814] text-[#f0f6fc] overflow-hidden font-sans select-none relative">
-      {/* 1. CINEMATIC 3D UNIVERSE / SURFACE VIEWPORT */}
+      {/* 1. 3D VIEWPORT: ORBITAL UNIVERSE OR AUTHENTIC PHOTOREALISTIC SURFACE */}
       {viewMode === 'surface' ? (
-        <div className="absolute inset-0 w-full h-full z-0">
+        <div className="absolute inset-0 w-full h-full z-0 animate-in fade-in duration-500">
           <ScenePanel
             siteId={site.id}
             terrainType={site.terrainType}
@@ -254,8 +217,8 @@ export function App() {
             sunAz={live.sunAz}
             earthEl={live.earthEl}
             earthAz={live.earthAz}
-            viewMode="orbit"
-            quality="auto"
+            viewMode={surfaceCamMode}
+            quality="high"
             label={site.name}
             landerHeight={objectHeightM}
           />
@@ -268,6 +231,7 @@ export function App() {
           selectedSiteId={selectedSiteId}
           onSelectSite={handleSelectSite}
           onReachedOrbit={handleReachedOrbit}
+          onLanderTouchdown={handleLanderTouchdown}
           sunEl={live.sunEl}
           sunAz={live.sunAz}
           earthEl={live.earthEl}
@@ -347,7 +311,7 @@ export function App() {
       {/* ========================================================================= */}
       {(sceneState === 'orbit' || sceneState === 'compare') && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-5">
-          {/* 3.1 TOP BAR: NASA ARTEMIS POLAR OPS HEADER */}
+          {/* 3.1 TOP BAR: NASA ARTEMIS POLAR OPS & MODE SWITCHERS */}
           <header className="flex items-center justify-between pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl px-4 py-2.5 shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-xl bg-[#0B3D91] flex items-center justify-center text-white font-mono font-bold text-xs shadow-md border border-cyan-400/30">
@@ -355,7 +319,9 @@ export function App() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-display font-bold text-white tracking-wider">ARTEMIS POLAR OPS</span>
+                  <span className="text-xs font-display font-bold text-white tracking-wider">
+                    {viewMode === 'surface' ? 'SURFACE EVA MAST // ARTEMIS BASE' : 'ARTEMIS POLAR OPS // ORBITAL HUD'}
+                  </span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                     JPL HORIZONS
                   </span>
@@ -368,42 +334,69 @@ export function App() {
 
             {/* Quick Actions & Scene Toggles */}
             <div className="flex items-center gap-2.5">
-              {/* Compare Alternate Scenarios (Triggers Scene 4) */}
-              <button
-                onClick={() => {
-                  playTelemetryPing(1900, 0.08);
-                  setSceneState('compare');
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-[#0B3D91] hover:bg-blue-700 text-white text-xs font-mono transition cursor-pointer border border-cyan-400/40 shadow-[0_0_15px_rgba(11,61,145,0.5)] flex items-center gap-1.5"
-              >
-                <span>COMPARE ALTERNATE SCENARIOS</span>
-              </button>
-
-              {/* View Mode Toggle (Orbit Space vs Surface Mesh) */}
-              <div className="hidden sm:flex items-center bg-black/40 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+              {/* If in Surface View: Provide Return to Orbit Button */}
+              {viewMode === 'surface' ? (
                 <button
                   onClick={() => {
-                    playTelemetryPing(1400, 0.06);
+                    playTelemetryPing(1400, 0.08);
                     setViewMode('orbit');
                   }}
-                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                    viewMode === 'orbit' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-400 hover:to-sky-500 text-black font-bold text-xs font-mono transition cursor-pointer shadow-[0_0_15px_rgba(56,189,248,0.5)] flex items-center gap-1.5"
                 >
-                  3D Orbit
+                  <span>&uarr; RETURN TO ORBIT</span>
                 </button>
+              ) : (
+                /* Compare Alternate Scenarios (Scene 4) */
                 <button
                   onClick={() => {
-                    playTelemetryPing(1400, 0.06);
-                    setViewMode('surface');
+                    playTelemetryPing(1900, 0.08);
+                    setSceneState('compare');
                   }}
-                  className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
-                    viewMode === 'surface' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
-                  }`}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#0B3D91] hover:bg-blue-700 text-white text-xs font-mono transition cursor-pointer border border-cyan-400/40 shadow-[0_0_15px_rgba(11,61,145,0.5)] flex items-center gap-1.5"
                 >
-                  Surface EVA
+                  <span>COMPARE SCENARIOS</span>
                 </button>
-              </div>
+              )}
+
+              {/* Surface View Camera Mode: Astronaut vs Mast */}
+              {viewMode === 'surface' && (
+                <div className="hidden sm:flex items-center bg-black/40 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+                  <button
+                    onClick={() => {
+                      playTelemetryPing(1400, 0.06);
+                      setSurfaceCamMode('orbit');
+                    }}
+                    className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                      surfaceCamMode === 'orbit' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Lander Mast
+                  </button>
+                  <button
+                    onClick={() => {
+                      playTelemetryPing(1400, 0.06);
+                      setSurfaceCamMode('astronaut');
+                    }}
+                    className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${
+                      surfaceCamMode === 'astronaut' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Astronaut (1.7m)
+                  </button>
+                </div>
+              )}
+
+              {/* CSA / Artemis Partner Alignment Educational Panel */}
+              <button
+                onClick={() => {
+                  playTelemetryPing(1600, 0.06);
+                  setShowCsaPanel(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-red-300 text-xs font-mono transition cursor-pointer border border-red-500/30 flex items-center gap-1.5"
+                title="View Canadian Space Agency & Artemis Partner Alignments"
+              >
+                <span>CSA / Partner Info</span>
+              </button>
 
               {/* Audio Toggle */}
               <button
@@ -425,50 +418,33 @@ export function App() {
             </div>
           </header>
 
-          {/* 3.2 FLOATING TELEMETRY SIDEBARS (LEFT & RIGHT) */}
-          <div className="flex-1 flex justify-between items-center py-4 pointer-events-none">
-            {/* === LEFT SIDEBAR: TARGETING SYSTEM & SOLAR TELEMETRY === */}
-            <div className="w-80 space-y-3.5 pointer-events-auto animate-in slide-in-from-left duration-400">
-              {/* Targeting System Card */}
-              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">
-                    TARGETING SYSTEM
-                  </span>
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
-                </div>
+          {/* 3.2 DATA-DRIVEN UI: SINGLE-VALUE RESULT CARDS GRID */}
+          <div className="pt-3 pointer-events-auto max-w-7xl mx-auto w-full">
+            <ResultCardsGrid
+              live={live}
+              stats={stats}
+              verdict={verdict}
+              powerEfficiencyPct={powerEfficiencyPct}
+              timeToSunset={timeToSunset}
+              timeToEarthset={timeToEarthset}
+            />
+          </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-mono text-slate-400 uppercase block">Candidate Polar Sites:</label>
-                  <select
-                    value={customSite ? 'custom' : selectedSiteId}
-                    onChange={(e) => {
-                      if (e.target.value === 'custom') {
-                        // Keep custom
-                      } else {
-                        handleSelectSite(e.target.value);
-                      }
-                    }}
-                    className="w-full bg-black/60 border border-slate-700/80 rounded-xl px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-cyan-400"
-                  >
-                    {customSite && <option value="custom">{customSite.name}</option>}
-                    {sites.map(s => (
-                      <option key={s.id} value={s.id} className="bg-slate-900 text-white">
-                        {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`} S)
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Quick-select pills */}
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {sites.slice(0, 4).map(s => (
+          {/* 3.3 TARGETING RETICLE & INTERACTIVE SITE SELECTOR STRIP */}
+          {viewMode === 'orbit' && (
+            <div className="flex justify-center pointer-events-none py-2">
+              <div className="pointer-events-auto bg-[#070e1c]/85 border border-slate-800/80 backdrop-blur-xl rounded-2xl px-4 py-2 shadow-xl flex items-center gap-2 text-xs font-mono">
+                <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
+                  Target Polar Landing Site:
+                </span>
+                <div className="flex gap-1.5 overflow-x-auto">
+                  {sites.map(s => (
                     <button
                       key={s.id}
                       onClick={() => handleSelectSite(s.id)}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono transition cursor-pointer border ${
+                      className={`px-2.5 py-1 rounded-xl text-[10px] font-mono transition cursor-pointer border ${
                         selectedSiteId === s.id && !customSite
-                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold'
+                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 font-bold shadow-[0_0_10px_rgba(56,189,248,0.4)]'
                           : 'bg-black/40 border-slate-800 text-slate-400 hover:text-white'
                       }`}
                     >
@@ -477,112 +453,26 @@ export function App() {
                   ))}
                 </div>
               </div>
-
-              {/* Solar Illumination Telemetry Card */}
-              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-[10px] font-mono font-bold tracking-widest text-amber-400 uppercase">
-                    SOLAR ILLUMINATION
-                  </span>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                    live.sunEl > 0 ? 'bg-amber-500/15 text-amber-300' : 'bg-rose-500/15 text-rose-300'
-                  }`}>
-                    {live.sunEl > 0 ? 'ACTIVE POWER' : 'SHADOW'}
-                  </span>
-                </div>
-
-                <CircularElevationGauge
-                  angle={live.sunEl}
-                  maxAngle={25}
-                  color={live.sunEl > 0 ? '#fbbf24' : '#f87171'}
-                  label="Sun Elevation"
-                />
-
-                <div className="space-y-1.5 pt-1 text-xs font-mono">
-                  <div className="flex justify-between text-slate-400">
-                    <span>Power Generation:</span>
-                    <strong className="text-white">{powerEfficiencyPct}% Nominal</strong>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Time to Next Sunset:</span>
-                    <strong className="text-amber-300">{timeToSunset !== null ? `${timeToSunset}h` : 'No Sunset (Continuous)'}</strong>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Longest Night Duration:</span>
-                    <strong className={stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-emerald-400'}>
-                      {stats.longestDarkHours} hours
-                    </strong>
-                  </div>
-                </div>
-              </div>
             </div>
+          )}
 
-            {/* === RIGHT SIDEBAR: DIRECT-TO-EARTH COMMS & FLIGHT VERDICT === */}
-            <div className="w-80 space-y-3.5 pointer-events-auto animate-in slide-in-from-right duration-400">
-              {/* Direct-To-Earth Comms Card */}
-              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-[10px] font-mono font-bold tracking-widest text-cyan-400 uppercase">
-                    DIRECT-TO-EARTH COMMS
-                  </span>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                    live.earthEl > 0 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-rose-500/15 text-rose-300'
-                  }`}>
-                    {live.earthEl > 0 ? 'DSN LOCKED' : 'OCCULTED'}
-                  </span>
-                </div>
-
-                <CircularElevationGauge
-                  angle={live.earthEl}
-                  maxAngle={20}
-                  color={live.earthEl > 0 ? '#38bdf8' : '#f87171'}
-                  label="Earth Elevation"
-                />
-
-                <div className="space-y-1.5 pt-1 text-xs font-mono">
-                  <div className="flex justify-between text-slate-400">
-                    <span>DSN Ground Station:</span>
-                    <strong className="text-cyan-300">Goldstone / Madrid</strong>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Time to Earthset:</span>
-                    <strong className="text-white">{timeToEarthset !== null ? `${timeToEarthset}h` : 'Continuous Line of Sight'}</strong>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Max Comms Gap:</span>
-                    <strong className="text-white">{stats.longestEarthGapHours} hours</strong>
-                  </div>
-                </div>
-              </div>
-
-              {/* Flight Viability Verdict Card */}
-              <div className="bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_15px_35px_rgba(0,0,0,0.8)] space-y-2.5">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
-                    MISSION VERDICT
-                  </span>
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${
-                    verdict.status === 'VIABLE' ? 'bg-emerald-500/20 text-emerald-300' :
-                    verdict.status === 'MARGINAL' ? 'bg-amber-500/20 text-amber-300' :
-                    'bg-rose-500/20 text-rose-300'
-                  }`}>
-                    {verdict.badge}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                  {verdict.reason}
-                </p>
-
-                <div className="pt-1 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                  <span>Surface Sunlight: <strong>{(stats.sunlitFraction * 100).toFixed(0)}%</strong></span>
-                  <span>Comms Availability: <strong>{(stats.earthVisibleFraction * 100).toFixed(0)}%</strong></span>
-                </div>
-              </div>
+          {/* 3.4 PROMINENT CTA: "ENTER SURFACE VIEW" BUTTON (Fades in once landing sequence completes) */}
+          {hasLanded && viewMode === 'orbit' && (
+            <div className="flex justify-center pointer-events-none pb-2 animate-in fade-in zoom-in-95 duration-400">
+              <button
+                onClick={() => {
+                  playTelemetryPing(2500, 0.15);
+                  setViewMode('surface');
+                }}
+                className="pointer-events-auto py-4 px-10 rounded-2xl bg-gradient-to-r from-[#0B3D91] via-cyan-500 to-sky-400 hover:from-blue-700 hover:to-cyan-300 text-black font-extrabold text-sm tracking-widest uppercase font-mono transition-all transform hover:scale-[1.04] shadow-[0_0_40px_rgba(0,240,255,0.6)] cursor-pointer flex items-center gap-3 border border-white/40 animate-pulse"
+              >
+                <span>ENTER SURFACE VIEW</span>
+                <span className="text-lg">&darr;</span>
+              </button>
             </div>
-          </div>
+          )}
 
-          {/* 3.3 BOTTOM VIDEO-STYLE TEMPORAL SCRUBBER */}
+          {/* 3.5 BOTTOM VIDEO-STYLE TEMPORAL SCRUBBER */}
           <div className="pointer-events-auto bg-[#070e1c]/90 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.85)] space-y-3 animate-in slide-in-from-bottom duration-400">
             {/* Scrubber Header: Transport controls, MET time & Date Sliders */}
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
@@ -696,6 +586,14 @@ export function App() {
           onSelectSiteInUniverse={handleSelectSite}
         />
       )}
+
+      {/* ========================================================================= */}
+      {/* EDUCATIONAL / MISSION-CONTEXT: CSA MOON EXPLORATION PORTAL MODAL          */}
+      {/* ========================================================================= */}
+      <CsaArtemisPanel
+        isOpen={showCsaPanel}
+        onClose={() => setShowCsaPanel(false)}
+      />
     </div>
   );
 }
