@@ -12,6 +12,9 @@
 - `public/data/global_ephem.json`: Real NASA/JPL Horizons lunar sub-solar and sub-Earth coordinates (`fake: false`, 9,504 hourly records).
 - `src/lib/geometry.js`: Analytical spherical astronomy module (`sunAltAz`, `earthAltAz`, `sampleSeries`, `valuesAt`, `calculateElAz`).
 - `src/lib/geometry.test.js`: Vitest test suite with 11 tests covering zenith, antipode, equator, polar stability, azimuth wrapping (359°->0°), and longitude wrapping (±180°).
+- `src/lib/config.js`: Central configuration constants (`SUN_UP_DEG = -0.27`, `EARTH_UP_DEG = 0.0`, default mission/transit durations, and `VERDICT` viability thresholds).
+- `src/lib/metrics.js`: Metrics suite (`computeWindowStats`, `getVerdict`, `shadowLength`, `timeToNext`, `landingDate`).
+- `src/lib/metrics.test.js`: Vitest unit tests verifying 100% sunlit, 100% dark, 60h dark gap, 50% Earth visibility, shadow calculations, and next sunset/sunrise timings (all 8 tests pass).
 
 ## Data status
 - Status: REAL NASA/JPL Horizons data (`fake: false`).
