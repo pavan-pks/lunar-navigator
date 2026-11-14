@@ -15,6 +15,8 @@
 - `src/lib/config.js`: Central configuration constants (`SUN_UP_DEG = -0.27`, `EARTH_UP_DEG = 0.0`, default mission/transit durations, and `VERDICT` viability thresholds).
 - `src/lib/metrics.js`: Metrics suite (`computeWindowStats`, `getVerdict`, `shadowLength`, `timeToNext`, `landingDate`).
 - `src/lib/metrics.test.js`: Vitest unit tests verifying 100% sunlit, 100% dark, 60h dark gap, 50% Earth visibility, shadow calculations, and next sunset/sunrise timings (all 8 tests pass).
+- `src/lib/energy.js`: Battery and solar PV simulator (`simulateBattery`, `getPanelFactor`) supporting horizontal, vertical-fixed, and vertical-tracking panels, plus night heater survival loads.
+- `src/lib/energy.test.js`: Vitest test suite verifying daylight generation, nocturnal depletion, polar grazing geometry (>28x vertical gain at 2°), and edge conditions (all 5 tests pass).
 
 ## Data status
 - Status: REAL NASA/JPL Horizons data (`fake: false`).
