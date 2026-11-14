@@ -1,11 +1,11 @@
 import React from 'react';
-import { ScrambleValue } from './ScrambleValue.jsx';
+import { motion } from 'framer-motion';
 
 /**
- * Elegant Floating Astronomical Telemetry (De-Boxed UI):
- * Free of heavy card boxes, glowing neons, and bulky containers.
- * Uses spacious geometric sans-serif typography with monospace numerical readouts,
- * whisper-thin dividers (border-white/5), and generous negative space.
+ * Structured Minimalist Edge HUD Telemetry Sidebars.
+ * Uses Flexbox layouts with standard document flow (flex-col gap-5) so cards naturally push down.
+ * Features bg-black/50 backdrop-blur-md for superior contrast against sunlit 3D lunar regions.
+ * Decouples aggregate static metrics (14-day coverage) from live simulation variables to eliminate jitter.
  */
 export function EdgeHudSidebars({
   sites,
@@ -15,7 +15,6 @@ export function EdgeHudSidebars({
   live,
   stats,
   verdict,
-  powerEfficiencyPct,
   timeToSunset,
   timeToEarthset,
   isCollapsed = false,
@@ -26,26 +25,31 @@ export function EdgeHudSidebars({
   viewMode = 'orbit',
   onReturnToOrbit,
 }) {
+  // Live simulation variables (update as timeline moves)
   const sunElStr = live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`;
   const earthElStr = live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`;
-  const commsWindowStr = `${(stats.earthVisibleFraction * 100).toFixed(0)}%`;
+  const timeToEarthsetStr = timeToEarthset !== null ? `${timeToEarthset}h` : 'Constant LOS';
+  const timeToSunsetStr = timeToSunset !== null ? `${timeToSunset}h` : 'Constant Sun';
+
+  // Aggregate static metrics (calculated over 14-day mission window — static during playback)
+  const totalIlluminationPct = `${(stats.sunlitFraction * 100).toFixed(0)}%`;
+  const totalCommsPct = `${(stats.earthVisibleFraction * 100).toFixed(0)}%`;
   const peakDarkStr = `${stats.longestDarkHours}h`;
-  const timeToEarthsetStr = timeToEarthset !== null ? `${timeToEarthset}h` : 'Constant';
-  const timeToSunsetStr = timeToSunset !== null ? `${timeToSunset}h` : 'Constant';
-  const solarGenStr = `${powerEfficiencyPct}%`;
 
   return (
     <>
-      {/* === LEFT FLOATING TELEMETRY COLUMN === */}
-      <aside
-        className={`absolute left-8 sm:left-12 lg:left-14 top-24 bottom-28 w-64 sm:w-72 flex flex-col justify-between pointer-events-auto transition-all duration-700 ease-out z-20 ${
-          isCollapsed ? '-translate-x-12 opacity-0' : 'translate-x-0 opacity-100'
-        }`}
+      {/* === LEFT TELEMETRY COLUMN (SOLAR GEOMETRY & TARGETING) === */}
+      <motion.aside
+        initial={{ opacity: 0, x: -24 }}
+        animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -24 : 0 }}
+        exit={{ opacity: 0, x: -24 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="fixed left-6 sm:left-10 lg:left-12 top-20 bottom-24 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col justify-start"
       >
-        <div className="flex-1 flex flex-col justify-between space-y-8 drop-shadow-sm">
+        <div className="flex flex-col gap-5 p-5 bg-black/50 backdrop-blur-md border border-white/5 rounded-xl shadow-2xl overflow-y-auto scrollbar-none">
           {/* Target Location Selector */}
-          <div>
-            <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block mb-2">
+          <div className="flex flex-col gap-2">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
               Landing Target
             </span>
             <div className="relative">
@@ -54,11 +58,11 @@ export function EdgeHudSidebars({
                 onChange={(e) => {
                   if (e.target.value !== 'custom') onSelectSite(e.target.value);
                 }}
-                className="w-full bg-transparent border-b border-white/10 pb-1.5 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-pointer transition appearance-none"
+                className="w-full bg-[#0a0a0a] border-b border-white/10 pb-1.5 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-none transition appearance-none"
               >
-                {customSite && <option value="custom" className="bg-[#050505] text-[#f5f5f5]">{customSite.name}</option>}
+                {customSite && <option value="custom" className="bg-[#0a0a0a] text-[#f5f5f5]">{customSite.name}</option>}
                 {sites.map(s => (
-                  <option key={s.id} value={s.id} className="bg-[#050505] text-[#f5f5f5]">
+                  <option key={s.id} value={s.id} className="bg-[#0a0a0a] text-[#f5f5f5]">
                     {s.name} ({s.lat > 0 ? `+${s.lat.toFixed(1)}°` : `${s.lat.toFixed(1)}°`})
                   </option>
                 ))}
@@ -66,16 +70,16 @@ export function EdgeHudSidebars({
               <span className="absolute right-0 top-1 text-xs text-[#a3a3a3] pointer-events-none font-light">↓</span>
             </div>
 
-            {/* Subtle Site Switcher Pills */}
-            <div className="flex flex-wrap gap-2 pt-3">
+            {/* Candidate Site Quick Pills */}
+            <div className="flex flex-wrap gap-2 pt-1">
               {sites.slice(0, 4).map(s => (
                 <button
                   key={s.id}
                   onClick={() => onSelectSite(s.id)}
-                  className={`text-[10px] font-sans tracking-wider transition cursor-none ${
+                  className={`text-[10px] font-sans tracking-wider transition cursor-none px-2 py-0.5 rounded ${
                     selectedSiteId === s.id && !customSite
-                      ? 'text-[#f5f5f5] border-b border-white'
-                      : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
+                      ? 'text-[#f5f5f5] bg-white/10 border-b border-white'
+                      : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-white/5'
                   }`}
                 >
                   {s.name.split(' ')[0]}
@@ -83,7 +87,7 @@ export function EdgeHudSidebars({
               ))}
             </div>
 
-            {/* Contextual Landing / Surface View button directly beneath coordinates */}
+            {/* Contextual Landing / Surface View button */}
             {showEnterSurface && onEnterSurface && (
               <button
                 onClick={() => {
@@ -94,134 +98,160 @@ export function EdgeHudSidebars({
                   }
                 }}
                 disabled={isDescending}
-                className="mt-4 text-[10px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-4 py-2.5 transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
+                className="mt-2 text-[10px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-4 py-2.5 rounded transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
               >
                 {isDescending
                   ? 'Descent in Progress…'
                   : hasLanded
-                  ? (viewMode === 'surface' ? 'Return to Orbit ↖' : 'Surface View (Landed) ↘')
+                  ? (viewMode === 'surface' ? 'Return to Orbit ↖' : 'Enter Surface Simulation ↘')
                   : 'Initiate Landing Sequence ↘'}
               </button>
             )}
           </div>
 
-          {/* Solar & Illumination Floating Metrics */}
-          <div className="space-y-5">
-            <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block border-b border-white/5 pb-1">
-              Solar Geometry
+          <div className="h-[1px] bg-white/5 w-full my-0.5" />
+
+          {/* Section: Solar Telemetry */}
+          <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#737373] uppercase block -mb-2">
+            Solar Geometry & Power
+          </span>
+
+          {/* Live Metric 1: Current Sun Elevation */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Live Sun Elevation
             </span>
-
-            {/* Metric 1: Sun Elevation */}
-            <div>
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Sun Elevation
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={sunElStr} />
-              </div>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {sunElStr}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              {live.sunEl > 0 ? 'Direct Solar Illumination' : 'In Grazing Rim Shadow'}
+            </span>
+          </div>
 
-            {/* Metric 2: Time to Sunset */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Time to Sunset
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={timeToSunsetStr} />
-              </div>
+          {/* Live Metric 2: Time to Next Sunset */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Time to Sunset
+            </span>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {timeToSunsetStr}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              Simulated time until nightfall
+            </span>
+          </div>
 
-            {/* Metric 3: Peak Darkness */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Peak Darkness
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={peakDarkStr} />
-              </div>
+          {/* Aggregate Metric 3: Total 14-Day Solar Illumination (Decoupled & Jitter-Free) */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              14-Day Solar Coverage
+            </span>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {totalIlluminationPct}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              {stats.sunlitHours}h total power generation window
+            </span>
+          </div>
 
-            {/* Metric 4: Photovoltaic Yield */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Photovoltaic Yield
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={solarGenStr} />
-              </div>
+          {/* Aggregate Metric 4: Peak Continuous Darkness */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Peak Continuous Night
+            </span>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {peakDarkStr}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              Battery reserve sizing threshold
+            </span>
           </div>
         </div>
-      </aside>
+      </motion.aside>
 
-      {/* === RIGHT FLOATING TELEMETRY COLUMN === */}
-      <aside
-        className={`absolute right-8 sm:right-12 lg:right-14 top-24 bottom-28 w-64 sm:w-72 flex flex-col justify-between pointer-events-auto transition-all duration-700 ease-out z-20 ${
-          isCollapsed ? 'translate-x-12 opacity-0' : 'translate-x-0 opacity-100'
-        }`}
+      {/* === RIGHT TELEMETRY COLUMN (COMMUNICATIONS & CERTIFICATION) === */}
+      <motion.aside
+        initial={{ opacity: 0, x: 24 }}
+        animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? 24 : 0 }}
+        exit={{ opacity: 0, x: 24 }}
+        transition={{ duration: 0.35, ease: 'easeOut' }}
+        className="fixed right-6 sm:right-10 lg:right-12 top-20 bottom-24 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col justify-start"
       >
-        <div className="flex-1 flex flex-col justify-between space-y-8 drop-shadow-sm text-right">
-          {/* Deep Space Network Status */}
-          <div>
-            <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block mb-1">
-              Earth Link
+        <div className="flex flex-col gap-5 p-5 bg-black/50 backdrop-blur-md border border-white/5 rounded-xl shadow-2xl overflow-y-auto scrollbar-none text-right">
+          {/* Deep Space Network Ground Segment */}
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Direct-to-Earth Link
             </span>
-            <div className="text-xs font-sans font-light text-[#f5f5f5]">
-              {live.earthEl > 0 ? 'Direct LOS Active' : 'Occulted by Rim'}
+            <div className="text-sm font-sans font-light text-[#f5f5f5]">
+              {live.earthEl > 0 ? 'LOS Active · Direct Link' : 'Occulted by Rim Topography'}
             </div>
-            <div className="text-[10px] font-sans text-[#a3a3a3] mt-0.5">
-              Goldstone · Madrid · Canberra
+            <div className="text-[10px] font-sans text-[#737373]">
+              Goldstone · Madrid · Canberra DSN
             </div>
           </div>
 
-          {/* Communications Floating Metrics */}
-          <div className="space-y-5">
-            <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block border-b border-white/5 pb-1">
-              Direct-to-Earth
+          <div className="h-[1px] bg-white/5 w-full my-0.5" />
+
+          {/* Section: Communications Telemetry */}
+          <span className="text-[9px] font-sans font-light tracking-[0.25em] text-[#737373] uppercase block -mb-2">
+            Link Geometry
+          </span>
+
+          {/* Live Metric 5: Current Earth Elevation */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Live Earth Elevation
             </span>
-
-            {/* Metric 5: Earth Elevation */}
-            <div>
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Earth Elevation
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={earthElStr} />
-              </div>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {earthElStr}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              Boresight angle from local horizontal
+            </span>
+          </div>
 
-            {/* Metric 6: Time to Earthset */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Time to Earthset
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={timeToEarthsetStr} />
-              </div>
+          {/* Live Metric 6: Time to Earthset */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Time to Earthset
+            </span>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {timeToEarthsetStr}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              Remaining direct link margin
+            </span>
+          </div>
 
-            {/* Metric 7: Comms Window */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Comms Window
-              </span>
-              <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] mt-0.5">
-                <ScrambleValue value={commsWindowStr} />
-              </div>
+          {/* Aggregate Metric 7: Total 14-Day Comms Window (Decoupled & Jitter-Free) */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              14-Day DTE Coverage
+            </span>
+            <div className="text-2xl font-mono font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {totalCommsPct}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              {stats.earthVisibleHours}h uninterrupted line-of-sight
+            </span>
+          </div>
 
-            {/* Metric 8: Flight Certification Verdict */}
-            <div className="border-t border-white/5 pt-3">
-              <span className="text-[10px] font-sans font-light tracking-[0.18em] text-[#a3a3a3] uppercase block">
-                Flight Status
-              </span>
-              <div className="text-lg font-sans font-light text-[#f5f5f5] mt-0.5">
-                {verdict.badge}
-              </div>
+          {/* Aggregate Metric 8: Flight Certification Verdict */}
+          <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3">
+            <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+              Mission Certification
+            </span>
+            <div className="text-lg font-sans font-light text-[#f5f5f5] mt-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+              {verdict.badge}
             </div>
+            <span className="text-[9px] font-sans font-light text-[#737373]">
+              {verdict.reason}
+            </span>
           </div>
         </div>
-      </aside>
+      </motion.aside>
     </>
   );
 }

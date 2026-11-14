@@ -337,6 +337,7 @@ function CameraDirector({
   targetPos,
   targetNormal,
   viewMode,
+  isComparing = false,
   orbitControlsRef
 }) {
   const { camera } = useThree();
@@ -345,6 +346,15 @@ function CameraDirector({
     if (mode === 'macro') {
       camera.position.lerp(new THREE.Vector3(0, 12, 28), delta * 2.0);
       camera.lookAt(0, 0, 0);
+      return;
+    }
+
+    if (isComparing) {
+      // Zoom out slightly to frame the entire Moon and both scenario targets
+      camera.position.lerp(new THREE.Vector3(0, 10, 30), delta * 2.0);
+      if (orbitControlsRef.current) {
+        orbitControlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), delta * 2.0);
+      }
       return;
     }
 
@@ -366,11 +376,12 @@ function CameraDirector({
     if (hasLanded && spacecraftRef.current) {
       const spPos = spacecraftRef.current.position;
       if (viewMode === 'surface') {
-        // Settle into a cinematic low-angle surface view!
-        const eyeOffset = targetNormal.clone().multiplyScalar(0.35).add(new THREE.Vector3(0.9, -0.15, 0.9));
-        const desiredPos = spPos.clone().add(eyeOffset);
-        camera.position.lerp(desiredPos, delta * 2.0);
-        camera.lookAt(spPos.clone().addScaledVector(targetNormal, 0.25));
+        // Astronaut eye-level perspective (~1.7m EVA view) looking towards the lander and horizon
+        const astronautEye = spPos.clone()
+          .addScaledVector(targetNormal, 0.25)
+          .add(new THREE.Vector3(0.75, -0.05, 0.75));
+        camera.position.lerp(astronautEye, delta * 2.2);
+        camera.lookAt(spPos.clone().addScaledVector(targetNormal, 0.20));
         if (orbitControlsRef.current) {
           orbitControlsRef.current.target.copy(spPos);
         }
@@ -383,8 +394,8 @@ function CameraDirector({
       ref={orbitControlsRef}
       enableDamping
       dampingFactor={0.06}
-      minDistance={hasLanded && viewMode === 'surface' ? 0.5 : 7.0}
-      maxDistance={hasLanded && viewMode === 'surface' ? 6.0 : 45.0}
+      minDistance={hasLanded && viewMode === 'surface' ? 0.4 : 7.0}
+      maxDistance={hasLanded && viewMode === 'surface' ? 6.0 : 50.0}
       rotateSpeed={0.8}
     />
   );
@@ -406,6 +417,7 @@ function UniverseScene({
   isDescending,
   hasLanded,
   viewMode,
+  isComparing = false,
   orbitControlsRef
 }) {
   const { camera } = useThree();
@@ -469,7 +481,7 @@ function UniverseScene({
       {/* 2. Grazing Polar Sun Directional Light (Deep, Pitch-Black Grazing Shadows) */}
       <directionalLight
         position={[sunDir.x * 45, sunDir.y * 45, sunDir.z * 45]}
-        intensity={2.8}
+        intensity={2.6}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -482,8 +494,9 @@ function UniverseScene({
         shadow-bias={-0.0004}
       />
 
-      {/* Subtle deep-space ambient fill */}
-      <ambientLight intensity={0.04} />
+      {/* Faint ambient starlight/bounce fill so high-res displacement remains visible in shadows */}
+      <hemisphereLight args={['#e2e8f0', '#0a0a0a', 0.22]} />
+      <ambientLight intensity={0.18} />
 
       {/* 3. High-Fidelity Structured Moon */}
       <StructuredMoon sunDir={sunDir} />
@@ -509,6 +522,7 @@ function UniverseScene({
         targetPos={targetPos}
         targetNormal={targetNormal}
         viewMode={viewMode}
+        isComparing={isComparing}
         orbitControlsRef={orbitControlsRef}
       />
     </>
@@ -535,6 +549,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     viewMode = 'orbit',
     isDescending = false,
     hasLanded = false,
+    isComparing = false,
     setIsDescending,
     setHasLanded,
     setViewMode,
@@ -699,6 +714,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
           isDescending={isDescending}
           hasLanded={hasLanded}
           viewMode={viewMode}
+          isComparing={isComparing}
           orbitControlsRef={orbitControlsRef}
         />
       </Canvas>
