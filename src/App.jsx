@@ -10,11 +10,15 @@ import { Calendar } from './components/ui/Calendar.jsx';
 import { BatteryPanel } from './components/ui/BatteryPanel.jsx';
 import { ExplorerCaptions } from './components/ui/ExplorerCaptions.jsx';
 import { AssumptionsPanel } from './components/ui/AssumptionsPanel.jsx';
+import { StoryMode } from './components/story/StoryMode.jsx';
 
 export function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Top-level experience mode: 'story' (cinematic space walk & zoom) or 'control' (mission control trade studies)
+  const [missionMode, setMissionMode] = useState('story');
 
   // App-level configuration state
   const [activeTab, setActiveTab] = useState('compare');
@@ -81,7 +85,7 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#020408] text-slate-200 flex flex-col items-center justify-center p-6 space-y-6 relative overflow-hidden">
+      <div className="min-h-screen bg-[#020408] text-slate-200 flex flex-col items-center justify-center p-6 space-y-6 relative overflow-hidden font-sans">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.1),transparent_70%)] pointer-events-none"></div>
         <div className="relative">
           <div className="w-16 h-16 rounded-full border-2 border-sky-500/20 border-t-sky-400 animate-spin"></div>
@@ -89,7 +93,7 @@ export function App() {
         </div>
         <div className="text-center space-y-2 relative z-10">
           <p className="text-sm font-display font-semibold tracking-wider uppercase text-slate-200">
-            Connecting to Lunar Ephemeris Telemetry
+            Initializing NASA Horizons Lunar Ephemeris
           </p>
           <p className="text-xs font-mono text-slate-500">
             JPL Horizons Vector Target #301 (Moon) • NASA Artemis Landing Zones
@@ -130,8 +134,20 @@ export function App() {
     setActiveTab('compare');
   };
 
+  // STORY MODE SCREEN
+  if (missionMode === 'story') {
+    return (
+      <StoryMode
+        sites={sites}
+        ephem={ephem}
+        onSwitchToPlanner={() => setMissionMode('control')}
+      />
+    );
+  }
+
+  // MISSION CONTROL SCREEN
   return (
-    <div className="min-h-screen bg-[#030508] text-slate-100 flex flex-col selection:bg-sky-500/40 selection:text-white">
+    <div className="min-h-screen bg-[#030508] text-slate-100 flex flex-col selection:bg-sky-500/40 selection:text-white font-sans">
       <SampleDataBanner isFake={ephem?.fake} />
 
       <TopBar
@@ -142,6 +158,7 @@ export function App() {
         quality={quality}
         onQualityChange={setQuality}
         isFakeData={ephem?.fake}
+        onOpenStoryMode={() => setMissionMode('story')}
       />
 
       {/* Mission Simulation Master Scrubber */}

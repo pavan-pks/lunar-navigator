@@ -11,7 +11,8 @@ export function TopBar({
   onUiModeChange,
   quality,
   onQualityChange,
-  isFakeData = false
+  isFakeData = false,
+  onOpenStoryMode
 }) {
   const tabs = [
     { id: 'compare', label: 'Site Comparison', icon: '◬' },
@@ -24,7 +25,7 @@ export function TopBar({
       <div className="max-w-7xl mx-auto px-4 h-15 flex items-center justify-between gap-4">
         {/* Brand with Lunar Seal */}
         <div className="flex items-center gap-3.5">
-          <div className="relative group">
+          <div className="relative group cursor-pointer" onClick={onOpenStoryMode} title="Return to Story Mode">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 via-sky-950 to-slate-900 border border-sky-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(56,189,248,0.2)]">
               <span className="text-sm font-bold text-sky-400 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]">☾</span>
             </div>
@@ -67,8 +68,19 @@ export function TopBar({
           })}
         </nav>
 
-        {/* Right: Telemetry Source & View Modes */}
+        {/* Right: Telemetry Source, Story Mode & View Modes */}
         <div className="flex items-center gap-3">
+          {/* Story Mode Launcher Button */}
+          {onOpenStoryMode && (
+            <button
+              onClick={onOpenStoryMode}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500/20 to-amber-500/20 hover:from-sky-500/30 hover:to-amber-500/30 border border-sky-400/30 text-white text-xs font-mono font-semibold transition-all shadow-[0_0_12px_rgba(56,189,248,0.2)] cursor-pointer"
+            >
+              <span>🚀</span>
+              <span>Story Mode</span>
+            </button>
+          )}
+
           {/* Data source badge */}
           <div
             title={isFakeData ? 'Synthetic ephemeris data in use' : 'Real NASA/JPL Horizons ephemeris'}
