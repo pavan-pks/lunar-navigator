@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { Component, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { buildTerrain } from './terrain.js'
 import { buildLander } from './lander.js'
@@ -8,30 +8,54 @@ import { buildCompassRing } from './compass.js'
 import { createCameraController } from './cameraModes.js'
 import { getTierConfig, createPerformanceProbe } from './quality.js'
 import Hud from './Hud.jsx'
+import SkyDiagram from './SkyDiagram.jsx'
 
 /**
- * Scene3D component
- * Visual contract:
- * @param {number} sunEl - Sun elevation in degrees (-10 to 30)
- * @param {number} sunAz - Sun azimuth in degrees (0 to 360, clockwise from north: N=0, E=90, S=180, W=270)
- * @param {number} earthEl - Earth elevation in degrees (-10 to 20)
- * @param {number} earthAz - Earth azimuth in degrees (0 to 360)
- * @param {string} siteId - Site identifier (e.g. 'shackleton', 'malapert')
- * @param {string} terrainType - 'crater-rim' | 'massif' | 'plain'
- * @param {string} [viewMode] - 'orbit' | 'astronaut' (optional; if omitted or toggled, uses internal state)
- * @param {string} [quality='auto'] - 'auto' | 'low' | 'medium' | 'high'
- * @param {string} [label] - Display label
- * @param {number} [landerHeight=3] - Lander height in meters (default 3)
- * @param {boolean} [showHud=true] - Show HUD overlay (default true)
- * @param {boolean} [showShadowRuler=true] - Show shadow ruler (default true)
- * @param {string} [heightmapUrl] - Optional stretch goal heightmap URL
- * @param {(tier: string) => void} [onTierChange] - Optional callback when quality tier changes or auto-downgrades
+ * Error boundary catching any uncaught render errors and rendering SkyDiagram fallback.
  */
-export default function Scene3D({
-  sunEl = 2.0,
+class SceneErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn('Scene3D caught error, falling back to SkyDiagram:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ width: '100%', height: '100%', minHeight: 360, position: 'relative', background: '#090d16' }}>
+          <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '8px 12px', fontSize: '12px', fontWeight: 'bold' }}>
+            ⚠️ 3D view is unavailable on this device
+          </div>
+          <SkyDiagram
+            sunEl={this.props.sunEl}
+            sunAz={this.props.sunAz}
+            earthEl={this.props.earthEl}
+            earthAz={this.props.earthAz}
+            label={this.props.label}
+          />
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+/**
+ * Internal 3D scene implementation.
+ */
+function Scene3DInner({
+  sunEl = 5.0,
   sunAz = 180.0,
   earthEl = 5.0,
-  earthAz = 20.0,
+  earthAz = 0.0,
   siteId = 'shackleton',
   terrainType = 'plain',
   viewMode: propViewMode,
@@ -48,10 +72,30 @@ export default function Scene3D({
   const [internalViewMode, setInternalViewMode] = useState('orbit')
   const [activeTier, setActiveTier] = useState(quality === 'auto' ? 'medium' : quality)
   const [notification, setNotification] = useState('')
+  const [webglError, setWebglError] = useState(false)
+
+  // Track last valid numeric angles for robust NaN / undefined clamping
+  const lastAngles = useRef({
+    sunEl: 5.0,
+    sunAz: 180.0,
+    earthEl: 5.0,
+    earthAz: 0.0,
+  })
+
+  // Validate and clamp incoming angles
+  if (Number.isFinite(sunEl)) lastAngles.current.sunEl = Math.max(-10, Math.min(30, sunEl))
+  if (Number.isFinite(sunAz)) lastAngles.current.sunAz = ((sunAz % 360) + 360) % 360
+  if (Number.isFinite(earthEl)) lastAngles.current.earthEl = Math.max(-10, Math.min(20, earthEl))
+  if (Number.isFinite(earthAz)) lastAngles.current.earthAz = ((earthAz % 360) + 360) % 360
+
+  const validSunEl = lastAngles.current.sunEl
+  const validSunAz = lastAngles.current.sunAz
+  const validEarthEl = lastAngles.current.earthEl
+  const validEarthAz = lastAngles.current.earthAz
+  const validLanderHeight = Number.isFinite(landerHeight) && landerHeight > 0 ? landerHeight : 3
 
   const activeViewMode = propViewMode || internalViewMode
 
-  // Sync activeTier if quality prop changes from parent
   useEffect(() => {
     const nextTier = quality === 'auto' ? 'medium' : quality
     setActiveTier(nextTier)
@@ -76,9 +120,11 @@ export default function Scene3D({
       renderer = new THREE.WebGLRenderer({
         antialias: tierConfig.antialias,
         powerPreference: 'default',
+        failIfMajorPerformanceCaveat: false,
       })
     } catch (err) {
-      console.error('Failed to create WebGLRenderer:', err)
+      console.warn('WebGLRenderer creation failed:', err)
+      setWebglError(true)
       return
     }
 
@@ -93,6 +139,22 @@ export default function Scene3D({
     canvas.style.width = '100%'
     canvas.style.height = '100%'
     container.appendChild(canvas)
+
+    // Context loss / restoration listeners
+    const handleContextLost = (e) => {
+      e.preventDefault()
+      console.warn('WebGL context lost')
+      setWebglError(true)
+    }
+
+    const handleContextRestored = () => {
+      console.info('WebGL context restored')
+      setWebglError(false)
+      invalidate()
+    }
+
+    canvas.addEventListener('webglcontextlost', handleContextLost)
+    canvas.addEventListener('webglcontextrestored', handleContextRestored)
 
     // Scene & Camera
     const scene = new THREE.Scene()
@@ -127,7 +189,7 @@ export default function Scene3D({
     scene.add(earthLight.target)
 
     // Lander Model
-    const lander = buildLander(landerHeight)
+    const lander = buildLander(validLanderHeight)
     scene.add(lander.group)
 
     // Sky system: Stars, Sun disk, Earth marker
@@ -138,7 +200,7 @@ export default function Scene3D({
     const compass = buildCompassRing()
     scene.add(compass.group)
 
-    // Invalidate function for on-demand rendering (checks offscreen and tab visibility)
+    // Invalidate function for on-demand rendering
     const invalidate = () => {
       if (isDisposed || renderRequested || isOffscreen || isHidden) return
       renderRequested = true
@@ -179,25 +241,21 @@ export default function Scene3D({
     resizeObserver.observe(container)
     handleResize()
 
-    // IntersectionObserver to pause when scrolled offscreen
+    // IntersectionObserver to pause when offscreen
     const intersectionObserver = new IntersectionObserver(([entry]) => {
       isOffscreen = !entry.isIntersecting
-      if (!isOffscreen) {
-        invalidate()
-      }
+      if (!isOffscreen) invalidate()
     })
     intersectionObserver.observe(container)
 
-    // Tab visibility change handler
+    // Tab visibility change
     const handleVisibilityChange = () => {
       isHidden = document.hidden
-      if (!isHidden) {
-        invalidate()
-      }
+      if (!isHidden) invalidate()
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Auto quality performance probe (runs only when quality='auto')
+    // Performance probe for auto tier
     let perfProbe = null
     if (quality === 'auto') {
       perfProbe = createPerformanceProbe({
@@ -230,6 +288,8 @@ export default function Scene3D({
         if (animFrameId) cancelAnimationFrame(animFrameId)
         if (perfProbe) perfProbe.cancel()
 
+        canvas.removeEventListener('webglcontextlost', handleContextLost)
+        canvas.removeEventListener('webglcontextrestored', handleContextRestored)
         resizeObserver.disconnect()
         intersectionObserver.disconnect()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
@@ -271,23 +331,18 @@ export default function Scene3D({
     const ctx = ctxRef.current
     if (!ctx) return
 
-    const safeSunEl = Number.isFinite(sunEl) ? sunEl : 2.0
-    const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0
-    const safeEarthEl = Number.isFinite(earthEl) ? earthEl : 5.0
-    const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0
-
-    const sunElRad = (safeSunEl * Math.PI) / 180
-    const sunAzRad = (safeSunAz * Math.PI) / 180
+    const sunElRad = (validSunEl * Math.PI) / 180
+    const sunAzRad = (validSunAz * Math.PI) / 180
 
     const sunDirX = Math.cos(sunElRad) * Math.sin(sunAzRad)
     const sunDirY = Math.sin(sunElRad)
     const sunDirZ = -Math.cos(sunElRad) * Math.cos(sunAzRad)
 
     let sunIntensity = 0.0
-    if (safeSunEl > -0.27) {
+    if (validSunEl > -0.27) {
       sunIntensity = 3.0
-    } else if (safeSunEl > -0.37) {
-      sunIntensity = 3.0 * ((safeSunEl - (-0.37)) / 0.1)
+    } else if (validSunEl > -0.37) {
+      sunIntensity = 3.0 * ((validSunEl - (-0.37)) / 0.1)
     }
 
     const padY = ctx.originPadHeight || 0
@@ -305,8 +360,8 @@ export default function Scene3D({
       ctx.sunLight.intensity = sunIntensity
     }
 
-    const earthElRad = (safeEarthEl * Math.PI) / 180
-    const earthAzRad = (safeEarthAz * Math.PI) / 180
+    const earthElRad = (validEarthEl * Math.PI) / 180
+    const earthAzRad = (validEarthAz * Math.PI) / 180
 
     const earthDirX = Math.cos(earthElRad) * Math.sin(earthAzRad)
     const earthDirY = Math.sin(earthElRad)
@@ -321,42 +376,40 @@ export default function Scene3D({
       )
       ctx.earthLight.target.position.set(0, padY, 0)
       ctx.earthLight.target.updateMatrixWorld()
-      ctx.earthLight.intensity = safeEarthEl > 0 ? 0.04 : 0.0
+      ctx.earthLight.intensity = validEarthEl > 0 ? 0.04 : 0.0
     }
 
     if (ctx.sky) {
-      ctx.sky.update(safeSunEl, safeSunAz, safeEarthEl, safeEarthAz, padY)
+      ctx.sky.update(validSunEl, validSunAz, validEarthEl, validEarthAz, padY)
     }
 
     if (ctx.lander) {
-      ctx.lander.setHeight(landerHeight)
+      ctx.lander.setHeight(validLanderHeight)
     }
 
     if (ctx.cameraController) {
       ctx.cameraController.setMode(activeViewMode, {
-        sunEl: safeSunEl,
-        sunAz: safeSunAz,
-        earthEl: safeEarthEl,
-        earthAz: safeEarthAz,
+        sunEl: validSunEl,
+        sunAz: validSunAz,
+        earthEl: validEarthEl,
+        earthAz: validEarthAz,
       })
     }
 
     ctx.invalidate()
-  }, [sunEl, sunAz, earthEl, earthAz, landerHeight, activeViewMode])
+  }, [validSunEl, validSunAz, validEarthEl, validEarthAz, validLanderHeight, activeViewMode])
 
   // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, activeTier, heightmapUrl)
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
 
-    // Clean up previous rocks
     if (ctx.rocksData) {
       ctx.scene.remove(ctx.rocksData.mesh)
       ctx.rocksData.dispose()
       ctx.rocksData = null
     }
 
-    // Clean up previous terrain
     if (ctx.terrainData) {
       ctx.scene.remove(ctx.terrainData.mesh)
       ctx.terrainData.dispose()
@@ -370,27 +423,22 @@ export default function Scene3D({
     ctx.originPadHeight = terrain.originPadHeight
     ctx.scene.add(terrain.mesh)
 
-    // Position lander feet on pad height at (0, 0)
     if (ctx.lander) {
       ctx.lander.group.position.set(0, terrain.originPadHeight, 0)
     }
 
-    // Build rocks and landmark scatter
     const rocks = buildRocks({ siteId, quality: activeTier, heightAt: terrain.heightAt })
     ctx.rocksData = rocks
     ctx.scene.add(rocks.mesh)
 
-    // Update compass ring elevation
     if (ctx.compass) {
       ctx.compass.updatePadY(terrain.originPadHeight)
     }
 
-    // Update camera controls focus to lander
     if (ctx.cameraController) {
       ctx.cameraController.updateTarget(terrain.originPadHeight)
     }
 
-    // Update sun & earth light targets and sky bodies
     if (ctx.sunLight) {
       ctx.sunLight.target.position.set(0, terrain.originPadHeight, 0)
       ctx.sunLight.target.updateMatrixWorld()
@@ -401,11 +449,29 @@ export default function Scene3D({
       ctx.earthLight.target.updateMatrixWorld()
     }
     if (ctx.sky) {
-      ctx.sky.update(sunEl, sunAz, earthEl, earthAz, terrain.originPadHeight)
+      ctx.sky.update(validSunEl, validSunAz, validEarthEl, validEarthAz, terrain.originPadHeight)
     }
 
     ctx.invalidate()
   }, [siteId, terrainType, activeTier, heightmapUrl])
+
+  // If WebGL failed to initialize or context is permanently lost, render fallback SkyDiagram
+  if (webglError) {
+    return (
+      <div style={{ width: '100%', height: '100%', minHeight: '360px', position: 'relative', background: '#090d16' }}>
+        <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '8px 12px', fontSize: '12px', fontWeight: 'bold' }}>
+          ⚠️ 3D view is unavailable on this device
+        </div>
+        <SkyDiagram
+          sunEl={validSunEl}
+          sunAz={validSunAz}
+          earthEl={validEarthEl}
+          earthAz={validEarthAz}
+          label={label || siteId}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -423,15 +489,15 @@ export default function Scene3D({
       {showHud && (
         <Hud
           label={label || siteId}
-          sunEl={sunEl}
-          sunAz={sunAz}
-          earthEl={earthEl}
-          earthAz={earthAz}
-          landerHeight={landerHeight}
+          sunEl={validSunEl}
+          sunAz={validSunAz}
+          earthEl={validEarthEl}
+          earthAz={validEarthAz}
+          landerHeight={validLanderHeight}
           viewMode={activeViewMode}
           onToggleViewMode={(newMode) => setInternalViewMode(newMode)}
-          onLookSun={() => ctxRef.current?.cameraController?.lookAtSun(sunEl, sunAz)}
-          onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(earthEl, earthAz)}
+          onLookSun={() => ctxRef.current?.cameraController?.lookAtSun(validSunEl, validSunAz)}
+          onLookEarth={() => ctxRef.current?.cameraController?.lookAtEarth(validEarthEl, validEarthAz)}
           onLookNorth={() => ctxRef.current?.cameraController?.lookNorth()}
           quality={activeTier}
         />
@@ -460,5 +526,16 @@ export default function Scene3D({
         </div>
       )}
     </div>
+  )
+}
+
+/**
+ * Scene3D wrapped with ErrorBoundary
+ */
+export default function Scene3D(props) {
+  return (
+    <SceneErrorBoundary {...props}>
+      <Scene3DInner {...props} />
+    </SceneErrorBoundary>
   )
 }

@@ -5,9 +5,9 @@
 > Done % must be 100 only when every acceptance criterion in `LLM_BRIEF.md` is met.
 > **Score = sum(weight × done% / 100)**
 
-**Current score: 91 / 100**
+**Current score: 97 / 100**
 **Last updated:** 2026-11-14
-**Currently working on:** P-12: Hardening: error handling, WebGL fallback, SkyDiagram, notes
+**Currently working on:** P-13: Shadow ruler
 
 ## Core tasks
 
@@ -24,7 +24,8 @@
 | P-09 | Astronaut camera | 10 | Done | 100 | 10 | First-person surface view (fov 70, 1.7m eye height), pitch ±60° drag look, arrow keys, Look at Sun/Earth/North buttons, compass ring (R=190m) |
 | P-10 | HUD overlay and compass | 6 | Done | 100 | 6 | Hud.jsx: site label, "Illustrative terrain" tag, real-time Sun/Earth 0.1° readouts, lander shadow ratio, view mode toggle, 320px responsive |
 | P-11 | Quality tiers and performance (on-demand rendering) | 10 | Done | 100 | 10 | quality.js: low/med/high tier profiles, 90-frame auto benchmark probe with <24fps downgrade, IntersectionObserver & tab visibility pause |
-| P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Not started | 0 | 0 | |
+| P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Done | 100 | 6 | SkyDiagram.jsx SVG fallback, SceneErrorBoundary, webglcontextlost/restored recovery, safe prop clamping, complete notes |
+| P-13 | Shadow ruler | 3 | Not started | 0 | 0 | |
 | P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
 | P-06 | Sun light and shadows | 12 | Not started | 0 | 0 | |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |

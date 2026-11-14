@@ -7,7 +7,8 @@
 - `sandbox-pavan.html`: Standalone entry page for Pavan's visual test sandbox.
 - `src/dev/pavan-main.jsx`: React entry point rendering `PavanSandbox`.
 - `src/dev/PavanSandbox.jsx`: Interactive test harness with angle sliders, presets, lunar day simulation, FPS counter, and dual-scene compare test.
-- `src/components/scene/index.js`: Exports `Scene3D` (named and default).
+- `src/components/scene/index.js`: Exports `Scene3D` (named and default) and `SkyDiagram`.
+- `src/components/scene/SkyDiagram.jsx`: Lightweight 2D SVG sky projection fallback (works with zero WebGL/GPU; azimuth 0-360°, elevation -10 to +40°, compass ticks, and Sun/Earth glyphs).
 - `src/components/scene/noise.js`: Seeded 32-bit FNV-1a hash, Mulberry32 PRNG, smooth quintic 2D noise, and 2D fBm.
 - `src/components/scene/terrain.js`: Deterministic 400m x 400m lunar terrain builder supporting `crater-rim`, `massif`, and `plain` profiles with flat 8m landing pad, craterlet scatter, regolith vertex colors, and fast bilinear `heightAt(x, z)`.
 - `src/components/scene/lander.js`: Detailed procedural lunar lander model (octagonal cabin, gold foil descent stage, 4 articulated legs with footpads, descent engine bell, solar panel wings, steerable dish antenna, and height-scale reactivity).
@@ -17,12 +18,18 @@
 - `src/components/scene/cameraModes.js`: Dual-mode camera controller supporting OrbitControls (fov 50, limits, terrain clamping) and Astronaut mode (fov 70, 1.7m eye height, pitch ±60° drag look, arrow keys, smooth look-at animation to Sun, Earth, and North).
 - `src/components/scene/Hud.jsx`: Dedicated DOM overlay with site label, "Illustrative terrain" honesty badge, live 0.1° Sun/Earth coordinate readouts, real-time lander shadow length and multiplier ratio, interactive view mode toggle, and astronaut quick-look actions.
 - `src/components/scene/quality.js`: Performance tier configurations (`low`, `medium`, `high`) and automatic 90-frame benchmarking probe that drops from medium to low if fps < 24.
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup with `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, IntersectionObserver off-screen pause, visibility change tab pause, quality auto-downgrade, and full StrictMode disposal.
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup wrapped in `SceneErrorBoundary`, WebGL fallback to `SkyDiagram`, context loss/restoration handling, prop validation/clamping, `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
 - `Scene3D` accepts all contract props: `sunEl`, `sunAz`, `earthEl`, `earthAz`, `siteId`, `terrainType`, `viewMode`, `quality`, `label`, `landerHeight`, `showHud`, `showShadowRuler`, `heightmapUrl`, `onTierChange`.
-- Render occurs strictly on-demand via internal `invalidate()` whenever angles, dimensions, camera position, or scene configurations change.
+- Exports from `src/components/scene/index.js`: `Scene3D` (default and named), `SkyDiagram`.
+- Behavior promises satisfied:
+  - Never throws on bad props (NaN, undefined, out of range): clamped to last valid values or astronomical defaults.
+  - Fills parent container's width; defaults to 360px if parent has none.
+  - If WebGL is unavailable or fails, automatically falls back to `<SkyDiagram />` with a banner.
+  - Cleans up WebGL resources and context completely on unmount.
+  - Renders strictly on demand via internal `invalidate()` whenever angles, dimensions, camera position, or scene configurations change.
 
 ## Decisions
 - Used standalone dark-themed inline styles in `PavanSandbox.jsx` to prevent styling conflicts with Tailwind and guarantee a clean testing UI across any layout width.
@@ -38,6 +45,7 @@
 - HUD overlay keeps `pointer-events: none` overall to allow seamless click/drag canvas controls, enabling `pointer-events: auto` strictly on interactive toggle buttons.
 - On-demand rendering coupled with IntersectionObserver off-screen detection and tab visibility events ensures 0% continuous GPU waste when hidden.
 - `quality="auto"` starts on medium, samples 90 frames, and downgrades to low if average FPS is under 24 (never auto-upgrades).
+- Robust fallback: if WebGL context creation throws or context is lost, component switches seamlessly to `SkyDiagram` SVG view with clear diagnostic badge.
 
 ## Performance notes
 - Live FPS counter integrated into sandbox header to benchmark render loop and frame timings across tasks.
@@ -50,7 +58,7 @@
 - Dual WebGL contexts run smoothly in sandbox side-by-side comparison mode.
 
 ## Known issues
-- WebGL failure fallback and hardening (`SkyDiagram.jsx` and ErrorBoundary) arrive in P-12.
+- P-13: Shadow ruler ground line with metric tick marks is the final core task.
 
 ## Requests to the other member / human
 - None at this time.
