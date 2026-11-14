@@ -27,22 +27,12 @@
 | P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Done | 100 | 6 | SkyDiagram.jsx SVG fallback, SceneErrorBoundary, webglcontextlost/restored recovery, safe prop clamping, complete notes |
 | P-13 | Shadow ruler | 3 | Done | 100 | 3 | ShadowRuler.js ground measurement line opposite Sun azimuth, 10m metric ticks, 150m cap, and distance badge sprite |
 | | **Total** | **100** | | | **100** | All core acceptance criteria satisfied |
-| P-05 | Rocks and scatter | 5 | Not started | 0 | 0 | |
-| P-06 | Sun light and shadows | 12 | Not started | 0 | 0 | |
-| P-07 | Sky: stars, Sun disk, Earth marker | 10 | Not started | 0 | 0 | |
-| P-08 | Orbit camera | 5 | Not started | 0 | 0 | |
-| P-09 | Astronaut camera | 10 | Not started | 0 | 0 | |
-| P-10 | HUD overlay and compass | 6 | Not started | 0 | 0 | |
-| P-11 | Quality tiers and performance (on-demand rendering) | 10 | Not started | 0 | 0 | |
-| P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Not started | 0 | 0 | |
-| P-13 | Shadow ruler | 3 | Not started | 0 | 0 | |
-| | **Total** | **100** | | | **5** | |
 
 ## Stretch tasks (only after all core tasks are 100%)
 
 | ID | Task | Status | Done % | Note |
 |---|---|---|---|---|
-| PS-1 | LaunchAnimation (schematic) | Not started | 0 | |
+| PS-1 | LaunchAnimation (schematic) | Done | 100 | LaunchAnimation.jsx: Pure SVG/CSS Earth to Moon trajectory with rocket transit, powered descent, stage separation, and phase telemetry |
 | PS-2 | Real LOLA heightmap loader | Not started | 0 | |
 | PS-3 | Cinematic camera path | Not started | 0 | |
 

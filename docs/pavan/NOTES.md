@@ -7,7 +7,8 @@
 - `sandbox-pavan.html`: Standalone entry page for Pavan's visual test sandbox.
 - `src/dev/pavan-main.jsx`: React entry point rendering `PavanSandbox`.
 - `src/dev/PavanSandbox.jsx`: Interactive test harness with angle sliders, presets, lunar day simulation, FPS counter, and dual-scene compare test.
-- `src/components/scene/index.js`: Exports `Scene3D` (named and default) and `SkyDiagram`.
+- `src/components/scene/index.js`: Exports `Scene3D` (named and default), `SkyDiagram`, and `LaunchAnimation`.
+- `src/components/scene/LaunchAnimation.jsx`: Pure SVG and CSS trajectory animation (Earth on left, Moon on right, curved dashed trajectory, translunar rocket transit, powered descent separation, telemetry bar, and mandatory "Illustrative, not to scale" caption).
 - `src/components/scene/SkyDiagram.jsx`: Lightweight 2D SVG sky projection fallback (works with zero WebGL/GPU; azimuth 0-360°, elevation -10 to +40°, compass ticks, and Sun/Earth glyphs).
 - `src/components/scene/noise.js`: Seeded 32-bit FNV-1a hash, Mulberry32 PRNG, smooth quintic 2D noise, and 2D fBm.
 - `src/components/scene/terrain.js`: Deterministic 400m x 400m lunar terrain builder supporting `crater-rim`, `massif`, and `plain` profiles with flat 8m landing pad, craterlet scatter, regolith vertex colors, and fast bilinear `heightAt(x, z)`.
@@ -24,7 +25,8 @@
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
 - `Scene3D` accepts all contract props: `sunEl`, `sunAz`, `earthEl`, `earthAz`, `siteId`, `terrainType`, `viewMode`, `quality`, `label`, `landerHeight`, `showHud`, `showShadowRuler`, `heightmapUrl`, `onTierChange`.
-- Exports from `src/components/scene/index.js`: `Scene3D` (default and named), `SkyDiagram`.
+- Exports from `src/components/scene/index.js`: `Scene3D` (default and named), `SkyDiagram`, `LaunchAnimation`.
+- `LaunchAnimation` accepts: `progress` (0..1), `launchLabel` (string), `landingLabel` (string), `autoplay` (boolean), `height` (number|string).
 - Behavior promises satisfied:
   - Never throws on bad props (NaN, undefined, out of range): clamped to last valid values or astronomical defaults.
   - Fills parent container's width; defaults to 360px if parent has none.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Scene3D } from '../components/scene'
+import { Scene3D, LaunchAnimation } from '../components/scene'
 
 const SITE_PRESETS = [
   { id: 'shackleton', name: 'Shackleton Crater Rim', terrainType: 'crater-rim' },
@@ -24,6 +24,7 @@ export default function PavanSandbox() {
   const [landerHeight, setLanderHeight] = useState(3)
 
   // Compare test (side-by-side)
+  const [showLaunchAnim, setShowLaunchAnim] = useState(false)
   const [compareTest, setCompareTest] = useState(false)
   const [compareSiteId, setCompareSiteId] = useState('malapert')
 
@@ -368,6 +369,14 @@ export default function PavanSandbox() {
               />
               Show Shadow Ruler
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#a78bfa' }}>
+              <input
+                type="checkbox"
+                checked={showLaunchAnim}
+                onChange={(e) => setShowLaunchAnim(e.target.checked)}
+              />
+              Show Launch Trajectory (PS-1)
+            </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#38bdf8' }}>
               <input
                 type="checkbox"
@@ -410,12 +419,26 @@ export default function PavanSandbox() {
           flex: 1,
           height: '100%',
           display: 'flex',
-          flexDirection: compareTest ? 'row' : 'column',
+          flexDirection: 'column',
           background: '#000000',
           position: 'relative',
         }}
       >
-        <div style={{ flex: 1, height: '100%', position: 'relative', borderRight: compareTest ? '2px solid #334155' : 'none' }}>
+        {showLaunchAnim && (
+          <div style={{ height: '220px', borderBottom: '2px solid #334155', background: '#090d16' }}>
+            <LaunchAnimation autoplay={true} />
+          </div>
+        )}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: compareTest ? 'row' : 'column',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ flex: 1, height: '100%', position: 'relative', borderRight: compareTest ? '2px solid #334155' : 'none' }}>
           <Scene3D
             sunEl={sunEl}
             sunAz={sunAz}
