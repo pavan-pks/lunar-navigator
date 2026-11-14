@@ -26,6 +26,7 @@ export function SpaceIntroScene({
 
   // Phases: 'overview' -> 'zooming-to-moon' -> 'moon-orbit' -> 'panning-to-earth' -> 'transit' -> 'lunar-descent'
   const [phase, setPhase] = useState('overview');
+  const [showMoonTrekGIS, setShowMoonTrekGIS] = useState(false);
   const [flightTelemetry, setFlightTelemetry] = useState({
     status: 'STANDBY',
     velocity: '0.0 km/s',
@@ -88,8 +89,10 @@ export function SpaceIntroScene({
     sunTex.colorSpace = THREE.SRGBColorSpace;
     const earthTex = textureLoader.load('/textures/nasa_earth_bluemarble.jpg');
     earthTex.colorSpace = THREE.SRGBColorSpace;
-    const moonTex = textureLoader.load('/textures/nasa_moon_lroc_1k.jpg');
+    // High-Resolution 2K Moon Map + 3D Crater Bump Displacement Map
+    const moonTex = textureLoader.load('/textures/nasa_moon_2k.jpg');
     moonTex.colorSpace = THREE.SRGBColorSpace;
+    const moonBumpTex = textureLoader.load('/textures/nasa_moon_bump_2k.jpg');
 
     // 4. Sun Sphere with SDO Texture
     const sunPos = new THREE.Vector3(-320, 60, -180);
@@ -143,18 +146,20 @@ export function SpaceIntroScene({
     const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.32, side: THREE.BackSide });
     earthGroup.add(new THREE.Mesh(atmoGeo, atmoMat));
 
-    // 6. Moon Sphere with NASA LROC Texture
+    // 6. High-Resolution Bump-Mapped Moon Sphere
     const moonGroup = new THREE.Group();
     moonGroup.position.set(48, 8, 15);
     scene.add(moonGroup);
 
-    const moonGeo = new THREE.SphereGeometry(10.5, 64, 64);
+    const moonGeo = new THREE.SphereGeometry(10.5, 96, 96);
     const moonMat = new THREE.MeshStandardMaterial({
       map: moonTex,
-      roughness: 0.65,
-      metalness: 0.05,
-      emissive: 0x1f242d,
-      emissiveIntensity: 0.35
+      bumpMap: moonBumpTex,
+      bumpScale: 0.16,
+      roughness: 0.72,
+      metalness: 0.04,
+      emissive: 0x181c24,
+      emissiveIntensity: 0.3
     });
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
     moonMesh.rotation.y = Math.PI * 0.35;
@@ -546,8 +551,19 @@ export function SpaceIntroScene({
               </div>
             </div>
 
+            {/* Interactive NASA Moon Trek GIS Button */}
+            <div className="pt-1">
+              <button
+                onClick={() => setShowMoonTrekGIS(true)}
+                className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-sky-500/20 border border-white/10 hover:border-sky-400/40 text-sky-300 text-[11px] font-mono transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+              >
+                <span>🗺️</span>
+                <span>Inspect in NASA Moon Trek (Live GIS) ↗</span>
+              </button>
+            </div>
+
             {/* Launch CTA */}
-            <div className="pt-2 space-y-2">
+            <div className="pt-1 space-y-2">
               <button
                 onClick={handleLaunchFromEarth}
                 className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-sky-400 to-cyan-400 hover:from-sky-300 hover:to-cyan-300 text-black font-bold text-xs font-mono tracking-wide transition-all transform hover:scale-[1.02] shadow-[0_0_25px_rgba(56,189,248,0.5)] cursor-pointer flex items-center justify-center gap-2"
@@ -601,6 +617,42 @@ export function SpaceIntroScene({
               <span>Earth Exit</span>
               <span>Cislunar Transfer</span>
               <span>Lunar Touchdown</span>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 4. MODAL: EMBEDDED NASA MOON TREK GIS VIEWER */}
+      {showMoonTrekGIS && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-3xl p-4 sm:p-6 flex flex-col items-center justify-center animate-in fade-in">
+          <div className="max-w-4xl w-full h-[85vh] bg-black/70 border border-white/15 rounded-3xl p-4 sm:p-6 flex flex-col shadow-2xl space-y-3">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🌕</span>
+                <div>
+                  <h3 className="font-display font-bold text-white text-base">
+                    NASA Moon Trek (trek.nasa.gov/moon)
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Target: {activeSite.name} ({activeSite.lat > 0 ? `+${activeSite.lat}°` : `${activeSite.lat}°`} S, {activeSite.lon > 0 ? `+${activeSite.lon}°` : `${activeSite.lon}°`} E)
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowMoonTrekGIS(false)}
+                className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono transition cursor-pointer"
+              >
+                ✕ Close GIS
+              </button>
+            </div>
+
+            <div className="flex-1 w-full rounded-2xl overflow-hidden border border-white/10 relative bg-black">
+              <iframe
+                title="NASA Moon Trek"
+                src={`https://trek.nasa.gov/moon/#v=0.1&x=${activeSite.lon}&y=${activeSite.lat}&z=5`}
+                className="w-full h-full border-0 rounded-2xl"
+                allow="fullscreen"
+                loading="lazy"
+              />
             </div>
           </div>
         </div>

@@ -79,8 +79,9 @@ export function LunarIntro({ onDone }) {
     sunTex.colorSpace = THREE.SRGBColorSpace;
     const earthTex = loader.load('/textures/nasa_earth_bluemarble.jpg');
     earthTex.colorSpace = THREE.SRGBColorSpace;
-    const moonTex = loader.load('/textures/nasa_moon_lroc_1k.jpg');
+    const moonTex = loader.load('/textures/nasa_moon_2k.jpg');
     moonTex.colorSpace = THREE.SRGBColorSpace;
+    const moonBumpTex = loader.load('/textures/nasa_moon_bump_2k.jpg');
 
     // Sun with NASA SDO texture
     const sunMesh = new THREE.Mesh(
@@ -112,12 +113,18 @@ export function LunarIntro({ onDone }) {
     const atmoMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.18, side: THREE.BackSide });
     earthGroup.add(new THREE.Mesh(atmoGeo, atmoMat));
 
-    // Moon with NASA LROC CGI Moon Kit texture
+    // Moon with High-Resolution 2K Map & Crater Bump Displacement
     const moonGroup = new THREE.Group();
     scene.add(moonGroup);
     const moonMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(7.5, 64, 64),
-      new THREE.MeshStandardMaterial({ map: moonTex, roughness: 0.98, metalness: 0.02 })
+      new THREE.SphereGeometry(7.5, 96, 96),
+      new THREE.MeshStandardMaterial({
+        map: moonTex,
+        bumpMap: moonBumpTex,
+        bumpScale: 0.15,
+        roughness: 0.72,
+        metalness: 0.04
+      })
     );
     moonGroup.add(moonMesh);
 
