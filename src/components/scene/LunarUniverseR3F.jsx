@@ -695,6 +695,10 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     <div className="absolute inset-0 w-full h-full">
       <Canvas
         shadows
+        onCreated={({ gl }) => {
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }}
         camera={{
           position: viewMode === 'surface' ? [3.4, 2.0, 5.4] : [0, 8, 22],
           fov: viewMode === 'surface' ? 48 : 42,
