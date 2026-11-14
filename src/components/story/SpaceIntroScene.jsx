@@ -3,6 +3,7 @@ import * as THREE from 'three';
 
 /**
  * Convert lunar latitude and longitude to 3D sphere cartesian coordinates.
+ * Matches standard NASA Clementine/LRO equirectangular UV mapping.
  */
 function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
@@ -11,6 +12,50 @@ function latLonToVector3(lat, lon, radius) {
   const y = radius * Math.cos(phi);
   const z = radius * Math.sin(phi) * Math.sin(theta);
   return new THREE.Vector3(x, y, z);
+}
+
+/**
+ * Creates a high-precision landing target beacon that lies flush against the lunar surface.
+ */
+function createLandingReticle() {
+  const group = new THREE.Group();
+
+  // Central pinpoint beacon dot right on the lunar surface
+  const dotGeo = new THREE.SphereGeometry(0.22, 16, 16);
+  const dotMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+  const dot = new THREE.Mesh(dotGeo, dotMat);
+  group.add(dot);
+
+  // Inner sharp reticle ring
+  const innerRingGeo = new THREE.RingGeometry(0.45, 0.65, 32);
+  const innerRingMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
+  const innerRing = new THREE.Mesh(innerRingGeo, innerRingMat);
+  group.add(innerRing);
+
+  // Outer pulsing targeting ring
+  const outerRingGeo = new THREE.RingGeometry(0.95, 1.25, 32);
+  const outerRingMat = new THREE.MeshBasicMaterial({
+    color: 0x38bdf8,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.8
+  });
+  const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat);
+  group.add(outerRing);
+
+  // 4 Crosshair ticks along the surface tangent
+  const tickMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+  const tickGeo = new THREE.PlaneGeometry(0.08, 0.45);
+  for (let i = 0; i < 4; i++) {
+    const tick = new THREE.Mesh(tickGeo, tickMat);
+    const angle = (i * Math.PI) / 2;
+    tick.position.set(Math.cos(angle) * 1.5, Math.sin(angle) * 1.5, 0);
+    tick.rotation.z = angle + Math.PI / 2;
+    group.add(tick);
+  }
+
+  group.userData = { outerRing };
+  return group;
 }
 
 /**
@@ -169,7 +214,8 @@ export function SpaceIntroScene({
       emissiveIntensity: 0.3
     });
     const moonMesh = new THREE.Mesh(moonGeo, moonMat);
-    moonMesh.rotation.y = Math.PI * 0.35;
+    // Initial tilt to nicely reveal the lunar South Pole landing areas
+    moonMesh.rotation.set(-0.25, 0, 0);
     moonGroup.add(moonMesh);
 
     // Moon Dedicated Highlight
@@ -178,14 +224,14 @@ export function SpaceIntroScene({
     moonSpot.target = moonGroup;
     scene.add(moonSpot);
 
-    // Mapped Landmark 3D Pins on Moon
+    // Mapped Landmark 3D Pins on Moon (Direct children of moonMesh to stay locked to craters!)
     const pinGroup = new THREE.Group();
-    moonGroup.add(pinGroup);
+    moonMesh.add(pinGroup);
 
     const landmarkPins = [];
     sites.forEach((site) => {
-      const pinPos = latLonToVector3(site.lat, site.lon, MOON_RADIUS + 0.15);
-      const pinGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const pinPos = latLonToVector3(site.lat, site.lon, MOON_RADIUS + 0.12);
+      const pinGeo = new THREE.SphereGeometry(0.3, 16, 16);
       const isSelected = site.id === selectedSiteId;
       const pinMat = new THREE.MeshBasicMaterial({
         color: isSelected ? 0x38bdf8 : (site.lat < -80 ? 0xffd25a : 0x10b981)
@@ -197,14 +243,13 @@ export function SpaceIntroScene({
       landmarkPins.push(pinMesh);
     });
 
-    // Dynamic Landing Reticle Marker
-    const markerGeo = new THREE.RingGeometry(0.8, 1.25, 32);
-    const markerMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-    const targetReticle = new THREE.Mesh(markerGeo, markerMat);
-    const initReticlePos = latLonToVector3(activeSite.lat, activeSite.lon, MOON_RADIUS + 0.08);
+    // Dynamic Landing Reticle Marker (Direct child of moonMesh, sits flush on lunar surface!)
+    const targetReticle = createLandingReticle();
+    const initReticlePos = latLonToVector3(activeSite.lat, activeSite.lon, MOON_RADIUS + 0.04);
     targetReticle.position.copy(initReticlePos);
-    targetReticle.lookAt(targetReticle.position.clone().multiplyScalar(2));
-    moonGroup.add(targetReticle);
+    const initNormal = initReticlePos.clone().normalize();
+    targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), initNormal);
+    moonMesh.add(targetReticle);
 
     // Store state in ref
     sceneElementsRef.current = {
@@ -218,15 +263,17 @@ export function SpaceIntroScene({
       targetReticle,
       landmarkPins,
       phase: 'overview',
-      progress: 0
+      progress: 0,
+      startCamPos: null
     };
 
-    // 7. Interactive Drag-to-Rotate & Click-to-Point Landing Target on Moon
+    // 7. Interactive Free 3D Drag-to-Rotate & Click-to-Point Landing Target on Moon
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
     let isDragging = false;
     let prevPointer = { x: 0, y: 0 };
     let dragDistance = 0;
+    let hasUserInteracted = false;
 
     const onPointerDown = (e) => {
       isDragging = true;
@@ -243,8 +290,16 @@ export function SpaceIntroScene({
 
       const el = sceneElementsRef.current;
       if (el && el.phase === 'moon-orbit') {
-        el.moonGroup.rotation.y += dx * 0.005;
-        el.moonGroup.rotation.x = Math.max(-0.6, Math.min(0.6, el.moonGroup.rotation.x + dy * 0.005));
+        hasUserInteracted = true;
+        // Camera-relative free 3D rotation in all axes (yaw, pitch, diagonal) without any clamping
+        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
+        const qYaw = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.007);
+        const qPitch = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.007);
+
+        el.moonMesh.quaternion.premultiply(qYaw);
+        el.moonMesh.quaternion.premultiply(qPitch);
       }
     };
 
@@ -255,6 +310,7 @@ export function SpaceIntroScene({
 
       // Click to point a landing spot on the Moon
       if (dragDistance < 6) {
+        hasUserInteracted = true;
         const rect = container.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -268,8 +324,9 @@ export function SpaceIntroScene({
           if (hitPin.userData?.siteId && onSelectSite) {
             onSelectSite(hitPin.userData.siteId);
             setCustomPointedCoords(null);
-            targetReticle.position.copy(hitPin.position);
-            targetReticle.lookAt(targetReticle.position.clone().multiplyScalar(2));
+            const normal = hitPin.position.clone().normalize();
+            targetReticle.position.copy(normal.clone().multiplyScalar(MOON_RADIUS + 0.04));
+            targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
             return;
           }
         }
@@ -278,20 +335,25 @@ export function SpaceIntroScene({
         const intersects = raycaster.intersectObject(moonMesh, false);
         if (intersects.length > 0) {
           const hit = intersects[0];
-          const localPoint = moonGroup.worldToLocal(hit.point.clone());
+          const localPoint = moonMesh.worldToLocal(hit.point.clone());
           const r = localPoint.length();
           const lat = Math.asin(Math.max(-1, Math.min(1, localPoint.y / r))) * (180 / Math.PI);
-          let lon = Math.atan2(localPoint.z, -localPoint.x) * (180 / Math.PI) - 180;
+          let theta = Math.atan2(localPoint.z, -localPoint.x);
+          if (theta < 0) theta += Math.PI * 2;
+          let lon = theta * (180 / Math.PI) - 180;
           if (lon < -180) lon += 360;
           if (lon > 180) lon -= 360;
 
-          // Position target reticle
-          targetReticle.position.copy(localPoint.clone().normalize().multiplyScalar(MOON_RADIUS + 0.08));
-          targetReticle.lookAt(targetReticle.position.clone().multiplyScalar(2));
+          // Position target reticle flush with the lunar surface tangent
+          const normal = localPoint.clone().normalize();
+          targetReticle.position.copy(normal.clone().multiplyScalar(MOON_RADIUS + 0.04));
+          targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
 
+          const latStr = `${Math.abs(lat).toFixed(1)}°${lat < 0 ? 'S' : 'N'}`;
+          const lonStr = `${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
           const pointed = {
             id: `pointed-${lat.toFixed(1)}-${lon.toFixed(1)}`,
-            name: `Landing Site (${lat.toFixed(1)}° S, ${lon.toFixed(1)}° E)`,
+            name: `Landing Spot (${latStr}, ${lonStr})`,
             lat,
             lon,
             terrainType: lat < -80 ? 'crater-rim' : 'plain'
@@ -302,7 +364,23 @@ export function SpaceIntroScene({
       }
     };
 
+    // Wheel zoom in/out on Moon orbit
+    const onWheel = (e) => {
+      const el = sceneElementsRef.current;
+      if (!el || el.phase !== 'moon-orbit') return;
+      e.preventDefault();
+      const moonWorld = new THREE.Vector3();
+      el.moonMesh.getWorldPosition(moonWorld);
+      const camDir = camera.position.clone().sub(moonWorld);
+      const dist = camDir.length();
+      const newDist = Math.max(17, Math.min(65, dist + e.deltaY * 0.025));
+      camDir.normalize().multiplyScalar(newDist);
+      camera.position.copy(moonWorld.clone().add(camDir));
+      camera.lookAt(moonWorld);
+    };
+
     container.addEventListener('pointerdown', onPointerDown);
+    container.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
 
@@ -328,28 +406,36 @@ export function SpaceIntroScene({
       earthMesh.rotation.y += delta * 0.12;
       sunMesh.rotation.y += delta * 0.02;
 
-      // Pulse reticle
-      const s = 1.0 + Math.sin(elapsed * 4) * 0.18;
-      targetReticle.scale.set(s, s, s);
+      // Pulse outer reticle ring
+      const outerRing = targetReticle.userData?.outerRing;
+      if (outerRing) {
+        const s = 1.0 + Math.sin(elapsed * 4) * 0.15;
+        outerRing.scale.set(s, s, s);
+        outerRing.material.opacity = 0.5 + Math.sin(elapsed * 4) * 0.3;
+      }
 
       const el = sceneElementsRef.current;
       if (!el) return;
 
-      // In moon-orbit, gently rotate moon if not actively dragging
-      if (el.phase === 'moon-orbit' && !isDragging) {
-        moonMesh.rotation.y += delta * 0.04;
+      // In moon-orbit, gently rotate moon only before user touches it
+      if (el.phase === 'moon-orbit' && !hasUserInteracted && !isDragging) {
+        const idleSpin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), delta * 0.025);
+        moonMesh.quaternion.multiply(idleSpin);
       }
 
       // Project 3D landmark pins to 2D screen labels
       if (el.phase === 'moon-orbit') {
         const labels = [];
+        const moonCenter = new THREE.Vector3();
+        moonMesh.getWorldPosition(moonCenter);
+
         landmarkPins.forEach((pin) => {
           const worldPos = new THREE.Vector3();
           pin.getWorldPosition(worldPos);
 
           // Check if facing the camera
           const dirToCam = camera.position.clone().sub(worldPos).normalize();
-          const normal = worldPos.clone().sub(moonGroup.position).normalize();
+          const normal = worldPos.clone().sub(moonCenter).normalize();
           const dot = dirToCam.dot(normal);
 
           if (dot > 0.15) {
@@ -400,8 +486,12 @@ export function SpaceIntroScene({
         const targetWorld = new THREE.Vector3();
         targetReticle.getWorldPosition(targetWorld);
 
-        const startCam = new THREE.Vector3(48, 2, 42);
-        const closeCam = targetWorld.clone().add(new THREE.Vector3(2, 4, 6));
+        const moonWorld = new THREE.Vector3();
+        moonMesh.getWorldPosition(moonWorld);
+        const normalWorld = targetWorld.clone().sub(moonWorld).normalize();
+
+        const startCam = el.startCamPos || new THREE.Vector3(48, 2, 42);
+        const closeCam = targetWorld.clone().add(normalWorld.clone().multiplyScalar(4.5));
         camera.position.lerpVectors(startCam, closeCam, ease);
         camera.lookAt(targetWorld);
 
@@ -418,6 +508,7 @@ export function SpaceIntroScene({
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       container.removeEventListener('pointerdown', onPointerDown);
+      container.removeEventListener('wheel', onWheel);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('resize', handleResize);
@@ -436,6 +527,19 @@ export function SpaceIntroScene({
     };
   }, []);
 
+  // Update reticle position whenever selected site or coordinates change
+  useEffect(() => {
+    const el = sceneElementsRef.current;
+    if (!el || !el.targetReticle || customPointedCoords) return;
+    const currentSite = sites.find(s => s.id === selectedSiteId) || sites[0];
+    if (currentSite) {
+      const pos = latLonToVector3(currentSite.lat, currentSite.lon, 10.5 + 0.04);
+      el.targetReticle.position.copy(pos);
+      const normal = pos.clone().normalize();
+      el.targetReticle.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
+    }
+  }, [selectedSiteId, sites, customPointedCoords]);
+
   // Handlers
   const handleInitiateApproach = () => {
     if (sceneElementsRef.current) {
@@ -449,6 +553,7 @@ export function SpaceIntroScene({
     if (sceneElementsRef.current) {
       sceneElementsRef.current.phase = 'descent';
       sceneElementsRef.current.progress = 0;
+      sceneElementsRef.current.startCamPos = sceneElementsRef.current.camera.position.clone();
       setPhase('descent');
     }
   };
