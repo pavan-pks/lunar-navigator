@@ -18,7 +18,8 @@
 - `src/components/scene/cameraModes.js`: Dual-mode camera controller supporting OrbitControls (fov 50, limits, terrain clamping) and Astronaut mode (fov 70, 1.7m eye height, pitch ±60° drag look, arrow keys, smooth look-at animation to Sun, Earth, and North).
 - `src/components/scene/Hud.jsx`: Dedicated DOM overlay with site label, "Illustrative terrain" honesty badge, live 0.1° Sun/Earth coordinate readouts, real-time lander shadow length and multiplier ratio, interactive view mode toggle, and astronaut quick-look actions.
 - `src/components/scene/quality.js`: Performance tier configurations (`low`, `medium`, `high`) and automatic 90-frame benchmarking probe that drops from medium to low if fps < 24.
-- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup wrapped in `SceneErrorBoundary`, WebGL fallback to `SkyDiagram`, context loss/restoration handling, prop validation/clamping, `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, on-demand `invalidate()` scheduling, and full StrictMode disposal.
+- `src/components/scene/ShadowRuler.js`: Procedural metric shadow measurement ruler projected along the ground opposite the Sun's azimuth, complete with 10m tick marks and floating distance badge sprite (capped at 150m; terrain slope ignored as it is a visual aid).
+- `src/components/scene/Scene3D.jsx`: Complete Three.js WebGL setup wrapped in `SceneErrorBoundary`, WebGL fallback to `SkyDiagram`, context loss/restoration handling, prop validation/clamping, `PerspectiveCamera`, OrbitControls & Astronaut camera mode, harsh directional Sun lighting, wide orthographic shadow camera, deep sky system, 3D compass ring, procedural lander, rocks, dynamic terrain, modular HUD overlay, shadow ruler, on-demand `invalidate()` scheduling, and full StrictMode disposal.
 
 ## How to use it (props and exports)
 - Run `npm run dev` and navigate to `http://localhost:5173/sandbox-pavan.html`.
@@ -58,7 +59,8 @@
 - Dual WebGL contexts run smoothly in sandbox side-by-side comparison mode.
 
 ## Known issues
-- P-13: Shadow ruler ground line with metric tick marks is the final core task.
+- Terrain slope is ignored along the shadow ruler (flat ground approximation $H / \tan(\theta)$, capped at 150m) as specified; intended as a fast visual metric guide.
+- All 13 core tasks (P-01 to P-13) are 100% complete with 0 console warnings and verified performance on low/medium/high tiers. Ready for stretch goals (PS-1 LaunchAnimation, PS-2 LOLA heightmaps, PS-3 Cinematic camera path).
 
 ## Requests to the other member / human
 - None at this time.

@@ -5,6 +5,7 @@ import { buildLander } from './lander.js'
 import { buildRocks } from './rocks.js'
 import { buildSky } from './sky.js'
 import { buildCompassRing } from './compass.js'
+import { buildShadowRuler } from './ShadowRuler.js'
 import { createCameraController } from './cameraModes.js'
 import { getTierConfig, createPerformanceProbe } from './quality.js'
 import Hud from './Hud.jsx'
@@ -200,6 +201,10 @@ function Scene3DInner({
     const compass = buildCompassRing()
     scene.add(compass.group)
 
+    // Shadow Ruler with metric ticks and end badge
+    const shadowRuler = buildShadowRuler()
+    scene.add(shadowRuler.group)
+
     // Invalidate function for on-demand rendering
     const invalidate = () => {
       if (isDisposed || renderRequested || isOffscreen || isHidden) return
@@ -277,6 +282,7 @@ function Scene3DInner({
       lander,
       sky,
       compass,
+      shadowRuler,
       rocksData: null,
       cameraController,
       terrainData: null,
@@ -302,6 +308,7 @@ function Scene3DInner({
         lander.dispose()
         sky.dispose()
         compass.dispose()
+        shadowRuler.dispose()
 
         if (ctxRef.current?.rocksData) {
           ctxRef.current.rocksData.dispose()
@@ -326,7 +333,7 @@ function Scene3DInner({
     }
   }, [activeTier])
 
-  // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, sky bodies, and viewMode
+  // (b) Lightweight effect for angles, sun light, shadows, earthshine, lander scale, sky bodies, shadow ruler, and viewMode
   useEffect(() => {
     const ctx = ctxRef.current
     if (!ctx) return
@@ -387,6 +394,16 @@ function Scene3DInner({
       ctx.lander.setHeight(validLanderHeight)
     }
 
+    if (ctx.shadowRuler) {
+      ctx.shadowRuler.update({
+        sunEl: validSunEl,
+        sunAz: validSunAz,
+        landerHeight: validLanderHeight,
+        padY,
+        showShadowRuler,
+      })
+    }
+
     if (ctx.cameraController) {
       ctx.cameraController.setMode(activeViewMode, {
         sunEl: validSunEl,
@@ -397,7 +414,7 @@ function Scene3DInner({
     }
 
     ctx.invalidate()
-  }, [validSunEl, validSunAz, validEarthEl, validEarthAz, validLanderHeight, activeViewMode])
+  }, [validSunEl, validSunAz, validEarthEl, validEarthAz, validLanderHeight, showShadowRuler, activeViewMode])
 
   // (c) Terrain and rocks rebuild effect (only on siteId, terrainType, activeTier, heightmapUrl)
   useEffect(() => {
@@ -433,6 +450,16 @@ function Scene3DInner({
 
     if (ctx.compass) {
       ctx.compass.updatePadY(terrain.originPadHeight)
+    }
+
+    if (ctx.shadowRuler) {
+      ctx.shadowRuler.update({
+        sunEl: validSunEl,
+        sunAz: validSunAz,
+        landerHeight: validLanderHeight,
+        padY: terrain.originPadHeight,
+        showShadowRuler,
+      })
     }
 
     if (ctx.cameraController) {
