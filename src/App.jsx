@@ -7,8 +7,7 @@ import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/metrics.js';
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
 
-import { CinematicSpaceUniverse } from './components/scene/CinematicSpaceUniverse.jsx';
-import { LroSurfaceView } from './components/scene/LroSurfaceView.jsx';
+import { LunarUniverseR3F } from './components/scene/LunarUniverseR3F.jsx';
 import { TargetingReticle } from './components/ui/TargetingReticle.jsx';
 import { EdgeHudSidebars } from './components/ui/EdgeHudSidebars.jsx';
 import { ComparePanel } from './components/ui/ComparePanel.jsx';
@@ -215,53 +214,38 @@ export function App() {
 
   const { sites, ephem } = data;
 
-  const showEnterSurface = sceneState === 'orbit' && viewMode === 'orbit';
+  const showEnterSurface = sceneState === 'orbit';
 
   return (
     <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] overflow-hidden font-sans select-none relative cursor-none">
       {/* ── Custom crosshair cursor ── */}
       <CustomCursor />
 
-      {/* ── 1. 3D VIEWPORT ── */}
-      {viewMode === 'surface' ? (
-        <div className="absolute inset-0 w-full h-full z-0 animate-in fade-in duration-700">
-          <LroSurfaceView
-            targetId={site.id}
-            lat={site.lat}
-            lon={site.lon}
-            sunEl={live.sunEl}
-            sunAz={live.sunAz}
-            label={site.name}
-          />
-        </div>
-      ) : (
-        <CinematicSpaceUniverse
-          ref={universeRef}
-          mode={sceneState}
-          sites={sites}
-          selectedSiteId={selectedSiteId}
-          onSelectSite={handleSelectSite}
-          onReachedOrbit={handleReachedOrbit}
-          onLanderTouchdown={() => setHasLanded(true)}
-          onUpdateCraterScreenPos={setCraterScreenPos}
-          sunEl={live.sunEl}
-          sunAz={live.sunAz}
-          earthEl={live.earthEl}
-          earthAz={live.earthAz}
-          customCoords={customSite}
-          onPointCustomCoords={(coords) => {
-            const latStr = `${Math.abs(coords.lat).toFixed(1)}°${coords.lat < 0 ? 'S' : 'N'}`;
-            const lonStr = `${Math.abs(coords.lon).toFixed(1)}°${coords.lon >= 0 ? 'E' : 'W'}`;
-            handleSelectSite({
-              id: `custom-${coords.lat.toFixed(1)}-${coords.lon.toFixed(1)}`,
-              name: `Designated Site (${latStr}, ${lonStr})`,
-              lat: coords.lat,
-              lon: coords.lon,
-              terrainType: coords.lat < -80 ? 'crater-rim' : 'plain',
-            });
-          }}
-        />
-      )}
+      {/* ── 1. UNIFIED R3F 3D VIEWPORT (SPACE, MOON & SPACECRAFT) ── */}
+      <LunarUniverseR3F
+        ref={universeRef}
+        mode={sceneState}
+        sites={sites}
+        selectedSiteId={selectedSiteId}
+        onSelectSite={handleSelectSite}
+        onReachedOrbit={handleReachedOrbit}
+        onLanderTouchdown={() => {
+          setHasLanded(true);
+          setViewMode('surface');
+        }}
+        onUpdateCraterScreenPos={setCraterScreenPos}
+        sunEl={live.sunEl}
+        sunAz={live.sunAz}
+        earthEl={live.earthEl}
+        earthAz={live.earthAz}
+        customCoords={customSite}
+        viewMode={viewMode}
+        isDescending={isDescending}
+        hasLanded={hasLanded}
+        setIsDescending={setIsDescending}
+        setHasLanded={setHasLanded}
+        setViewMode={setViewMode}
+      />
 
       {/* ── 2. CENTER RETICLE ── */}
       {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && (
@@ -406,6 +390,9 @@ export function App() {
             onEnterSurface={handleTriggerDescent}
             showEnterSurface={showEnterSurface}
             isDescending={isDescending}
+            hasLanded={hasLanded}
+            viewMode={viewMode}
+            onReturnToOrbit={() => setViewMode('orbit')}
           />
 
           {/* ── BOTTOM SCRUBBER ── */}

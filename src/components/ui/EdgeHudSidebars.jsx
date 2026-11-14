@@ -22,6 +22,9 @@ export function EdgeHudSidebars({
   onEnterSurface,
   showEnterSurface = false,
   isDescending = false,
+  hasLanded = false,
+  viewMode = 'orbit',
+  onReturnToOrbit,
 }) {
   const sunElStr = live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`;
   const earthElStr = live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`;
@@ -80,14 +83,24 @@ export function EdgeHudSidebars({
               ))}
             </div>
 
-            {/* Enter Surface View — contextual button below site picker */}
+            {/* Contextual Landing / Surface View button directly beneath coordinates */}
             {showEnterSurface && onEnterSurface && (
               <button
-                onClick={onEnterSurface}
+                onClick={() => {
+                  if (hasLanded && viewMode === 'surface' && onReturnToOrbit) {
+                    onReturnToOrbit();
+                  } else {
+                    onEnterSurface();
+                  }
+                }}
                 disabled={isDescending}
-                className="mt-4 text-[10px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/15 hover:border-white hover:bg-white hover:text-black px-4 py-2 transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
+                className="mt-4 text-[10px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-4 py-2.5 transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
               >
-                {isDescending ? 'Descent in Progress…' : 'Enter Surface View ↘'}
+                {isDescending
+                  ? 'Descent in Progress…'
+                  : hasLanded
+                  ? (viewMode === 'surface' ? 'Return to Orbit ↖' : 'Surface View (Landed) ↘')
+                  : 'Initiate Landing Sequence ↘'}
               </button>
             )}
           </div>
