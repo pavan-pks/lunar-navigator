@@ -46,7 +46,7 @@ export function EdgeHudSidebars({
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="fixed left-6 sm:left-10 lg:left-12 top-20 bottom-24 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-11rem)]"
       >
-        <div className="flex flex-col gap-3.5 p-4 sm:p-5 bg-black/75 border border-white/10 rounded-xl shadow-2xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 sidebar-scroll">
+        <div className="flex flex-col gap-3.5 p-4 sm:p-5 bg-black/80 border border-white/10 rounded-xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 sidebar-scroll">
           {/* Target Location Selector */}
           <div className="flex flex-col gap-2">
             <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
@@ -178,7 +178,7 @@ export function EdgeHudSidebars({
         transition={{ duration: 0.35, ease: 'easeOut' }}
         className="fixed right-6 sm:right-10 lg:right-12 top-20 bottom-24 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-11rem)]"
       >
-        <div className="flex flex-col gap-3.5 p-4 sm:p-5 bg-black/75 border border-white/10 rounded-xl shadow-2xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 text-right sidebar-scroll">
+        <div className="flex flex-col gap-3.5 p-4 sm:p-5 bg-black/80 border border-white/10 rounded-xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 text-right sidebar-scroll">
           {/* Deep Space Network Ground Segment */}
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">

@@ -22,7 +22,7 @@
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Done | 100 | 10 | sky.js: 800-2500 stars Points with day/night dimming, emissive Sun disk (0.53° angular size), procedural canvas textured Earth (1.9°) & text sprite |
 | P-08 | Orbit camera | 5 | Done | 100 | 5 | cameraModes.js: fov 50, (70,40,90) start, maxPolarAngle 1.45 rad; LunarUniverseR3F: auto centerMoon transition on return from surface view |
 | P-09 | Astronaut camera | 10 | Done | 100 | 10 | First-person surface view (fov 70, 1.7m eye height), pitch ±60° drag look, arrow keys, Look at Sun/Earth/North buttons, compass ring (R=190m), floating top action pill in SurfaceViewSimulation |
-| P-10 | HUD overlay and compass | 6 | Done | 100 | 6 | Hud.jsx & EdgeHudSidebars.jsx: Crisp clear panels (backdrop-blur-md removed), scrollable clamped sidebars, unobstructed top/bottom layout |
+| P-10 | HUD overlay and compass | 6 | Done | 100 | 6 | Hud.jsx & EdgeHudSidebars.jsx: Pure crystal-clear HUD, removed top header gradient film, removed body radial-gradient haze and heavy drop-shadows |
 | P-11 | Quality tiers and performance (on-demand rendering) | 10 | Done | 100 | 10 | quality.js: low/med/high tier profiles, 90-frame auto benchmark probe with <24fps downgrade, IntersectionObserver & tab visibility pause |
 | P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Done | 100 | 6 | SkyDiagram.jsx SVG fallback, SceneErrorBoundary, webglcontextlost/restored recovery, safe prop clamping, complete notes |
 | P-13 | Shadow ruler | 3 | Done | 100 | 3 | ShadowRuler.js ground measurement line opposite Sun azimuth, 10m metric ticks, 150m cap, and distance badge sprite |

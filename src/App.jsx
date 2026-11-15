@@ -380,7 +380,7 @@ export function App() {
       {(sceneState === 'orbit' || viewMode === 'surface') && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6 sm:p-10 lg:p-12">
           {/* ── TOP BAR HEADER ── */}
-          <header className="flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4 rounded-xl -mx-4 -mt-4">
+          <header className="flex items-center justify-between pointer-events-none bg-transparent">
             <div className="pointer-events-auto">
               <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block">
                 {viewMode === 'surface' ? 'Astronaut EVA Surface Simulation' : 'Polar Orbit Survey'}
@@ -480,7 +480,7 @@ export function App() {
 
           {/* ── BOTTOM TIMELINE SCRUBBER & SPEED MULTIPLIER ── */}
           {!compareOpen && (
-            <div className="pointer-events-auto space-y-3 z-20 max-w-4xl mx-auto w-full p-4 rounded-xl bg-black/80 border border-white/10 shadow-2xl">
+            <div className="pointer-events-auto space-y-3 z-20 max-w-4xl mx-auto w-full p-4 rounded-xl bg-black/80 border border-white/10">
               <div className="flex items-center justify-between text-[11px] font-sans font-light text-[#a3a3a3]">
                 {/* Play/Pause & Speed Multiplier */}
                 <div className="flex items-center gap-4">
