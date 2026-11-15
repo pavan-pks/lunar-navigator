@@ -137,3 +137,107 @@ export function playTargetLock() {
     // Ignore
   }
 }
+
+/**
+ * Procedural Soothing Space Ambient Music Soundscape (Web Audio API).
+ * Generates an evolving, calming cosmic pad with gentle breathing LFO filter swells.
+ */
+let ambientNodes = null;
+
+export function startSpaceAmbientMusic() {
+  if (isAudioMuted || ambientNodes) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    // Master ambient gain with smooth fade-in
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.001, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0.14, ctx.currentTime + 2.5);
+    masterGain.connect(ctx.destination);
+
+    // Warm resonant lowpass filter
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(380, ctx.currentTime);
+    filter.Q.setValueAtTime(2.5, ctx.currentTime);
+    filter.connect(masterGain);
+
+    // Filter LFO for breathing cosmic swell effect (~16-second cycle)
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.065, ctx.currentTime);
+    lfoGain.gain.setValueAtTime(180, ctx.currentTime);
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+    lfo.start();
+
+    // Four harmonic soothing celestial oscillators (C maj9 cosmic chord)
+    // C2 (65.4Hz), G2 (98.0Hz), E3 (164.8Hz), B3 (246.9Hz)
+    const chordFreqs = [65.41, 97.99, 164.81, 246.94];
+    const oscs = [];
+
+    chordFreqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const oscGain = ctx.createGain();
+
+      osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+      osc.frequency.setValueAtTime(freq + (Math.random() - 0.5) * 0.35, ctx.currentTime);
+
+      oscGain.gain.setValueAtTime(0.05 / (idx + 1), ctx.currentTime);
+
+      osc.connect(oscGain);
+      oscGain.connect(filter);
+      osc.start();
+      oscs.push(osc);
+    });
+
+    // Sub-bass root drone (C1 = 32.7Hz)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(32.7, ctx.currentTime);
+    subGain.gain.setValueAtTime(0.07, ctx.currentTime);
+    subOsc.connect(subGain);
+    subGain.connect(filter);
+    subOsc.start();
+    oscs.push(subOsc);
+
+    ambientNodes = { masterGain, filter, lfo, oscs };
+  } catch (err) {
+    // Fallback silent
+  }
+}
+
+export function stopSpaceAmbientMusic() {
+  if (!ambientNodes) return;
+  try {
+    const ctx = getAudioContext();
+    if (ctx && ambientNodes.masterGain) {
+      ambientNodes.masterGain.gain.linearRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      const currentNodes = ambientNodes;
+      ambientNodes = null;
+      setTimeout(() => {
+        try {
+          currentNodes.oscs.forEach((osc) => {
+            try { osc.stop(); } catch (e) {}
+          });
+          try { currentNodes.lfo.stop(); } catch (e) {}
+        } catch (e) {}
+      }, 1300);
+    } else {
+      ambientNodes = null;
+    }
+  } catch (err) {
+    ambientNodes = null;
+  }
+}
+
+export function toggleSpaceAmbientMusic(forceState) {
+  if (forceState === false || (forceState === undefined && ambientNodes)) {
+    stopSpaceAmbientMusic();
+  } else {
+    startSpaceAmbientMusic();
+  }
+}

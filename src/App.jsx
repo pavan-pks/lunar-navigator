@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Play, Pause, BarChart2, FileText, RotateCcw } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController } from './lib/useTimeController.js';
 import { getLunarTime } from './lib/lunarTime.js';
 import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/metrics.js';
-import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted } from './lib/audio.js';
+import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted, startSpaceAmbientMusic, stopSpaceAmbientMusic, toggleSpaceAmbientMusic } from './lib/audio.js';
 
 import { LunarUniverseR3F } from './components/scene/LunarUniverseR3F.jsx';
 import { SurfaceViewSimulation } from './components/scene/SurfaceViewSimulation.jsx';
@@ -77,11 +77,11 @@ export function App() {
   // 3D On-Moon spot labels visibility
   const [showLabels, setShowLabels] = useState(true);
 
-  // Cesium-Style Tactical Lunar Coordinate Graticule Grid
-  const [showGraticule, setShowGraticule] = useState(true);
+  // Cesium-Style Tactical Lunar Coordinate Graticule Grid (off by default)
+  const [showGraticule, setShowGraticule] = useState(false);
 
-  // 3D Direct-to-Earth Laser / DSN Telemetry Beam
-  const [showDsnBeam, setShowDsnBeam] = useState(true);
+  // 3D Direct-to-Earth Laser / DSN Telemetry Beam (off by default)
+  const [showDsnBeam, setShowDsnBeam] = useState(false);
 
   // LRO Diviner Cryogenic Thermal & Water-Ice Heatmap
   const [showThermalMap, setShowThermalMap] = useState(false);
@@ -179,6 +179,7 @@ export function App() {
   const handleStartMission = () => {
     playTelemetryPing(2524, 0.12);
     playThrustRumble(2.2);
+    if (!audioMuted) startSpaceAmbientMusic();
     setSceneState('transition');
     if (universeRef.current?.startMissionTransition) universeRef.current.startMissionTransition();
   };
@@ -238,6 +239,7 @@ export function App() {
     const next = !audioMuted;
     setAudioMutedState(next);
     setMuted(next);
+    toggleSpaceAmbientMusic(!next);
     if (!next) playTelemetryPing(2100, 0.08);
   };
 
@@ -333,6 +335,7 @@ export function App() {
               <button
                 onClick={() => {
                   setShowLandingOption(false);
+                  timeCtrl.pause();
                   setViewMode('surface');
                 }}
                 className="flex-1 bg-white text-black hover:bg-neutral-200 py-2.5 px-4 rounded text-xs font-sans font-medium tracking-wider uppercase transition cursor-none"
@@ -404,10 +407,22 @@ export function App() {
       {/* SCENE 2: TRANSITION                                                      */}
       {/* ======================================================================= */}
       {sceneState === 'transition' && (
-        <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
-          <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase animate-pulse">
-            Trans-Lunar Approach
-          </span>
+        <div className="absolute inset-0 z-30 pointer-events-none flex flex-col items-center justify-center p-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -25, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 1.05 }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+            className="flex flex-col items-center gap-3"
+          >
+            <span className="text-[11px] font-mono tracking-[0.45em] text-[#38bdf8] uppercase">
+              ORBITAL APPROACH
+            </span>
+            <h1 className="text-5xl sm:text-7xl font-sans font-light tracking-[0.35em] text-white uppercase drop-shadow-[0_4px_30px_rgba(0,0,0,0.95)]">
+              THE MOON
+            </h1>
+            <div className="w-16 h-[1px] bg-gradient-to-r from-transparent via-[#38bdf8] to-transparent mt-2" />
+          </motion.div>
         </div>
       )}
 
@@ -417,43 +432,67 @@ export function App() {
       {(sceneState === 'orbit' || viewMode === 'surface') && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6 sm:p-10 lg:p-12">
           {/* ── TOP BAR HEADER ── */}
-          <header className="flex items-center justify-between pointer-events-none bg-transparent">
-            <div className="pointer-events-auto">
-              <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block">
-                {viewMode === 'surface' ? 'Astronaut EVA Surface Simulation' : 'Polar Orbit Survey'}
-              </span>
-              <div className="text-sm font-sans font-light text-[#f5f5f5] tracking-wide mt-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                {site.name} · <span className="font-mono text-xs text-[#a3a3a3]">{site.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`}</span>
+          <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 pointer-events-none bg-transparent">
+            <div className="pointer-events-auto flex items-center justify-between w-full md:w-auto">
+              <div>
+                <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block">
+                  {viewMode === 'surface' ? 'Astronaut EVA Surface Simulation' : 'Polar Orbit Survey'}
+                </span>
+                <div className="text-sm font-sans font-light text-[#f5f5f5] tracking-wide mt-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                  {site.name} · <span className="font-mono text-xs text-[#a3a3a3]">{site.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`}</span>
+                </div>
               </div>
+
+              {/* Mobile HUD Toggle Button */}
+              <button
+                onClick={() => setIsSidebarsCollapsed(v => !v)}
+                className="md:hidden border border-white/20 bg-black/80 px-2.5 py-1 rounded text-[11px] font-sans text-sky-300 pointer-events-auto shadow-md"
+              >
+                {isSidebarsCollapsed ? '📊 HUD' : '✕ Hide HUD'}
+              </button>
             </div>
 
-            {/* Navigation Actions */}
-            <div className="flex items-center gap-6 text-xs font-sans tracking-wider pointer-events-auto">
+            {/* Navigation Actions (Responsive scrollable container for phones & tablets) */}
+            <div className="flex items-center gap-2 sm:gap-3.5 lg:gap-4 text-[11px] sm:text-xs font-sans tracking-wider pointer-events-auto overflow-x-auto max-w-full pb-1 no-scrollbar flex-nowrap shrink-0">
               {viewMode === 'surface' ? (
                 <button
                   onClick={handleReturnToOrbit}
-                  className="text-[#f5f5f5] border-b border-white/30 hover:border-white transition cursor-none pb-0.5"
+                  className="text-[#f5f5f5] border-b border-white/30 hover:border-white transition cursor-none pb-0.5 shrink-0"
                 >
                   Return to Orbital Survey ↖
                 </button>
               ) : (
-                <button
-                  onClick={() => {
-                    playTelemetryPing(2000, 0.08);
-                    setCompareOpen(v => !v);
-                  }}
-                  className={`flex items-center gap-1.5 transition cursor-none ${
-                    compareOpen ? 'text-[#f5f5f5]' : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
-                  }`}
-                >
-                  <BarChart2 size={12} />
-                  <span>{compareOpen ? 'Exit Compare' : 'Compare'}</span>
-                </button>
+                <>
+                  {/* Spacecraft Focus Zoom Button */}
+                  <button
+                    onClick={() => {
+                      playTelemetryPing(1900, 0.08);
+                      universeRef.current?.focusSpacecraft?.();
+                    }}
+                    className="text-[#38bdf8] hover:text-white transition cursor-none flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full bg-sky-950/40 border border-sky-700/40"
+                    title="Zoom camera to focus on the Spacecraft"
+                  >
+                    <span>🚀 Focus Craft</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      playTelemetryPing(2000, 0.08);
+                      setCompareOpen(v => !v);
+                    }}
+                    className={`flex items-center gap-1.5 transition cursor-none shrink-0 ${
+                      compareOpen ? 'text-[#f5f5f5]' : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
+                    }`}
+                  >
+                    <BarChart2 size={12} />
+                    <span>{compareOpen ? 'Exit' : 'Compare'}</span>
+                  </button>
+                </>
               )}
 
               <button
                 onClick={() => setShowReport(true)}
-                className="flex items-center gap-1.5 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
+                className="flex items-center gap-1.5 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0"
               >
                 <FileText size={12} />
                 <span>Report</span>
@@ -461,14 +500,14 @@ export function App() {
 
               <button
                 onClick={() => setShowCsaPanel(true)}
-                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
+                className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0"
               >
                 CSA Alignment ↗
               </button>
 
               <button
                 onClick={() => setShowLabels(v => !v)}
-                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 shrink-0 ${
                   showLabels ? 'text-[#f5f5f5]' : 'text-[#737373] hover:text-[#a3a3a3]'
                 }`}
                 title="Toggle on-Moon 3D landmark and landing site labels"
@@ -479,7 +518,7 @@ export function App() {
               {/* Cesium-Style Lunar Graticule Grid Toggle */}
               <button
                 onClick={() => setShowGraticule(v => !v)}
-                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 shrink-0 ${
                   showGraticule ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
                 }`}
                 title="Toggle Cesium-style tactical lunar coordinate graticule grid"
@@ -490,7 +529,7 @@ export function App() {
               {/* DSN Telemetry Laser Beam Toggle */}
               <button
                 onClick={() => setShowDsnBeam(v => !v)}
-                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 shrink-0 ${
                   showDsnBeam ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
                 }`}
                 title="Toggle Direct-to-Earth Telemetry Laser Beam"
@@ -501,7 +540,7 @@ export function App() {
               {/* LRO Diviner Water-Ice Heatmap Toggle */}
               <button
                 onClick={() => setShowThermalMap(v => !v)}
-                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 shrink-0 ${
                   showThermalMap ? 'text-[#a78bfa]' : 'text-[#737373] hover:text-[#a3a3a3]'
                 }`}
                 title="Toggle LRO Diviner Cryogenic Water-Ice False-Color Heatmap"
@@ -509,11 +548,11 @@ export function App() {
                 <span>🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
               </button>
 
-              <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">
+              <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0">
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>
 
-              <button onClick={handleResetToMacro} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">
+              <button onClick={handleResetToMacro} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0">
                 Overview ↗
               </button>
             </div>
@@ -566,6 +605,7 @@ export function App() {
                 isCollapsed={isSidebarsCollapsed}
                 onEnterSurface={() => {
                   if (hasLanded && viewMode === 'orbit') {
+                    timeCtrl.pause();
                     setViewMode('surface');
                   } else {
                     handleTriggerDescent();

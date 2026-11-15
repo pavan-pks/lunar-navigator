@@ -49,78 +49,34 @@ export function vector3ToLatLon(vec) {
 const spriteTextureCache = new Map();
 
 function getSpotSpriteTexture(spot, isSelected) {
-  const key = `${spot.id}_${isSelected ? 'active' : 'idle'}`;
+  const key = `${spot.id}_${isSelected ? 'active' : 'idle'}_nameonly`;
   if (spriteTextureCache.has(key)) return spriteTextureCache.get(key);
 
   const canvas = document.createElement('canvas');
-  canvas.width = 440;
-  canvas.height = 110;
+  canvas.width = 512;
+  canvas.height = 96;
   const ctx = canvas.getContext('2d');
 
-  // Category Color Palette
-  const accentColor =
-    spot.category === 'artemis' ? '#00f0ff' :
-    spot.category === 'historic' ? '#fbbf24' :
-    spot.category === 'pole' ? '#c084fc' : '#94a3b8';
-
-  const categoryLabel =
-    spot.category === 'artemis' ? 'ARTEMIS CANDIDATE' :
-    spot.category === 'historic' ? 'HISTORIC MISSION' :
-    spot.category === 'pole' ? 'GEOGRAPHIC POLE' : 'LUNAR LANDMARK';
-
-  // Background Glass Pill
-  const bgAlpha = isSelected ? 0.94 : 0.82;
-  const borderColor = isSelected ? '#00f0ff' : 'rgba(255, 255, 255, 0.22)';
-  const borderWidth = isSelected ? 3.5 : 1.5;
-
-  ctx.save();
-  ctx.shadowColor = isSelected ? 'rgba(0, 240, 255, 0.5)' : 'rgba(0, 0, 0, 0.65)';
-  ctx.shadowBlur = isSelected ? 16 : 8;
-
-  // Draw sleek rounded capsule
-  const x = 8, y = 8, w = 424, h = 94, r = 20;
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-
-  ctx.fillStyle = isSelected ? 'rgba(6, 16, 32, 0.95)' : `rgba(10, 12, 16, ${bgAlpha})`;
-  ctx.fill();
-  ctx.restore();
-
-  ctx.strokeStyle = borderColor;
-  ctx.lineWidth = borderWidth;
-  ctx.stroke();
-
-  // Left vertical category accent bar
-  ctx.fillStyle = isSelected ? '#00f0ff' : accentColor;
-  ctx.beginPath();
-  ctx.rect(16, 20, 5, 68);
-  ctx.fill();
-
-  // Top Subheader: Category Tag + Coordinates
-  const latStr = `${Math.abs(spot.lat).toFixed(1)}°${spot.lat >= 0 ? 'N' : 'S'}`;
-  const lonStr = `${Math.abs(spot.lon).toFixed(1)}°${spot.lon >= 0 ? 'E' : 'W'}`;
-  ctx.font = '600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
-  ctx.fillStyle = isSelected ? '#38bdf8' : accentColor;
-  ctx.fillText(categoryLabel, 30, 42);
-
-  ctx.font = '400 16px monospace';
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
-  ctx.fillText(`·  ${latStr}, ${lonStr}`, 30 + ctx.measureText(categoryLabel).width + 8, 42);
-
-  // Main Header: Site Name
-  ctx.font = 'bold 27px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  ctx.fillStyle = isSelected ? '#ffffff' : '#f1f5f9';
   const displayName = (spot.shortName || spot.name).toUpperCase();
-  ctx.fillText(displayName, 30, 77);
+
+  ctx.font = 'bold 30px "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Deep dark shadow halo for crystal-clear readability against terrain
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+
+  // Crisp outline
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.92)';
+  ctx.lineWidth = 5;
+  ctx.strokeText(displayName, 256, 48);
+
+  // Name text only
+  ctx.fillStyle = isSelected ? '#38bdf8' : '#ffffff';
+  ctx.fillText(displayName, 256, 48);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.LinearFilter;
@@ -317,7 +273,7 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
   const { pos, normal, pinTop, texture } = useMemo(() => {
     const p = latLonToVector3(landmark.lat, landmark.lon, MOON_RADIUS);
     const n = p.clone().normalize();
-    const top = p.clone().addScaledVector(n, 0.26);
+    const top = p.clone().addScaledVector(n, 0.18);
     const tex = getSpotSpriteTexture(landmark, isSelected);
     return { pos: p, normal: n, pinTop: top, texture: tex };
   }, [landmark, isSelected]);
@@ -385,7 +341,7 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
       <sprite
         ref={spriteRef}
         position={pinTop}
-        scale={[1.35, 0.34, 1]}
+        scale={[1.15, 0.22, 1]}
         onClick={(e) => {
           e.stopPropagation();
           onSelectSite?.(landmark);
@@ -1007,22 +963,11 @@ function CameraDirector({
     if (isDescending && spacecraftRef.current && orbitControlsRef.current) {
       const spPos = spacecraftRef.current.position;
       const spNorm = spPos.clone().normalize();
-      const desiredPos = spPos.clone().addScaledVector(spNorm, 4.2).add(new THREE.Vector3(0, 1.4, 0));
-      camera.position.lerp(desiredPos, delta * 3.5);
-      orbitControlsRef.current.target.lerp(spPos, delta * 4.5);
+      const desiredPos = spPos.clone().addScaledVector(spNorm, 3.8).add(new THREE.Vector3(0, 1.2, 0));
+      camera.position.lerp(desiredPos, delta * 3.0);
+      orbitControlsRef.current.target.lerp(spPos, delta * 4.0);
       orbitControlsRef.current.update();
       return;
-    }
-
-    if (hasLanded && spacecraftRef.current && orbitControlsRef.current) {
-      const spPos = spacecraftRef.current.position;
-      if (viewMode === 'orbit') {
-        const offset = targetNormal.clone().multiplyScalar(3.2).add(new THREE.Vector3(0.5, 0.8, 0.5));
-        const desiredPos = spPos.clone().add(offset);
-        camera.position.lerp(desiredPos, delta * 3.0);
-        orbitControlsRef.current.target.lerp(spPos, delta * 3.0);
-        orbitControlsRef.current.update();
-      }
     }
   });
 
@@ -1343,7 +1288,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     const animState = { t: 0 };
     gsap.to(animState, {
       t: 1.0,
-      duration: 6.8,
+      duration: 11.2,
       ease: 'power1.inOut',
       onStart: () => {
         setThrusterActive(false);
@@ -1386,6 +1331,29 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
         if (spacecraftRef.current) {
           spacecraftRef.current.position.copy(touchdownPos);
           spacecraftRef.current.quaternion.copy(uprightQuat);
+        }
+        // Smoothly tween camera to lander focus once, then keep OrbitControls completely unlocked
+        if (orbitControlsRef.current) {
+          const offset = targetNormal.clone().multiplyScalar(3.2).add(new THREE.Vector3(0.5, 0.8, 0.5));
+          const finalCamPos = touchdownPos.clone().add(offset);
+          gsap.to(orbitControlsRef.current.object.position, {
+            x: finalCamPos.x,
+            y: finalCamPos.y,
+            z: finalCamPos.z,
+            duration: 1.6,
+            ease: 'power2.out',
+            onUpdate: () => {
+              orbitControlsRef.current?.update();
+              if (invalidateRef.current) invalidateRef.current();
+            },
+          });
+          gsap.to(orbitControlsRef.current.target, {
+            x: touchdownPos.x,
+            y: touchdownPos.y,
+            z: touchdownPos.z,
+            duration: 1.6,
+            ease: 'power2.out',
+          });
         }
         if (invalidateRef.current) invalidateRef.current();
         onLanderTouchdown?.();
@@ -1558,6 +1526,35 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
           orbitControlsRef.current?.update();
           if (invalidateRef.current) invalidateRef.current();
         },
+      });
+    },
+    focusSpacecraft: () => {
+      if (!spacecraftRef.current || !orbitControlsRef.current?.object) return;
+      const spPos = spacecraftRef.current.position.clone();
+      const spNorm = spPos.clone().normalize();
+      // Zoom close to spacecraft without clipping (distance ~3.2 units)
+      const targetCamPos = spPos.clone().addScaledVector(spNorm, 3.2).add(new THREE.Vector3(0.5, 0.6, 0.5));
+
+      gsap.killTweensOf(orbitControlsRef.current.object.position);
+      gsap.killTweensOf(orbitControlsRef.current.target);
+
+      gsap.to(orbitControlsRef.current.object.position, {
+        x: targetCamPos.x,
+        y: targetCamPos.y,
+        z: targetCamPos.z,
+        duration: 1.5,
+        ease: 'power2.inOut',
+        onUpdate: () => {
+          orbitControlsRef.current?.update();
+          if (invalidateRef.current) invalidateRef.current();
+        },
+      });
+      gsap.to(orbitControlsRef.current.target, {
+        x: spPos.x,
+        y: spPos.y,
+        z: spPos.z,
+        duration: 1.5,
+        ease: 'power2.inOut',
       });
     },
   }));

@@ -64,7 +64,7 @@ export function EdgeHudSidebars({
         animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? -24 : 0 }}
         exit={{ opacity: 0, x: -24 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="fixed left-6 sm:left-10 lg:left-12 top-20 bottom-28 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-12rem)]"
+        className="fixed left-3 sm:left-6 lg:left-12 top-20 sm:top-24 bottom-28 w-[calc(100vw-1.5rem)] sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-12rem)]"
       >
         <div className="flex flex-col gap-3.5 p-4 sm:p-5 pb-8 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 sidebar-scroll">
           {/* Target Location Selector */}
@@ -282,7 +282,7 @@ export function EdgeHudSidebars({
         animate={{ opacity: isCollapsed ? 0 : 1, x: isCollapsed ? 24 : 0 }}
         exit={{ opacity: 0, x: 24 }}
         transition={{ duration: 0.35, ease: 'easeOut' }}
-        className="fixed right-6 sm:right-10 lg:right-12 top-20 bottom-28 w-72 sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-12rem)]"
+        className="fixed right-3 sm:right-6 lg:right-12 top-20 sm:top-24 bottom-28 w-[calc(100vw-1.5rem)] sm:w-80 pointer-events-auto z-20 flex flex-col min-h-0 max-h-[calc(100vh-12rem)] max-lg:hidden"
       >
         <div className="flex flex-col gap-3.5 p-4 sm:p-5 pb-8 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl h-full min-h-0 overflow-y-auto overscroll-contain pr-2.5 text-right sidebar-scroll">
           {/* Deep Space Network Ground Segment */}

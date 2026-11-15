@@ -9,6 +9,9 @@ export function CustomCursor() {
   const dotRef = useRef(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
     const dot = dotRef.current;
     if (!dot) return;
 
@@ -23,7 +26,7 @@ export function CustomCursor() {
   return (
     <div
       ref={dotRef}
-      className="fixed top-0 left-0 z-[9999] pointer-events-none select-none"
+      className="hidden md:block fixed top-0 left-0 z-[9999] pointer-events-none select-none"
       style={{ willChange: 'transform', transform: 'translate(-9999px,-9999px)' }}
       aria-hidden="true"
     >

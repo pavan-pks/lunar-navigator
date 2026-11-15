@@ -234,9 +234,12 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     scene.add(sunLight)
     scene.add(sunLight.target)
 
-    // Faint baseline ambient mimicking deep space starlight (0.02)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.02)
+    // Balanced baseline ambient & hemisphere fill illuminating the full platform for clear inspection
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35)
     scene.add(ambientLight)
+
+    const hemiLight = new THREE.HemisphereLight(0xf1f5f9, 0x1e293b, 0.28)
+    scene.add(hemiLight)
 
     // Faint bluish Earthshine directional light (no shadow)
     const earthLight = new THREE.DirectionalLight(0x7dd3fc, 0.04)
