@@ -389,6 +389,8 @@ export function App() {
               earthEl={live.earthEl}
               earthAz={live.earthAz}
               onReturnToOrbit={handleReturnToOrbit}
+              timeCtrl={timeCtrl}
+              maxHours={maxHours}
             />
           </Suspense>
         </div>

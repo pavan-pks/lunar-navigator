@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Play, Pause } from 'lucide-react';
 import Scene3D from './Scene3D.jsx';
 import VisorHud from '../ui/VisorHud.jsx';
 
@@ -22,6 +23,8 @@ export function SurfaceViewSimulation({
   earthAz = 20.0,
   onReturnToOrbit,
   quality = 'auto',
+  timeCtrl = null,
+  maxHours = 336,
 }) {
   const [viewMode, setViewMode] = useState('astronaut');
   const [showShadowRuler, setShowShadowRuler] = useState(true);
@@ -33,6 +36,14 @@ export function SurfaceViewSimulation({
   const safeSunAz = Number.isFinite(sunAz) ? sunAz : 180.0;
   const safeEarthEl = Number.isFinite(earthEl) ? earthEl : 5.0;
   const safeEarthAz = Number.isFinite(earthAz) ? earthAz : 20.0;
+
+  const cycleSpeed = () => {
+    if (!timeCtrl) return;
+    const speeds = [1, 10, 24, 60, 120];
+    const currentIndex = speeds.indexOf(timeCtrl.speed);
+    const nextSpeed = speeds[(currentIndex + 1) % speeds.length];
+    timeCtrl.setSpeed(nextSpeed);
+  };
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-black select-none">
@@ -163,6 +174,60 @@ export function SurfaceViewSimulation({
         earthEl={safeEarthEl}
         siteName={site?.name || 'Lunar Surface'}
       />
+
+      {/* Floating Bottom Lunar Cycle Playback Bar */}
+      {timeCtrl && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-xl w-[calc(100vw-2.5rem)] bg-black/90 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl shadow-2xl flex flex-col gap-2">
+          <div className="flex items-center justify-between text-[11px] font-sans text-neutral-300">
+            {/* Play/Pause & Speed Multiplier */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => timeCtrl.toggle()}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-black font-semibold hover:bg-neutral-200 transition cursor-pointer shadow-md"
+                title={timeCtrl.playing ? 'Pause lunar daylight cycle' : 'Play lunar daylight cycle'}
+              >
+                {timeCtrl.playing ? <Pause size={12} className="fill-current" /> : <Play size={12} className="fill-current" />}
+                <span>{timeCtrl.playing ? 'Pause Cycle' : 'Play Cycle'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={cycleSpeed}
+                className="text-[11px] font-mono px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white transition cursor-pointer border border-white/10"
+                title="Cycle simulation speed"
+              >
+                {timeCtrl.speed}x (1h/s)
+              </button>
+            </div>
+
+            {/* Live Sun Angle & Mission Time */}
+            <div className="flex items-center gap-2 font-mono text-[11px]">
+              <span className={safeSunEl > 0 ? 'text-amber-300 font-medium' : 'text-neutral-400'}>
+                Sun {safeSunEl > 0 ? `+${safeSunEl.toFixed(1)}°` : `${safeSunEl.toFixed(1)}°`}
+              </span>
+              <span className="text-white/20">•</span>
+              <span className="text-neutral-200">
+                MET {Math.floor(timeCtrl.tRel / 24)}d {Math.floor(timeCtrl.tRel % 24)}h
+              </span>
+            </div>
+          </div>
+
+          {/* Time Scrubber Slider */}
+          <div className="relative flex items-center">
+            <input
+              type="range"
+              min={0}
+              max={maxHours}
+              step={0.1}
+              value={timeCtrl.tRel}
+              onChange={(e) => timeCtrl.seek(parseFloat(e.target.value))}
+              className="w-full h-1 bg-white/25 rounded appearance-none cursor-pointer accent-sky-400"
+              aria-label="Scrub lunar cycle time"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
