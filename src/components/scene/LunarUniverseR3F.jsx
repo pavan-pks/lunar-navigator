@@ -1046,8 +1046,9 @@ function UniverseScene({
         shadow-bias={-0.0004}
       />
 
-      <hemisphereLight args={['#e2e8f0', '#0a0a0a', 0.20]} />
-      <ambientLight intensity={0.16} />
+      {/* Balanced baseline ambient & hemisphere fill (Earthshine + cosmic background) */}
+      <hemisphereLight args={['#e2e8f0', '#1e293b', 0.28]} />
+      <ambientLight intensity={0.34} />
 
       {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting */}
       <StructuredMoon onPickCoord={onPickCustomCoord} />
@@ -1522,7 +1523,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
           antialias: tierConfig.antialias,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.9,
+          toneMappingExposure: 1.15,
         }}
       >
         {viewMode === 'surface' ? (
