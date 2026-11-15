@@ -150,11 +150,12 @@ export function sampleSeries(site, startHours, durationHours, ephem, stepHours =
   const earthEl = [];
   const earthAz = [];
 
+  const safeStart = Number.isFinite(startHours) ? startHours : 0;
   const steps = Math.floor(durationHours / stepHours) + 1;
 
   for (let s = 0; s < steps; s++) {
     const tRel = s * stepHours;
-    const absHours = startHours + tRel;
+    const absHours = safeStart + tRel;
 
     let sAlt = { el: 0, az: 0 };
     let eAlt = { el: 0, az: 0 };
@@ -165,16 +166,21 @@ export function sampleSeries(site, startHours, durationHours, ephem, stepHours =
     } catch {
       // Clamped boundary fallback
       const maxHours = ((ephem.subSolarLat?.length || 1) - 1) * (ephem.stepHours || 1);
-      const clampedH = Math.max(0, Math.min(maxHours, absHours));
-      sAlt = sunAltAz(lat, lon, clampedH, ephem);
-      eAlt = earthAltAz(lat, lon, clampedH, ephem);
+      const clampedH = Math.max(0, Math.min(maxHours, absHours || 0));
+      try {
+        sAlt = sunAltAz(lat, lon, clampedH, ephem);
+        eAlt = earthAltAz(lat, lon, clampedH, ephem);
+      } catch {
+        sAlt = { el: 0, az: 0 };
+        eAlt = { el: 0, az: 0 };
+      }
     }
 
     t.push(tRel);
-    sunEl.push(Math.round(sAlt.el * 1000) / 1000);
-    sunAz.push(Math.round(sAlt.az * 1000) / 1000);
-    earthEl.push(Math.round(eAlt.el * 1000) / 1000);
-    earthAz.push(Math.round(eAlt.az * 1000) / 1000);
+    sunEl.push(Number.isFinite(sAlt?.el) ? Math.round(sAlt.el * 1000) / 1000 : 0);
+    sunAz.push(Number.isFinite(sAlt?.az) ? Math.round(sAlt.az * 1000) / 1000 : 0);
+    earthEl.push(Number.isFinite(eAlt?.el) ? Math.round(eAlt.el * 1000) / 1000 : 0);
+    earthAz.push(Number.isFinite(eAlt?.az) ? Math.round(eAlt.az * 1000) / 1000 : 0);
   }
 
   return { t, sunEl, sunAz, earthEl, earthAz };

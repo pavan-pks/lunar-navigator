@@ -100,10 +100,6 @@ export function App() {
   const [showDsnBeam, setShowDsnBeam] = useState(false);
   const [showThermalMap, setShowThermalMap] = useState(false);
 
-  // 2D Polar Map fallback
-  const webGLSupported = useMemo(() => isWebGLAvailable(), []);
-  const [force2DMap, setForce2DMap] = useState(!webGLSupported);
-
   // Copy link feedback
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -166,10 +162,11 @@ export function App() {
 
   const landing = landingDate(launchDate, transitDays + slipDays);
   const startHours = useMemo(() => {
-    if (!data?.ephem) return 0;
+    if (!data?.ephem || !data.ephem.subSolarLat) return 0;
     const rawHours = hoursSince(data.ephem.startUTC, landing);
-    // Clamp to valid range so ephemeris never crashes
-    const maxAvailable = Math.max(0, data.ephem.length - maxHours);
+    if (!Number.isFinite(rawHours)) return 0;
+    const totalEphemHours = (data.ephem.subSolarLat.length - 1) * (data.ephem.stepHours || 1);
+    const maxAvailable = Math.max(0, totalEphemHours - maxHours);
     return Math.max(0, Math.min(rawHours, maxAvailable));
   }, [data, landing, maxHours]);
 
@@ -345,53 +342,40 @@ export function App() {
       {/* ── Custom Crosshair Cursor ── */}
       <CustomCursor />
 
-      {/* ── 1. UNIFIED R3F 3D VIEWPORT OR 2D POLAR FALLBACK ── */}
+      {/* ── 1. UNIFIED R3F 3D LUNAR VIEWPORT ── */}
       <div className={`absolute inset-0 w-full h-full ${viewMode === 'surface' ? 'hidden' : 'block'}`}>
-        {force2DMap ? (
-          <PolarMap2D
+        <Suspense fallback={null}>
+          <LunarUniverseR3F
+            ref={universeRef}
+            mode={sceneState}
             sites={sites}
             selectedSiteId={selectedSiteId}
             onSelectSite={handleSelectSite}
-            sunAz={live.sunAz}
-            sunEl={live.sunEl}
-            earthAz={live.earthAz}
-            earthEl={live.earthEl}
+            onSelectCustomCoord={handleSelectCustomCoord}
             showLabels={showLabels}
+            showGraticule={showGraticule}
+            showDsnBeam={showDsnBeam}
+            showThermalMap={showThermalMap}
+            onReachedOrbit={handleReachedOrbit}
+            onLanderTouchdown={() => {
+              setHasLanded(true);
+              setShowLandingOption(true);
+            }}
+            onUpdateCraterScreenPos={setCraterScreenPos}
+            sunEl={live.sunEl}
+            sunAz={live.sunAz}
+            earthEl={live.earthEl}
+            earthAz={live.earthAz}
+            customCoords={customSite}
+            viewMode={viewMode === 'surface' ? 'orbit' : viewMode}
+            isDescending={isDescending}
+            hasLanded={hasLanded}
+            isComparing={compareOpen}
+            setIsDescending={setIsDescending}
+            setHasLanded={setHasLanded}
+            setViewMode={setViewMode}
           />
-        ) : (
-          <Suspense fallback={null}>
-            <LunarUniverseR3F
-              ref={universeRef}
-              mode={sceneState}
-              sites={sites}
-              selectedSiteId={selectedSiteId}
-              onSelectSite={handleSelectSite}
-              onSelectCustomCoord={handleSelectCustomCoord}
-              showLabels={showLabels}
-              showGraticule={showGraticule}
-              showDsnBeam={showDsnBeam}
-              showThermalMap={showThermalMap}
-              onReachedOrbit={handleReachedOrbit}
-              onLanderTouchdown={() => {
-                setHasLanded(true);
-                setShowLandingOption(true);
-              }}
-              onUpdateCraterScreenPos={setCraterScreenPos}
-              sunEl={live.sunEl}
-              sunAz={live.sunAz}
-              earthEl={live.earthEl}
-              earthAz={live.earthAz}
-              customCoords={customSite}
-              viewMode={viewMode === 'surface' ? 'orbit' : viewMode}
-              isDescending={isDescending}
-              hasLanded={hasLanded}
-              isComparing={compareOpen}
-              setIsDescending={setIsDescending}
-              setHasLanded={setHasLanded}
-              setViewMode={setViewMode}
-            />
-          </Suspense>
-        )}
+        </Suspense>
       </div>
 
       {/* ── 1B. PHOTOREALISTIC SURFACE VIEW & SIMULATION (EVA View) ── */}
@@ -444,7 +428,7 @@ export function App() {
       </AnimatePresence>
 
       {/* ── 2. CENTER RETICLE (Visible in orbit when not comparing) ── */}
-      {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && !compareOpen && !force2DMap && (
+      {sceneState === 'orbit' && viewMode === 'orbit' && !isDescending && !compareOpen && (
         <TargetingReticle
           targetName={site.name}
           targetCoords={{ lat: site.lat, lon: site.lon }}
@@ -474,7 +458,7 @@ export function App() {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStartMission}
-                className="flex items-center justify-center gap-2.5 text-xs font-sans font-semibold tracking-[0.2em] uppercase text-black bg-white hover:bg-neutral-200 px-8 py-3.5 rounded-full transition-all duration-300 cursor-none shadow-2xl hover:scale-105 active:scale-95"
+                className="flex items-center justify-center gap-2.5 text-xs font-sans font-semibold tracking-[0.2em] uppercase text-black bg-white hover:bg-neutral-200 px-8 py-3.5 rounded-full transition-all duration-300 cursor-pointer shadow-2xl hover:scale-105 active:scale-95"
                 title="Play Mission"
               >
                 <Play size={13} className="fill-current" />
@@ -483,7 +467,7 @@ export function App() {
 
               <button
                 onClick={toggleAudio}
-                className="text-xs font-sans tracking-widest text-[#d4d4d4] hover:text-white transition cursor-none px-4 py-2 drop-shadow-[0_2px_8px_rgba(0,0,0,1)]"
+                className="text-xs font-sans tracking-widest text-[#d4d4d4] hover:text-white transition cursor-pointer px-4 py-2 drop-shadow-[0_2px_8px_rgba(0,0,0,1)]"
               >
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>
@@ -516,9 +500,9 @@ export function App() {
       )}
 
       {/* ======================================================================= */}
-      {/* SCENE 3 & SURFACE: ORBIT / SURFACE HUD                                  */}
+      {/* SCENE 3: ORBIT PLANNING HUD (Hidden on Surface View)                     */}
       {/* ======================================================================= */}
-      {(sceneState === 'orbit' || viewMode === 'surface') && (
+      {sceneState === 'orbit' && viewMode === 'orbit' && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-8 lg:p-10">
           {/* ── TOP BAR HEADER ── */}
           <header className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pointer-events-none bg-transparent">
@@ -526,7 +510,7 @@ export function App() {
             <div className="pointer-events-auto flex items-center justify-between w-full md:w-auto gap-4">
               <div className="min-w-0 max-w-[20rem]">
                 <span className="text-[11px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block truncate">
-                  {viewMode === 'surface' ? 'Astronaut EVA Surface Simulation' : 'Polar Orbit Survey'}
+                  Polar Orbit Survey
                 </span>
                 <div className="text-sm font-sans font-light text-[#f5f5f5] tracking-wide mt-0.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] truncate" title={site.name}>
                   {site.name} · <span className="font-mono text-xs text-[#a3a3a3]">{site.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`}</span>
@@ -537,82 +521,68 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setIsSidebarsCollapsed(v => !v)}
-                className="md:hidden border border-white/20 bg-black/80 px-2.5 py-1 rounded text-[11px] font-sans text-sky-300 pointer-events-auto shadow-md shrink-0 cursor-none"
+                className="md:hidden border border-white/20 bg-black/80 px-2.5 py-1 rounded text-[11px] font-sans text-sky-300 pointer-events-auto shadow-md shrink-0 cursor-pointer"
               >
                 {isSidebarsCollapsed ? '📊 HUD' : '✕ Hide HUD'}
               </button>
             </div>
 
-            {/* Right: Responsive Action Bar (Groups secondary items on small screens) */}
+            {/* Right: Responsive Action Bar */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-sans tracking-wider pointer-events-auto max-w-full">
-              {viewMode === 'surface' ? (
-                <button
-                  type="button"
-                  onClick={handleReturnToOrbit}
-                  className="text-[#f5f5f5] border-b border-white/30 hover:border-white transition cursor-none pb-0.5 shrink-0"
-                >
-                  Return to Orbital Survey ↖
-                </button>
-              ) : (
-                <>
-                  {/* Spacecraft Focus Zoom Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playTelemetryPing(1900, 0.08);
-                      universeRef.current?.focusSpacecraft?.();
-                    }}
-                    className="text-[#38bdf8] hover:text-white transition cursor-none flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full bg-sky-950/40 border border-sky-700/40"
-                    title="Zoom camera to focus on the Spacecraft"
-                  >
-                    <span>🚀 Focus Craft</span>
-                  </button>
+              {/* Spacecraft Focus Zoom Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playTelemetryPing(1900, 0.08);
+                  universeRef.current?.focusSpacecraft?.();
+                }}
+                className="text-[#38bdf8] hover:text-white transition cursor-pointer flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full bg-sky-950/40 border border-sky-700/40"
+                title="Zoom camera to focus on the Spacecraft"
+              >
+                <span>🚀 Focus Craft</span>
+              </button>
 
-                  {/* Compare Button */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      playTelemetryPing(2000, 0.08);
-                      setCompareOpen(v => !v);
-                    }}
-                    className={`flex items-center gap-1.5 transition cursor-none shrink-0 px-2.5 py-1 rounded border ${
-                      compareOpen ? 'text-[#f5f5f5] bg-white/10 border-white/40' : 'text-[#a3a3a3] hover:text-[#f5f5f5] border-transparent'
-                    }`}
-                  >
-                    <BarChart2 size={12} />
-                    <span>{compareOpen ? 'Exit Compare' : 'Compare'}</span>
-                  </button>
+              {/* Compare Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  playTelemetryPing(2000, 0.08);
+                  setCompareOpen(v => !v);
+                }}
+                className={`flex items-center gap-1.5 transition cursor-pointer shrink-0 px-2.5 py-1 rounded border ${
+                  compareOpen ? 'text-[#f5f5f5] bg-white/10 border-white/40' : 'text-[#a3a3a3] hover:text-[#f5f5f5] border-transparent'
+                }`}
+              >
+                <BarChart2 size={12} />
+                <span>{compareOpen ? 'Exit Compare' : 'Compare'}</span>
+              </button>
 
-                  {/* Quantitative Analysis Tools Launcher */}
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setAnalysisTool('timeline')}
-                      className="flex items-center gap-1 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0 px-2 py-1 rounded bg-white/5 border border-white/10 hover:border-white/30"
-                      title="Open quantitative timeline, battery simulator, and mission calendar"
-                    >
-                      <span>📈 Analysis</span>
-                    </button>
-                  </div>
-                </>
-              )}
+              {/* Quantitative Analysis Tools Launcher */}
+              <button
+                type="button"
+                onClick={() => setAnalysisTool('timeline')}
+                className="flex items-center gap-1 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0 px-2 py-1 rounded bg-white/5 border border-white/10 hover:border-white/30"
+                title="Open quantitative timeline, battery simulator, and mission calendar"
+              >
+                <span>📈 Analysis</span>
+              </button>
 
               {/* Report Button */}
               <button
                 type="button"
                 onClick={() => setShowReport(true)}
-                className="flex items-center gap-1.5 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0"
+                className="flex items-center gap-1.5 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0"
               >
                 <FileText size={12} />
                 <span>Report</span>
               </button>
 
-              {/* Desktop Direct Secondary Buttons (Hidden on small tablets/phones, tucked in "More") */}
+              {/* Desktop Direct Secondary Buttons */}
               <div className="hidden lg:flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setShowCsaPanel(true)}
-                  className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0"
+                  className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0"
                 >
                   CSA Alignment ↗
                 </button>
@@ -620,7 +590,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowLabels(v => !v)}
-                  className={`transition cursor-none flex items-center gap-1 shrink-0 ${
+                  className={`transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     showLabels ? 'text-[#f5f5f5]' : 'text-[#737373] hover:text-[#a3a3a3]'
                   }`}
                   title="Toggle on-Moon 3D landmark and landing site labels"
@@ -631,7 +601,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowGraticule(v => !v)}
-                  className={`transition cursor-none flex items-center gap-1 shrink-0 ${
+                  className={`transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     showGraticule ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
                   }`}
                   title="Toggle coordinate graticule grid"
@@ -642,7 +612,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowDsnBeam(v => !v)}
-                  className={`transition cursor-none flex items-center gap-1 shrink-0 ${
+                  className={`transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     showDsnBeam ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
                   }`}
                   title="Toggle Direct-to-Earth Telemetry Laser Beam"
@@ -653,7 +623,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowThermalMap(v => !v)}
-                  className={`transition cursor-none flex items-center gap-1 shrink-0 ${
+                  className={`transition cursor-pointer flex items-center gap-1 shrink-0 ${
                     showThermalMap ? 'text-[#a78bfa]' : 'text-[#737373] hover:text-[#a3a3a3]'
                   }`}
                   title="Toggle illustrative cold-trap layer (not measured data)"
@@ -661,30 +631,18 @@ export function App() {
                   <span>🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setForce2DMap(v => !v)}
-                  className={`transition cursor-none shrink-0 ${
-                    force2DMap ? 'text-sky-300' : 'text-[#a3a3a3] hover:text-[#f5f5f5]'
-                  }`}
-                  title="Toggle 2D Polar Stereographic Fallback Map"
-                >
-                  {force2DMap ? '3D View ↗' : '2D Map'}
-                </button>
-
-                <button type="button" onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0">
+                <button type="button" onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0">
                   {audioMuted ? 'Audio · Off' : 'Audio · On'}
                 </button>
 
-                <button type="button" onClick={handleResetToMacro} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0">
+                <button type="button" onClick={handleResetToMacro} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0">
                   Overview ↗
                 </button>
 
-                {/* Copy Link Button */}
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="text-xs text-[#a3a3a3] hover:text-white transition cursor-none border border-white/10 hover:border-white/30 px-2 py-0.5 rounded"
+                  className="text-xs text-[#a3a3a3] hover:text-white transition cursor-pointer border border-white/10 hover:border-white/30 px-2 py-0.5 rounded"
                   title="Copy shareable mission link"
                 >
                   {linkCopied ? '✓ Copied' : '🔗 Copy'}
@@ -696,7 +654,7 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowMoreMenu(v => !v)}
-                  className="flex items-center gap-1 text-xs text-[#a3a3a3] hover:text-white border border-white/15 px-2.5 py-1 rounded bg-black/70 cursor-none"
+                  className="flex items-center gap-1 text-xs text-[#a3a3a3] hover:text-white border border-white/15 px-2.5 py-1 rounded bg-black/70 cursor-pointer"
                 >
                   <span>More</span>
                   <ChevronDown size={11} />
@@ -710,7 +668,7 @@ export function App() {
                         setShowCsaPanel(true);
                         setShowMoreMenu(false);
                       }}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       CSA Alignment ↗
                     </button>
@@ -718,7 +676,7 @@ export function App() {
                     <button
                       type="button"
                       onClick={() => setShowLabels(v => !v)}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       Labels · {showLabels ? 'On' : 'Off'}
                     </button>
@@ -726,7 +684,7 @@ export function App() {
                     <button
                       type="button"
                       onClick={() => setShowGraticule(v => !v)}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       🌐 Grid · {showGraticule ? 'On' : 'Off'}
                     </button>
@@ -734,7 +692,7 @@ export function App() {
                     <button
                       type="button"
                       onClick={() => setShowDsnBeam(v => !v)}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       📡 DSN · {showDsnBeam ? 'On' : 'Off'}
                     </button>
@@ -742,23 +700,15 @@ export function App() {
                     <button
                       type="button"
                       onClick={() => setShowThermalMap(v => !v)}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}
                     </button>
 
                     <button
                       type="button"
-                      onClick={() => setForce2DMap(v => !v)}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
-                    >
-                      {force2DMap ? 'Switch to 3D View' : 'Switch to 2D Map'}
-                    </button>
-
-                    <button
-                      type="button"
                       onClick={toggleAudio}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       {audioMuted ? 'Audio · Off' : 'Audio · On'}
                     </button>
@@ -766,7 +716,7 @@ export function App() {
                     <button
                       type="button"
                       onClick={handleCopyLink}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
                       {linkCopied ? '✓ Link Copied' : '🔗 Copy Link'}
                     </button>
@@ -777,7 +727,7 @@ export function App() {
                         setShowMoreMenu(false);
                         handleResetToMacro();
                       }}
-                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-none border-t border-white/10 mt-1"
+                      className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer border-t border-white/10 mt-1"
                     >
                       Overview ↗
                     </button>

@@ -1,6 +1,56 @@
 import * as THREE from 'three'
 import { hashString, createPRNG, createNoise2D, createFBM2D } from './noise.js'
 
+function createRegolithTexture() {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Base regolith mid-tone
+  ctx.fillStyle = '#6b7280';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Micro-grain noise
+  const imgData = ctx.getImageData(0, 0, 512, 512);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 55;
+    const v = Math.max(0, Math.min(255, 120 + n));
+    data[i] = v * 0.98;
+    data[i + 1] = v;
+    data[i + 2] = v * 1.02;
+    data[i + 3] = 255;
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  // Micro-craterlets on the regolith
+  for (let c = 0; c < 120; c++) {
+    const rx = Math.random() * 512;
+    const ry = Math.random() * 512;
+    const r = 1.5 + Math.random() * 7;
+    // Crater shadow
+    ctx.beginPath();
+    ctx.arc(rx, ry, r, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(25, 27, 32, 0.45)';
+    ctx.fill();
+    // Crater illuminated rim lip
+    ctx.beginPath();
+    ctx.arc(rx - r * 0.35, ry - r * 0.35, r * 0.85, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(210, 215, 225, 0.35)';
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(48, 48);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 /**
  * Builds a deterministic 400m x 400m authentic lunar terrain patch tailored
  * specifically to the unique geological profile and coordinates of each landing site.
@@ -325,9 +375,14 @@ export function buildTerrain({ siteId = 'shackleton', terrainType = 'plain', sit
 
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
+  const regolithTexture = createRegolithTexture()
+
   const material = new THREE.MeshStandardMaterial({
-    roughness: isMare ? 0.90 : 1.0,
-    metalness: 0.0,
+    map: regolithTexture || undefined,
+    bumpMap: regolithTexture || undefined,
+    bumpScale: 0.07,
+    roughness: isMare ? 0.92 : 0.98,
+    metalness: 0.02,
     vertexColors: true,
   })
 
@@ -338,6 +393,7 @@ export function buildTerrain({ siteId = 'shackleton', terrainType = 'plain', sit
   const dispose = () => {
     geometry.dispose()
     material.dispose()
+    if (regolithTexture) regolithTexture.dispose()
   }
 
   return {

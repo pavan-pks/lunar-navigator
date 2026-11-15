@@ -187,8 +187,10 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     renderer.setPixelRatio(pixelRatio)
     renderer.setClearColor(0x000000, 1.0)
     renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.15
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFShadowMap
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     const canvas = renderer.domElement
     canvas.style.display = 'block'

@@ -15,12 +15,6 @@
 }
 
 @layer base {
-  @media (hover: hover) and (pointer: fine) {
-    *, *::before, *::after {
-      cursor: none !important;
-    }
-  }
-
   body {
     background-color: #000000;
     color: #f5f5f5;

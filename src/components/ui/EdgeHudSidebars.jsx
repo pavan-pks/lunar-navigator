@@ -57,16 +57,20 @@ export function EdgeHudSidebars({
   onTogglePlannerMode,
   onOpenTool, // (toolName: 'timeline' | 'battery' | 'calendar') => void
 }) {
-  // Live simulation variables (update as timeline moves)
-  const sunElStr = live.sunEl > 0 ? `+${live.sunEl.toFixed(1)}°` : `${live.sunEl.toFixed(1)}°`;
-  const earthElStr = live.earthEl > 0 ? `+${live.earthEl.toFixed(1)}°` : `${live.earthEl.toFixed(1)}°`;
-  const timeToEarthsetStr = timeToEarthset !== null ? `${timeToEarthset}h` : 'Constant LOS';
-  const timeToSunsetStr = timeToSunset !== null ? `${timeToSunset}h` : 'Constant Sun';
+  // Live simulation variables (update as timeline moves, guarded against non-finite values)
+  const safeLiveSun = Number.isFinite(live?.sunEl) ? live.sunEl : 0;
+  const safeLiveEarth = Number.isFinite(live?.earthEl) ? live.earthEl : 0;
+  const sunElStr = safeLiveSun > 0 ? `+${safeLiveSun.toFixed(1)}°` : `${safeLiveSun.toFixed(1)}°`;
+  const earthElStr = safeLiveEarth > 0 ? `+${safeLiveEarth.toFixed(1)}°` : `${safeLiveEarth.toFixed(1)}°`;
+  const timeToEarthsetStr = Number.isFinite(timeToEarthset) ? `${timeToEarthset}h` : 'Constant LOS';
+  const timeToSunsetStr = Number.isFinite(timeToSunset) ? `${timeToSunset}h` : 'Constant Sun';
 
   // Aggregate static metrics (calculated over 14-day mission window — static during playback)
-  const totalIlluminationPct = `${(stats.sunlitFraction * 100).toFixed(0)}%`;
-  const totalCommsPct = `${(stats.earthVisibleFraction * 100).toFixed(0)}%`;
-  const peakDarkStr = `${stats.longestDarkHours}h`;
+  const sunlitFrac = Number.isFinite(stats?.sunlitFraction) ? stats.sunlitFraction : 0;
+  const earthVisFrac = Number.isFinite(stats?.earthVisibleFraction) ? stats.earthVisibleFraction : 0;
+  const totalIlluminationPct = `${(sunlitFrac * 100).toFixed(0)}%`;
+  const totalCommsPct = `${(earthVisFrac * 100).toFixed(0)}%`;
+  const peakDarkStr = `${Number.isFinite(stats?.longestDarkHours) ? stats.longestDarkHours : 0}h`;
 
   const [showCustomCoords, setShowCustomCoords] = useState(false);
   const [customLat, setCustomLat] = useState(() => customSite?.lat ?? -89.9);
@@ -296,7 +300,7 @@ export function EdgeHudSidebars({
             <div className="flex flex-col gap-3 py-1 text-[11px] font-sans text-neutral-300 leading-relaxed [overflow-wrap:anywhere]">
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
                 <span className="font-semibold text-white block mb-1">☀️ Solar Illumination</span>
-                {live.sunEl > 0 ? (
+                {safeLiveSun > 0 ? (
                   <span>The Sun is currently {sunElStr} above the local horizon, providing direct light and solar power to the landing site.</span>
                 ) : (
                   <span>The Sun is {sunElStr} below the rim, casting the site in deep topographic shadow.</span>
@@ -410,7 +414,7 @@ export function EdgeHudSidebars({
               Direct-to-Earth Link
             </span>
             <div className="text-sm font-sans font-light text-[#f5f5f5] [overflow-wrap:anywhere]">
-              {live.earthEl > 0 ? 'LOS Active · Direct Link' : 'Occulted by Rim Topography'}
+              {safeLiveEarth > 0 ? 'LOS Active · Direct Link' : 'Occulted by Rim Topography'}
             </div>
             <div className="text-[11px] font-sans text-[#737373]">
               Goldstone · Madrid · Canberra DSN
@@ -429,7 +433,7 @@ export function EdgeHudSidebars({
             <div className="flex flex-col gap-3 py-1 text-[11px] font-sans text-neutral-300 leading-relaxed text-left [overflow-wrap:anywhere]">
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
                 <span className="font-semibold text-white block mb-1">🌍 Earth Visibility</span>
-                {live.earthEl > 0 ? (
+                {safeLiveEarth > 0 ? (
                   <span>Earth is currently {earthElStr} above the lunar horizon, providing continuous high-bandwidth telemetry and voice.</span>
                 ) : (
                   <span>Earth is below the horizon ({earthElStr}). Direct communications are blocked by the terrain.</span>

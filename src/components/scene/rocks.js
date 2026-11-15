@@ -23,29 +23,34 @@ export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt =
   if (quality === 'low') count = isMare ? 25 : 40
   else if (quality === 'high') count = isMare ? 130 : 260
 
-  // Base distorted icosahedron for angular lunar rock silhouette
-  const baseGeo = new THREE.IcosahedronGeometry(1.0, 1)
+  // Realistic subdivided geometry with natural geological fracture noise
+  const baseGeo = new THREE.IcosahedronGeometry(1.0, 2)
   const posAttr = baseGeo.attributes.position
   for (let i = 0; i < posAttr.count; i++) {
     const vx = posAttr.getX(i)
     const vy = posAttr.getY(i)
     const vz = posAttr.getZ(i)
 
-    // Deterministic vertex jitter
-    const jx = Math.sin(vx * 14.3 + vy * 31.7 + vz * 47.1) * (isViolent ? 0.30 : 0.22)
-    const jy = Math.cos(vx * 29.1 + vy * 17.5 + vz * 33.3) * (isViolent ? 0.30 : 0.22)
-    const jz = Math.sin(vx * 37.9 + vy * 43.1 + vz * 19.7) * (isViolent ? 0.30 : 0.22)
+    // Multi-harmonic fracture displacement
+    const n1 = Math.sin(vx * 4.3 + vy * 5.7 + vz * 3.1) * 0.20
+    const n2 = Math.cos(vx * 8.4 - vy * 7.2 + vz * 6.5) * 0.10
+    const n3 = Math.sin(vx * 15.1 + vy * 13.5 - vz * 14.7) * 0.05
+    const disp = 1.0 + n1 + n2 + n3
 
-    posAttr.setXYZ(i, vx + jx, vy + jy, vz + jz)
+    // Flatten bottom slightly so it embeds naturally into the dust
+    const flattenedY = vy < -0.2 ? vy * 0.65 : vy
+
+    posAttr.setXYZ(i, vx * disp, flattenedY * disp, vz * disp)
   }
   posAttr.needsUpdate = true
   baseGeo.computeVertexNormals()
 
-  const rockColor = isMare ? 0x2d3139 : isViolent ? 0x8a919e : 0x64748b
+  // Authentic lunar anorthosite / basalt regolith color (charcoal ash grey, no artificial blue)
+  const rockColor = isMare ? 0x222428 : (isViolent ? 0x44474f : 0x36383e)
   const material = new THREE.MeshStandardMaterial({
     color: rockColor,
-    roughness: 0.95,
-    metalness: 0.05,
+    roughness: 0.98,
+    metalness: 0.02,
   })
 
   const instancedMesh = new THREE.InstancedMesh(baseGeo, material, count)
@@ -59,21 +64,21 @@ export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt =
   const scale = new THREE.Vector3()
   const color = new THREE.Color()
 
-  // First 4 instances are landmark boulders (3 to 6m, 40 to 110m away)
-  const numLandmarks = Math.min(4, Math.floor(count * 0.1))
+  // First 2 instances are landmark boulders (1.4m to 2.4m, 40 to 90m away)
+  const numLandmarks = Math.min(2, Math.floor(count * 0.05))
 
   for (let i = 0; i < count; i++) {
     let x, z, scaleUniform
 
     if (i < numLandmarks) {
-      // Landmark boulder: distance 45m to 110m away
+      // Natural weathered boulder
       const angle = (i * ((Math.PI * 2) / numLandmarks)) + prng() * 0.5
-      const dist = 45.0 + prng() * 65.0
+      const dist = 40.0 + prng() * 50.0
       x = Math.cos(angle) * dist
       z = Math.sin(angle) * dist
-      scaleUniform = 3.2 + prng() * 2.6 // 3.2m to 5.8m
+      scaleUniform = 1.4 + prng() * 1.0
     } else {
-      // General scatter: kept outside the 10m landing pad
+      // General regolith rock scatter: power-law sizing with mostly pebbles and cobbles
       let valid = false
       let attempts = 0
       while (!valid && attempts < 20) {
@@ -89,19 +94,21 @@ export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt =
         x += x >= 0 ? 12 : -12
         z += z >= 0 ? 12 : -12
       }
-      scaleUniform = 0.25 + prng() * 1.75 // 0.25m to 2.0m
+      // Power-law distribution: mostly 0.15m to 0.6m small rocks, occasionally up to 1.1m
+      const p = Math.pow(prng(), 2.2)
+      scaleUniform = 0.15 + p * 0.95
     }
 
     // Irregular non-uniform scale for rock fragments
-    const sx = scaleUniform * (0.8 + prng() * 0.4)
-    const sy = scaleUniform * (0.6 + prng() * 0.4)
-    const sz = scaleUniform * (0.8 + prng() * 0.4)
+    const sx = scaleUniform * (0.85 + prng() * 0.3)
+    const sy = scaleUniform * (0.65 + prng() * 0.3)
+    const sz = scaleUniform * (0.85 + prng() * 0.3)
     scale.set(sx, sy, sz)
 
-    // Position on terrain with slight sink so rocks never float
+    // Position on terrain embedded into soil
     const groundY = heightAt(x, z)
-    const sinkAmount = sy * 0.25
-    position.set(x, groundY + sy * 0.7 - sinkAmount, z)
+    const sinkAmount = sy * 0.35
+    position.set(x, groundY + sy * 0.45 - sinkAmount, z)
 
     // Random rotation
     rotation.set(prng() * Math.PI, prng() * Math.PI * 2, prng() * Math.PI)
@@ -110,9 +117,9 @@ export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt =
     matrix.compose(position, quaternion, scale)
     instancedMesh.setMatrixAt(i, matrix)
 
-    // Slight regolith color variation per rock
-    const rockTone = 0.32 + prng() * 0.22
-    color.setRGB(rockTone, rockTone, rockTone * 1.03)
+    // Subtle regolith dust tone variation per rock
+    const rockTone = 0.20 + prng() * 0.14
+    color.setRGB(rockTone * 0.98, rockTone, rockTone * 1.02)
     instancedMesh.setColorAt(i, color)
   }
 
