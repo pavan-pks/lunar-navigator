@@ -769,7 +769,7 @@ export function App() {
                 missionDays={missionDays}
                 onClose={() => setCompareOpen(false)}
               />
-            ) : !compareOpen ? (
+            ) : (!compareOpen && viewMode === 'orbit') ? (
               <EdgeHudSidebars
                 key="single-hud"
                 sites={sites}
@@ -802,8 +802,8 @@ export function App() {
             ) : null}
           </AnimatePresence>
 
-          {/* ── BOTTOM TIMELINE SCRUBBER & MISSION CONTROLS ── */}
-          {!compareOpen && (
+          {/* ── BOTTOM TIMELINE SCRUBBER & MISSION CONTROLS (Orbit Survey only) ── */}
+          {!compareOpen && viewMode === 'orbit' && (
             <div className="pointer-events-auto space-y-2.5 z-20 max-w-4xl mx-auto w-full p-3 sm:p-4 rounded-xl bg-black/85 backdrop-blur-md border border-white/10 shadow-2xl">
               {/* Responsive Row: wraps cleanly into two tidy lines on small screens */}
               <div className="flex flex-wrap items-center justify-between gap-2.5 text-[11px] font-sans font-light text-[#a3a3a3]">

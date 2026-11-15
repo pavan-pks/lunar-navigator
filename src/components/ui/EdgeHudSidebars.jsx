@@ -63,15 +63,32 @@ export function EdgeHudSidebars({
   const safeLiveEarth = Number.isFinite(live?.earthEl) ? live.earthEl : 0;
   const sunElStr = safeLiveSun > 0 ? `+${safeLiveSun.toFixed(1)}°` : `${safeLiveSun.toFixed(1)}°`;
   const earthElStr = safeLiveEarth > 0 ? `+${safeLiveEarth.toFixed(1)}°` : `${safeLiveEarth.toFixed(1)}°`;
-  const timeToEarthsetStr = Number.isFinite(timeToEarthset) ? `${timeToEarthset}h` : 'Constant LOS';
-  const timeToSunsetStr = Number.isFinite(timeToSunset) ? `${timeToSunset}h` : 'Constant Sun';
-
   // Aggregate static metrics (calculated over 14-day mission window — static during playback)
   const sunlitFrac = Number.isFinite(stats?.sunlitFraction) ? stats.sunlitFraction : 0;
   const earthVisFrac = Number.isFinite(stats?.earthVisibleFraction) ? stats.earthVisibleFraction : 0;
   const totalIlluminationPct = `${(sunlitFrac * 100).toFixed(0)}%`;
   const totalCommsPct = `${(earthVisFrac * 100).toFixed(0)}%`;
   const peakDarkStr = `${Number.isFinite(stats?.longestDarkHours) ? stats.longestDarkHours : 0}h`;
+
+  const timeToSunsetStr = Number.isFinite(timeToSunset)
+    ? `${timeToSunset}h`
+    : (safeLiveSun > 0 && sunlitFrac >= 0.95)
+      ? 'Constant Sun'
+      : (safeLiveSun <= 0 && sunlitFrac === 0)
+        ? 'Continuous Night'
+        : (safeLiveSun <= 0)
+          ? 'In Darkness'
+          : 'None in Window';
+
+  const timeToEarthsetStr = Number.isFinite(timeToEarthset)
+    ? `${timeToEarthset}h`
+    : (safeLiveEarth > 0 && earthVisFrac >= 0.95)
+      ? 'Constant LOS'
+      : (safeLiveEarth <= 0 && earthVisFrac === 0)
+        ? 'No Direct LOS'
+        : (safeLiveEarth <= 0)
+          ? 'Occulted'
+          : 'Constant LOS';
 
   const [showCustomCoords, setShowCustomCoords] = useState(false);
   const [customLat, setCustomLat] = useState(() => customSite?.lat ?? -89.9);
@@ -326,18 +343,25 @@ export function EdgeHudSidebars({
             <div className="flex flex-col gap-3 py-1 text-[11px] font-sans text-neutral-300 leading-relaxed [overflow-wrap:anywhere]">
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
                 <span className="font-semibold text-white block mb-1">Solar Illumination</span>
-                {safeLiveSun > 0 ? (
+                {safeLiveSun > -0.27 ? (
                   <span>The Sun is currently {sunElStr} above the local horizon, providing direct light and solar power to the landing site.</span>
                 ) : (
-                  <span>The Sun is {sunElStr} below the rim, casting the site in deep topographic shadow.</span>
+                  <span>The Sun is {Math.abs(safeLiveSun).toFixed(1)}° below the local horizon, casting the site in deep topographic shadow.</span>
                 )}
               </div>
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
                 <span className="font-semibold text-white block mb-1">Darkness & Battery Endurance</span>
-                <span>
-                  Nightfall arrives in <strong className="text-white">{timeToSunsetStr}</strong>. The longest continuous blackout lasts{' '}
-                  <strong className="text-white">{peakDarkStr}</strong>, requiring a minimum battery capacity to survive night heating.
-                </span>
+                {safeLiveSun > -0.27 ? (
+                  <span>
+                    Nightfall arrives in <strong className="text-white">{timeToSunsetStr}</strong>. The longest continuous blackout lasts{' '}
+                    <strong className="text-white">{peakDarkStr}</strong>, requiring a minimum battery capacity to survive night heating.
+                  </span>
+                ) : (
+                  <span>
+                    Site is currently in night ({timeToSunsetStr}). The longest continuous blackout lasts{' '}
+                    <strong className="text-white">{peakDarkStr}</strong>, requiring a minimum battery capacity to survive night heating.
+                  </span>
+                )}
               </div>
             </div>
           ) : (
@@ -465,7 +489,7 @@ export function EdgeHudSidebars({
                 {safeLiveEarth > 0 ? (
                   <span>Earth is currently {earthElStr} above the lunar horizon, providing continuous high-bandwidth telemetry and voice.</span>
                 ) : (
-                  <span>Earth is below the horizon ({earthElStr}). Direct communications are blocked by the terrain.</span>
+                  <span>Earth is below the horizon ({Math.abs(safeLiveEarth).toFixed(1)}° below horizontal). Direct line-of-sight is blocked by lunar topography.</span>
                 )}
               </div>
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
