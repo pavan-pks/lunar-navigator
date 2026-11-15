@@ -7,6 +7,7 @@ import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/metrics.js';
 import { validateMissionInputs } from './lib/validation.js';
 import { parseUrlState, buildUrlState } from './lib/urlState.js';
+import { isPrefersReducedMotion } from './lib/animation.js';
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted, startSpaceAmbientMusic, toggleSpaceAmbientMusic } from './lib/audio.js';
 
 import { LunarUniverseR3F } from './components/scene/LunarUniverseR3F.jsx';
@@ -30,10 +31,34 @@ export function App() {
   // Initialize state from URL params
   const initialUrlState = useMemo(() => parseUrlState(), []);
 
+  const hasVisited = useMemo(() => {
+    try {
+      return localStorage.getItem('lunar_visited') === 'true';
+    } catch {
+      return false;
+    }
+  }, []);
+
   // Experience Scene State: 'macro' | 'transition' | 'orbit'
+  // Auto-skip intro if visited before, if prefers-reduced-motion, or if #nointro
   const [sceneState, setSceneState] = useState(() =>
-    initialUrlState.noIntro ? 'orbit' : 'macro'
+    initialUrlState.noIntro || hasVisited || isPrefersReducedMotion() ? 'orbit' : 'macro'
   );
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && sceneState === 'macro') {
+        setSceneState('orbit');
+        try {
+          localStorage.setItem('lunar_visited', 'true');
+        } catch {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sceneState]);
 
   const universeRef = useRef(null);
 
@@ -214,6 +239,11 @@ export function App() {
   const timeToEarthset = useMemo(() => timeToNext(series, timeCtrl.tRel, 'earthset'), [series, timeCtrl.tRel]);
 
   const handleStartMission = () => {
+    try {
+      localStorage.setItem('lunar_visited', 'true');
+    } catch {
+      // ignore
+    }
     playTelemetryPing(2524, 0.12);
     playThrustRumble(2.2);
     if (!audioMuted) startSpaceAmbientMusic();

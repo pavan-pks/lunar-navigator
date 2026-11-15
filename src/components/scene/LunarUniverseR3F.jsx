@@ -4,6 +4,7 @@ import { OrbitControls, Stars, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { createPRNG } from './noise.js';
+import { isPrefersReducedMotion } from '../../lib/animation.js';
 import { LocalSurfaceChunk } from './LocalSurfaceChunk.jsx';
 import { LUNAR_LANDMARKS } from '../../lib/lunarLandmarks.js';
 
@@ -1393,9 +1394,17 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
         axis.normalize();
       }
 
-      // Cesium-style high-orbital survey apex boost (higher arc for farther moves)
-      const arcAltitudeBoost = Math.max(3.8, angleRad * 4.6);
-      const flightDuration = Math.min(2.4, Math.max(1.2, angleRad * 0.95));
+      if (isPrefersReducedMotion()) {
+        cam.position.copy(endDir.multiplyScalar(endDist));
+        orbitControlsRef.current?.target.set(0, 0, 0);
+        orbitControlsRef.current?.update();
+        if (invalidateRef.current) invalidateRef.current();
+        return;
+      }
+
+      // Orbital survey apex boost (slight arc for farther moves)
+      const arcAltitudeBoost = Math.max(2.5, Math.min(4.5, angleRad * 3.2));
+      const flightDuration = Math.min(1.8, Math.max(1.2, angleRad * 0.85));
 
       gsap.killTweensOf(cam.position);
       gsap.killTweensOf(orbitControlsRef.current.target);
