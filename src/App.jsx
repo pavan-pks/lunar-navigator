@@ -329,34 +329,34 @@ export function App() {
       {/* SCENE 1: MACRO HERO MENU                                                 */}
       {/* ======================================================================= */}
       {sceneState === 'macro' && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 sm:p-10 pointer-events-none">
-          <div className="max-w-lg w-full pointer-events-auto text-center space-y-6 bg-black/85 border border-white/15 p-8 sm:p-10 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
-            <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase block">
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 pointer-events-none">
+          <div className="max-w-xl w-full pointer-events-auto text-center space-y-6">
+            <span className="text-[10px] font-sans font-medium tracking-[0.3em] text-[#d4d4d4] uppercase block drop-shadow-[0_2px_8px_rgba(0,0,0,1)]">
               NASA Artemis · Polar Flight Dynamics
             </span>
 
-            <h1 className="text-4xl sm:text-5xl font-sans font-light text-[#f5f5f5] tracking-tight uppercase leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            <h1 className="text-4xl sm:text-6xl font-sans font-light text-white tracking-tight uppercase leading-none drop-shadow-[0_4px_20px_rgba(0,0,0,1)]">
               Lunar Navigator
             </h1>
 
-            <p className="text-xs sm:text-sm font-sans font-light text-[#a3a3a3] max-w-md mx-auto leading-relaxed">
+            <p className="text-xs sm:text-sm font-sans font-normal text-[#d4d4d4] max-w-md mx-auto leading-relaxed drop-shadow-[0_2px_10px_rgba(0,0,0,1)]">
               Evaluating polar solar illumination, grazing shadows, and direct-to-Earth
               communication windows at candidate lunar landing sites.
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStartMission}
-                className="flex items-center justify-center gap-2.5 text-xs font-sans font-semibold tracking-[0.2em] uppercase text-black bg-white hover:bg-neutral-200 px-8 py-3.5 rounded-full transition-all duration-300 cursor-none shadow-xl hover:scale-105 active:scale-95"
+                className="flex items-center justify-center gap-2.5 text-xs font-sans font-semibold tracking-[0.2em] uppercase text-black bg-white hover:bg-neutral-200 px-8 py-3.5 rounded-full transition-all duration-300 cursor-none shadow-2xl hover:scale-105 active:scale-95"
                 title="Play Mission"
               >
-                <Play size={14} className="fill-current" />
+                <Play size={13} className="fill-current" />
                 <span>Play</span>
               </button>
 
               <button
                 onClick={toggleAudio}
-                className="text-xs font-sans tracking-widest text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none px-4 py-2"
+                className="text-xs font-sans tracking-widest text-[#d4d4d4] hover:text-white transition cursor-none px-4 py-2 drop-shadow-[0_2px_8px_rgba(0,0,0,1)]"
               >
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>

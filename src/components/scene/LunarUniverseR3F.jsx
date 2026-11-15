@@ -143,53 +143,16 @@ function StructuredMoon({ sunDir }) {
     return geo;
   }, []);
 
-  const material = useMemo(() => {
-    const mat = new THREE.MeshStandardMaterial({
-      map: colorMap,
-      bumpMap: bumpMap,
-      bumpScale: 0.05,
-      roughness: 0.94,
-      metalness: 0.02,
-    });
-
-    mat.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <uv_pars_vertex>',
-        `#include <uv_pars_vertex>
-         varying vec3 vSphereDir;`
-      );
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <uv_vertex>',
-        `#include <uv_vertex>
-         vSphereDir = normalize(position);`
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <uv_pars_fragment>',
-        `#include <uv_pars_fragment>
-         varying vec3 vSphereDir;`
-      );
-      // Seamless polar planar projection blending to fix equirectangular pinching at poles
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <map_fragment>',
-        `#ifdef USE_MAP
-           float poleFactor = smoothstep(0.86, 0.96, abs(vSphereDir.y));
-           vec4 texColor = texture2D(map, vUv);
-           if (poleFactor > 0.0) {
-             // Sample texture using orthographic polar planar coordinates
-             vec2 polarUv = vec2(0.5 + vSphereDir.x * 0.25, 0.5 + vSphereDir.z * 0.25);
-             vec4 polarTex = texture2D(map, polarUv);
-             texColor = mix(texColor, polarTex, poleFactor);
-           }
-           diffuseColor *= texColor;
-         #endif`
-      );
-    };
-
-    return mat;
-  }, [colorMap, bumpMap]);
-
   return (
-    <mesh geometry={geometry} material={material} receiveShadow castShadow />
+    <mesh geometry={geometry} receiveShadow castShadow>
+      <meshStandardMaterial
+        map={colorMap}
+        bumpMap={bumpMap}
+        bumpScale={0.06}
+        roughness={0.94}
+        metalness={0.02}
+      />
+    </mesh>
   );
 }
 
