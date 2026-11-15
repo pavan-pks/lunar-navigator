@@ -73,6 +73,9 @@ export function App() {
   // Audio mute state
   const [audioMuted, setAudioMutedState] = useState(false);
 
+  // 3D On-Moon spot labels visibility
+  const [showLabels, setShowLabels] = useState(true);
+
   // Simulation time controller
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 24 });
 
@@ -114,11 +117,27 @@ export function App() {
     if (typeof newSite === 'object' && newSite !== null) {
       setCustomSite(newSite);
       setSelectedSiteId(newSite.id);
+      if (universeRef.current?.focusSite) universeRef.current.focusSite(newSite);
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
       if (universeRef.current?.focusSite) universeRef.current.focusSite(newSite);
     }
+  };
+
+  const handleSelectCustomCoord = ({ lat, lon }) => {
+    playTargetLock();
+    const custom = {
+      id: 'custom',
+      name: `Custom (${lat >= 0 ? '+' : ''}${lat.toFixed(1)}°, ${lon >= 0 ? '+' : ''}${lon.toFixed(1)}°)`,
+      lat: parseFloat(lat.toFixed(3)),
+      lon: parseFloat(lon.toFixed(3)),
+      terrainType: Math.abs(lat) > 75 ? 'crater-rim' : 'plain',
+      mission: 'Custom Target',
+      notes: `Target locked at ${lat.toFixed(2)}° latitude, ${lon.toFixed(2)}° longitude.`,
+      verified: true,
+    };
+    handleSelectSite(custom);
   };
 
   const landing = landingDate(launchDate, transitDays + slipDays);
@@ -248,6 +267,8 @@ export function App() {
           sites={sites}
           selectedSiteId={selectedSiteId}
           onSelectSite={handleSelectSite}
+          onSelectCustomCoord={handleSelectCustomCoord}
+          showLabels={showLabels}
           onReachedOrbit={handleReachedOrbit}
           onLanderTouchdown={() => {
             setHasLanded(true);
@@ -429,6 +450,16 @@ export function App() {
                 className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none"
               >
                 CSA Alignment ↗
+              </button>
+
+              <button
+                onClick={() => setShowLabels(v => !v)}
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                  showLabels ? 'text-[#f5f5f5]' : 'text-[#737373] hover:text-[#a3a3a3]'
+                }`}
+                title="Toggle on-Moon 3D landmark and landing site labels"
+              >
+                <span>Labels · {showLabels ? 'On' : 'Off'}</span>
               </button>
 
               <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">

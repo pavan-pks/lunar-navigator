@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
 /**
@@ -35,6 +35,26 @@ export function EdgeHudSidebars({
   const totalIlluminationPct = `${(stats.sunlitFraction * 100).toFixed(0)}%`;
   const totalCommsPct = `${(stats.earthVisibleFraction * 100).toFixed(0)}%`;
   const peakDarkStr = `${stats.longestDarkHours}h`;
+
+  const [showCustomCoords, setShowCustomCoords] = useState(false);
+  const [customLat, setCustomLat] = useState(() => customSite?.lat ?? -89.9);
+  const [customLon, setCustomLon] = useState(() => customSite?.lon ?? 129.8);
+
+  const handleApplyCustom = () => {
+    const lat = parseFloat(Number(customLat).toFixed(3));
+    const lon = parseFloat(Number(customLon).toFixed(3));
+    const siteObj = {
+      id: 'custom',
+      name: `Custom (${lat >= 0 ? '+' : ''}${lat.toFixed(1)}°, ${lon >= 0 ? '+' : ''}${lon.toFixed(1)}°)`,
+      lat,
+      lon,
+      terrainType: Math.abs(lat) > 75 ? 'crater-rim' : 'plain',
+      mission: 'Custom Target',
+      notes: `Target locked at ${lat.toFixed(2)}° latitude, ${lon.toFixed(2)}° longitude.`,
+      verified: true,
+    };
+    onSelectSite(siteObj);
+  };
 
   return (
     <>
@@ -86,6 +106,92 @@ export function EdgeHudSidebars({
                 </button>
               ))}
             </div>
+
+            {/* Custom Coordinates Toggle Button */}
+            <button
+              onClick={() => setShowCustomCoords(v => !v)}
+              className={`text-[10px] font-sans tracking-wider transition cursor-none px-2.5 py-1.5 rounded border flex items-center justify-between w-full mt-1 ${
+                showCustomCoords || customSite
+                  ? 'bg-sky-950/40 border-sky-400/40 text-sky-200'
+                  : 'bg-white/5 border-white/10 text-[#a3a3a3] hover:text-white hover:border-white/20'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span>📍</span>
+                <span>{customSite ? `Custom (${customSite.lat >= 0 ? '+' : ''}${customSite.lat.toFixed(1)}°, ${customSite.lon >= 0 ? '+' : ''}${customSite.lon.toFixed(1)}°)` : 'Custom Coordinates'}</span>
+              </span>
+              <span className="text-[10px] opacity-70">{showCustomCoords ? '▲' : '▼'}</span>
+            </button>
+
+            {/* Expandable Custom Coordinate Input Panel */}
+            {showCustomCoords && (
+              <div className="bg-black/90 border border-white/15 p-3 rounded-lg flex flex-col gap-2.5 text-[11px] font-sans mt-0.5">
+                <div className="flex items-center justify-between text-[10px] text-neutral-400 uppercase tracking-widest font-mono">
+                  <span>Pinpoint Targeting</span>
+                  <span className="text-sky-400 font-sans">Active</span>
+                </div>
+
+                {/* Latitude Input & Slider */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-neutral-400">Latitude:</span>
+                    <span className="font-mono text-white font-medium">
+                      {Number(customLat) >= 0 ? `+${Number(customLat).toFixed(1)}°` : `${Number(customLat).toFixed(1)}°`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-90.0"
+                    max="90.0"
+                    step="0.1"
+                    value={customLat}
+                    onChange={(e) => setCustomLat(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-neutral-500 font-mono">
+                    <button type="button" onClick={() => setCustomLat(-89.9)} className="hover:text-white cursor-none">South (-89.9°)</button>
+                    <button type="button" onClick={() => setCustomLat(0.0)} className="hover:text-white cursor-none">Equator (0°)</button>
+                    <button type="button" onClick={() => setCustomLat(90.0)} className="hover:text-white cursor-none">North (+90°)</button>
+                  </div>
+                </div>
+
+                {/* Longitude Input & Slider */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-neutral-400">Longitude:</span>
+                    <span className="font-mono text-white font-medium">
+                      {Number(customLon) >= 0 ? `+${Number(customLon).toFixed(1)}°` : `${Number(customLon).toFixed(1)}°`}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="-180.0"
+                    max="180.0"
+                    step="0.1"
+                    value={customLon}
+                    onChange={(e) => setCustomLon(parseFloat(e.target.value))}
+                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-none"
+                  />
+                  <div className="flex justify-between text-[9px] text-neutral-500 font-mono">
+                    <button type="button" onClick={() => setCustomLon(-180.0)} className="hover:text-white cursor-none">-180°</button>
+                    <button type="button" onClick={() => setCustomLon(0.0)} className="hover:text-white cursor-none">0° Prime</button>
+                    <button type="button" onClick={() => setCustomLon(180.0)} className="hover:text-white cursor-none">+180°</button>
+                  </div>
+                </div>
+
+                {/* Apply Button */}
+                <button
+                  onClick={handleApplyCustom}
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded text-[11px] tracking-wider uppercase transition cursor-none text-center shadow-lg mt-0.5"
+                >
+                  Lock Custom Target ↗
+                </button>
+
+                <div className="text-[9px] text-neutral-400 leading-tight border-t border-white/10 pt-1.5">
+                  💡 Tip: You can also click anywhere directly on the 3D Moon to drop a pin.
+                </div>
+              </div>
+            )}
 
             {/* Contextual Landing / Surface View button */}
             {showEnterSurface && onEnterSurface && (
