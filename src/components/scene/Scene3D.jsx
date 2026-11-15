@@ -33,7 +33,7 @@ class SceneErrorBoundary extends Component {
       return (
         <div style={{ width: '100%', height: '100%', minHeight: 360, position: 'relative', background: '#090d16' }}>
           <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '8px 12px', fontSize: '12px', fontWeight: 'bold' }}>
-            ⚠️ 3D view is unavailable on this device
+            3D view is unavailable on this device
           </div>
           <SkyDiagram
             sunEl={this.props.sunEl}
@@ -547,7 +547,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     return (
       <div style={{ width: '100%', height: '100%', minHeight: '360px', position: 'relative', background: '#090d16' }}>
         <div style={{ background: '#7f1d1d', color: '#fecaca', padding: '8px 12px', fontSize: '12px', fontWeight: 'bold' }}>
-          ⚠️ 3D view is unavailable on this device
+          3D view is unavailable on this device
         </div>
         <SkyDiagram
           sunEl={validSunEl}
@@ -620,7 +620,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
             zIndex: 20,
           }}
         >
-          ⚠️ {notification}
+          {notification}
         </div>
       )}
     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Info, X } from 'lucide-react';
 
 /**
  * src/components/ui/AssumptionsPanel.jsx
@@ -39,14 +40,15 @@ export function AssumptionsPanel({ isOpen, onClose }) {
       <div className="bg-[#050914] border border-sky-500/30 max-w-2xl w-full rounded-3xl p-6 shadow-[0_16px_50px_rgba(0,0,0,0.9)] space-y-4 max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div className="flex items-center gap-2.5">
-            <span className="text-xl text-amber-400">⚖️</span>
+            <Info className="w-5 h-5 text-amber-400" />
             <h3 className="font-display font-bold text-white text-base">Model Assumptions & Scientific Simplifications</h3>
           </div>
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-300 flex items-center justify-center transition-colors cursor-pointer border border-white/10"
+            aria-label="Close"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 

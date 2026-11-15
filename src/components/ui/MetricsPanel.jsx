@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sun, Globe } from 'lucide-react';
 import { VerdictBadge } from './VerdictBadge.jsx';
 import { shadowLength } from '../../lib/metrics.js';
 
@@ -44,7 +45,7 @@ export function MetricsPanel({
           <div className="bg-black/50 p-3 rounded-xl border border-white/5 shadow-xs">
             <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
               <span>SOLAR VECTOR</span>
-              <span className="text-amber-400">☀️</span>
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-[11px] text-slate-500">Elevation:</span>
@@ -63,7 +64,7 @@ export function MetricsPanel({
           <div className="bg-black/50 p-3 rounded-xl border border-white/5 shadow-xs">
             <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
               <span>EARTH LOS</span>
-              <span className="text-emerald-400">🌍</span>
+              <Globe className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="flex justify-between items-baseline">
               <span className="text-[11px] text-slate-500">Elevation:</span>

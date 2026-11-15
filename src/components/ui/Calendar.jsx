@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { X } from 'lucide-react';
 import { buildCalendar, getBestWindowsForSite } from '../../lib/calendarData.js';
 import { BestWindows } from './BestWindows.jsx';
 
@@ -217,7 +218,7 @@ export function Calendar({
               className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded text-xs transition-colors cursor-pointer border border-neutral-700"
               aria-label="Close"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

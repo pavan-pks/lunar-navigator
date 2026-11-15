@@ -1,4 +1,5 @@
 import React from 'react';
+import { AlertTriangle } from 'lucide-react';
 
 /**
  * src/components/ui/ErrorState.jsx
@@ -10,7 +11,7 @@ export function ErrorState({ error, onRetry }) {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(239,68,68,0.1),transparent_70%)] pointer-events-none"></div>
       <div className="max-w-md w-full bg-[#070b14]/90 border border-red-500/30 rounded-3xl p-6 shadow-2xl text-center space-y-4 backdrop-blur-md relative z-10">
         <div className="w-14 h-14 mx-auto rounded-2xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 text-2xl font-bold shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-          ⚠
+          <AlertTriangle className="w-7 h-7" />
         </div>
         <div>
           <h2 className="text-lg font-display font-semibold text-white">Lunar Ephemeris Load Anomaly</h2>

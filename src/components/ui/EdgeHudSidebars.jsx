@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { MapPin, Activity, Battery as BatteryIcon, Calendar as CalendarIcon } from 'lucide-react';
 import { ScrambleValue } from './ScrambleValue.jsx';
 
 /**
@@ -189,7 +190,7 @@ export function EdgeHudSidebars({
               }`}
             >
               <span className="flex items-center gap-1.5 min-w-0 truncate">
-                <span>📍</span>
+                <MapPin className="w-3 h-3 text-sky-400 shrink-0" />
                 <span className="truncate">{customSite ? customSite.name : 'Custom Coordinates'}</span>
               </span>
               <span className="text-[11px] opacity-70 shrink-0">{showCustomCoords ? '▲' : '▼'}</span>
@@ -261,7 +262,7 @@ export function EdgeHudSidebars({
                 </button>
 
                 <div className="text-[11px] text-neutral-400 leading-tight border-t border-white/10 pt-1.5">
-                  💡 Tip: You can also click anywhere directly on the 3D Moon to drop a pin.
+                  Tip: You can also click anywhere directly on the 3D Moon to drop a pin.
                 </div>
               </div>
             )}
@@ -299,7 +300,7 @@ export function EdgeHudSidebars({
           {plannerMode === 'explorer' ? (
             <div className="flex flex-col gap-3 py-1 text-[11px] font-sans text-neutral-300 leading-relaxed [overflow-wrap:anywhere]">
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
-                <span className="font-semibold text-white block mb-1">☀️ Solar Illumination</span>
+                <span className="font-semibold text-white block mb-1">Solar Illumination</span>
                 {safeLiveSun > 0 ? (
                   <span>The Sun is currently {sunElStr} above the local horizon, providing direct light and solar power to the landing site.</span>
                 ) : (
@@ -307,7 +308,7 @@ export function EdgeHudSidebars({
                 )}
               </div>
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
-                <span className="font-semibold text-white block mb-1">⏳ Darkness & Battery Endurance</span>
+                <span className="font-semibold text-white block mb-1">Darkness & Battery Endurance</span>
                 <span>
                   Nightfall arrives in <strong className="text-white">{timeToSunsetStr}</strong>. The longest continuous blackout lasts{' '}
                   <strong className="text-white">{peakDarkStr}</strong>, requiring a minimum battery capacity to survive night heating.
@@ -376,23 +377,26 @@ export function EdgeHudSidebars({
               <button
                 type="button"
                 onClick={() => onOpenTool('timeline')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer flex items-center gap-1.5"
               >
-                📈 Timeline
+                <Activity className="w-3 h-3 text-sky-400" />
+                <span>Timeline</span>
               </button>
               <button
                 type="button"
                 onClick={() => onOpenTool('battery')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer flex items-center gap-1.5"
               >
-                🔋 Battery
+                <BatteryIcon className="w-3 h-3 text-emerald-400" />
+                <span>Battery</span>
               </button>
               <button
                 type="button"
                 onClick={() => onOpenTool('calendar')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer flex items-center gap-1.5"
               >
-                📅 Calendar
+                <CalendarIcon className="w-3 h-3 text-amber-400" />
+                <span>Calendar</span>
               </button>
             </div>
           )}
@@ -432,7 +436,7 @@ export function EdgeHudSidebars({
           {plannerMode === 'explorer' ? (
             <div className="flex flex-col gap-3 py-1 text-[11px] font-sans text-neutral-300 leading-relaxed text-left [overflow-wrap:anywhere]">
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
-                <span className="font-semibold text-white block mb-1">🌍 Earth Visibility</span>
+                <span className="font-semibold text-white block mb-1">Earth Visibility</span>
                 {safeLiveEarth > 0 ? (
                   <span>Earth is currently {earthElStr} above the lunar horizon, providing continuous high-bandwidth telemetry and voice.</span>
                 ) : (
@@ -440,7 +444,7 @@ export function EdgeHudSidebars({
                 )}
               </div>
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
-                <span className="font-semibold text-white block mb-1">📡 Overall DTE Window</span>
+                <span className="font-semibold text-white block mb-1">Overall DTE Window</span>
                 <span>
                   Earth line-of-sight is available for <strong className="text-white">{totalCommsPct}</strong> ({stats.earthVisibleHours}h) of the 14-day sortie.
                 </span>

@@ -120,7 +120,7 @@ export function VisorHud({
           onClick={onClose}
           className="px-6 py-2 rounded-xl bg-[#c5221f]/80 hover:bg-[#c5221f] text-white font-bold text-xs border border-red-500/50 shadow-lg cursor-pointer transition"
         >
-          ✕ Exit Helmet Visor
+          Exit Helmet Visor
         </button>
       </div>
     </div>

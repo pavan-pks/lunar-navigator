@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Zap } from 'lucide-react';
 import {
   ResponsiveContainer,
   LineChart,
@@ -105,7 +106,7 @@ export function BatteryPanel({
       <div className="p-4 bg-[#050c18] border border-sky-500/25 rounded-3xl text-xs text-sky-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg backdrop-blur-md">
         <div className="space-y-1">
           <span className="font-display font-bold text-sky-400 uppercase tracking-widest text-[11px] flex items-center gap-2">
-            <span>💡</span>
+            <Zap className="w-3.5 h-3.5 text-sky-400" />
             <span>Orbital Physics Insight: Polar Solar Mast Geometry</span>
           </span>
           <p className="leading-relaxed text-slate-300 text-[11px]">

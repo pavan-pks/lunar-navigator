@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { X } from 'lucide-react';
 import { computeEphemerisRange } from '../../lib/validation.js';
 
 /**
@@ -42,10 +43,10 @@ export function DataAssumptionsPopover({ ephem, missionValidation }) {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="text-neutral-500 hover:text-neutral-200 text-xs px-1"
+              className="text-neutral-500 hover:text-neutral-200 text-xs px-1 flex items-center justify-center cursor-pointer"
               aria-label="Close popover"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 

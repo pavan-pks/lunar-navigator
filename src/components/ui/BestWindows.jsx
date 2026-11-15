@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles } from 'lucide-react';
 import { VerdictBadge } from './VerdictBadge.jsx';
 
 /**
@@ -16,7 +17,7 @@ export function BestWindows({
     <div className="bg-[#070b14]/80 p-5 rounded-3xl border border-white/10 space-y-4 shadow-lg backdrop-blur-md">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-display font-bold text-slate-100 uppercase tracking-widest flex items-center gap-2">
-          <span className="text-amber-400">★</span>
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
           <span>Ranked Optimal Landing Windows: {site?.name}</span>
         </h3>
         <span className="text-[10px] text-slate-500 font-mono">RANKED BY ILLUMINATION DURATION</span>

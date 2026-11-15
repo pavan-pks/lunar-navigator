@@ -192,7 +192,7 @@ export function LroSurfaceView({ targetId = 'shackleton', sunEl = 5, sunAz = 180
         </span>
         <span className="text-sm font-sans font-light text-[#f5f5f5]">{label}</span>
         <div className="mt-1 text-[10px] font-mono text-[#a3a3a3]">
-          ☀ {sunEl > 0 ? `+${sunEl.toFixed(1)}°` : `${sunEl.toFixed(1)}°`} elevation ·{' '}
+          Sun: {sunEl > 0 ? `+${sunEl.toFixed(1)}°` : `${sunEl.toFixed(1)}°`} elevation ·{' '}
           {sunEl > 0 ? 'Illuminated' : 'Night'}
         </div>
       </div>

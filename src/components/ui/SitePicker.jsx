@@ -105,7 +105,7 @@ export function SitePicker({
             ))}
           </optgroup>
           <optgroup label="Custom Coordinates">
-            <option value="custom">★ Enter Custom Surface Coordinates…</option>
+            <option value="custom">Enter Custom Surface Coordinates…</option>
           </optgroup>
         </select>
       </div>
@@ -157,7 +157,7 @@ export function SitePicker({
 
           {isHighLatitude && !errorMsg && (
             <p className="text-[10px] text-amber-400/90 leading-tight font-mono">
-              💡 Polar illumination conditions are most distinct below −80° latitude.
+              Note: Polar illumination conditions are most distinct below −80° latitude.
             </p>
           )}
         </div>

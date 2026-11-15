@@ -208,7 +208,7 @@ export default function SkyDiagram({
             fontWeight="bold"
             fill="#7dd3fc"
           >
-            🌍 Earth ({safeEarthEl.toFixed(1)}°, {safeEarthAz.toFixed(0)}°)
+            Earth ({safeEarthEl.toFixed(1)}°, {safeEarthAz.toFixed(0)}°)
           </text>
         </g>
 
@@ -239,7 +239,7 @@ export default function SkyDiagram({
             fontWeight="bold"
             fill="#fef08a"
           >
-            ☀️ Sun ({safeSunEl.toFixed(1)}°, {safeSunAz.toFixed(0)}°)
+            Sun ({safeSunEl.toFixed(1)}°, {safeSunAz.toFixed(0)}°)
           </text>
         </g>
 

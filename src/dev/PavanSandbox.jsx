@@ -163,14 +163,14 @@ export default function PavanSandbox() {
               transition: 'background 0.2s',
             }}
           >
-            {isSimulating ? '⏹ Stop Simulation' : '▶ Simulate Lunar Day (~20s loop)'}
+            {isSimulating ? 'Stop Simulation' : 'Simulate Lunar Day (~20s loop)'}
           </button>
         </div>
 
         {/* Angles: Sun */}
         <div style={{ background: '#1f2937', padding: '12px', borderRadius: '6px' }}>
           <div style={{ fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px' }}>
-            ☀️ Sun Position
+            Sun Position
           </div>
           <div style={{ marginBottom: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
@@ -219,7 +219,7 @@ export default function PavanSandbox() {
         {/* Angles: Earth */}
         <div style={{ background: '#1f2937', padding: '12px', borderRadius: '6px' }}>
           <div style={{ fontWeight: 'bold', color: '#60a5fa', marginBottom: '8px' }}>
-            🌍 Earth Position
+            Earth Position
           </div>
           <div style={{ marginBottom: '8px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>

@@ -527,7 +527,7 @@ export function App() {
                 onClick={() => setIsSidebarsCollapsed(v => !v)}
                 className="md:hidden border border-white/20 bg-black/80 px-2.5 py-1 rounded text-[11px] font-sans text-sky-300 pointer-events-auto shadow-md shrink-0 cursor-pointer"
               >
-                {isSidebarsCollapsed ? '📊 HUD' : '✕ Hide HUD'}
+                {isSidebarsCollapsed ? 'HUD' : 'Hide HUD'}
               </button>
             </div>
 
@@ -543,7 +543,7 @@ export function App() {
                 className="text-[#38bdf8] hover:text-white transition cursor-pointer flex items-center gap-1 shrink-0 px-2.5 py-1 rounded-full bg-sky-950/40 border border-sky-700/40"
                 title="Zoom camera to focus on the Spacecraft"
               >
-                <span>🚀 Focus Craft</span>
+                <span>Focus Craft</span>
               </button>
 
               {/* Compare Button */}
@@ -568,7 +568,7 @@ export function App() {
                 className="flex items-center gap-1 text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0 px-2 py-1 rounded bg-white/5 border border-white/10 hover:border-white/30"
                 title="Open quantitative timeline, battery simulator, and mission calendar"
               >
-                <span>📈 Analysis</span>
+                <span>Analysis</span>
               </button>
 
               {/* Report Button */}
@@ -610,7 +610,7 @@ export function App() {
                   }`}
                   title="Toggle coordinate graticule grid"
                 >
-                  <span>🌐 Grid · {showGraticule ? 'On' : 'Off'}</span>
+                  <span>Grid · {showGraticule ? 'On' : 'Off'}</span>
                 </button>
 
                 <button
@@ -621,7 +621,7 @@ export function App() {
                   }`}
                   title="Toggle Direct-to-Earth Telemetry Laser Beam"
                 >
-                  <span>📡 DSN · {showDsnBeam ? 'On' : 'Off'}</span>
+                  <span>DSN · {showDsnBeam ? 'On' : 'Off'}</span>
                 </button>
 
                 <button
@@ -632,7 +632,7 @@ export function App() {
                   }`}
                   title="Toggle illustrative cold-trap layer (not measured data)"
                 >
-                  <span>🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
+                  <span>Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
                 </button>
 
                 <button type="button" onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer shrink-0">
@@ -649,7 +649,7 @@ export function App() {
                   className="text-xs text-[#a3a3a3] hover:text-white transition cursor-pointer border border-white/10 hover:border-white/30 px-2 py-0.5 rounded"
                   title="Copy shareable mission link"
                 >
-                  {linkCopied ? '✓ Copied' : '🔗 Copy'}
+                  {linkCopied ? 'Copied' : 'Copy'}
                 </button>
               </div>
 
@@ -690,7 +690,7 @@ export function App() {
                       onClick={() => setShowGraticule(v => !v)}
                       className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
-                      🌐 Grid · {showGraticule ? 'On' : 'Off'}
+                      Grid · {showGraticule ? 'On' : 'Off'}
                     </button>
 
                     <button
@@ -698,7 +698,7 @@ export function App() {
                       onClick={() => setShowDsnBeam(v => !v)}
                       className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
-                      📡 DSN · {showDsnBeam ? 'On' : 'Off'}
+                      DSN · {showDsnBeam ? 'On' : 'Off'}
                     </button>
 
                     <button
@@ -706,7 +706,7 @@ export function App() {
                       onClick={() => setShowThermalMap(v => !v)}
                       className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
-                      🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}
+                      Ice Map · {showThermalMap ? 'On' : 'Off'}
                     </button>
 
                     <button
@@ -722,7 +722,7 @@ export function App() {
                       onClick={handleCopyLink}
                       className="text-left px-2.5 py-1.5 text-neutral-300 hover:text-white hover:bg-white/10 rounded transition cursor-pointer"
                     >
-                      {linkCopied ? '✓ Link Copied' : '🔗 Copy Link'}
+                      {linkCopied ? 'Copied' : 'Copy Link'}
                     </button>
 
                     <button

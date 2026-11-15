@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Pause, ArrowLeft, BarChart2, FileText } from 'lucide-react';
+import { Play, Pause, ArrowLeft, BarChart2, FileText, Sun, Globe, Compass, Ruler, AlertTriangle, Eye, Orbit, User } from 'lucide-react';
 import Scene3D from './Scene3D.jsx';
 import VisorHud from '../ui/VisorHud.jsx';
 
@@ -130,7 +130,17 @@ export function SurfaceViewSimulation({
           className="border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0"
           title="Toggle between Astronaut EVA POV and Orbital Mast view"
         >
-          <span>{viewMode === 'astronaut' ? '🪐 Orbit Mast' : '👨‍🚀 Astronaut View'}</span>
+          {viewMode === 'astronaut' ? (
+            <>
+              <Orbit className="w-3.5 h-3.5 text-purple-300" />
+              <span>Orbit Mast</span>
+            </>
+          ) : (
+            <>
+              <User className="w-3.5 h-3.5 text-sky-300" />
+              <span>Astronaut View</span>
+            </>
+          )}
         </button>
 
         <div className="w-px h-3.5 bg-white/20 mx-0.5 shrink-0" />
@@ -139,28 +149,31 @@ export function SurfaceViewSimulation({
         <button
           type="button"
           onClick={() => scene3DRef.current?.lookAtSun?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0"
           title="Orient camera toward the Sun"
         >
-          <span>☀️ Sun</span>
+          <Sun className="w-3.5 h-3.5 text-amber-400" />
+          <span>Sun</span>
         </button>
 
         <button
           type="button"
           onClick={() => scene3DRef.current?.lookAtEarth?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0"
           title="Orient camera toward the Earth"
         >
-          <span>🌍 Earth</span>
+          <Globe className="w-3.5 h-3.5 text-sky-400" />
+          <span>Earth</span>
         </button>
 
         <button
           type="button"
           onClick={() => scene3DRef.current?.lookNorth?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0"
           title="Orient camera toward Lunar True North"
         >
-          <span>🧭 North</span>
+          <Compass className="w-3.5 h-3.5 text-rose-400" />
+          <span>North</span>
         </button>
 
         <div className="w-px h-3.5 bg-white/20 mx-0.5 shrink-0" />
@@ -169,42 +182,45 @@ export function SurfaceViewSimulation({
         <button
           type="button"
           onClick={() => setShowShadowRuler((prev) => !prev)}
-          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0 ${
             showShadowRuler
               ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/40'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
           }`}
           title="Toggle metric shadow ruler"
         >
-          <span>📏 Ruler</span>
+          <Ruler className="w-3.5 h-3.5" />
+          <span>Ruler</span>
         </button>
 
         {/* Slope Hazard Heatmap Toggle */}
         <button
           type="button"
           onClick={() => setShowSlopeHazard((prev) => !prev)}
-          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0 ${
             showSlopeHazard
               ? 'text-amber-300 bg-amber-950/50 border border-amber-600/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
           }`}
           title="Toggle Artemis Landing Slope Safety & Hazard Heatmap"
         >
-          <span>⚠️ Slope Map</span>
+          <AlertTriangle className="w-3.5 h-3.5" />
+          <span>Slope Map</span>
         </button>
 
         {/* Astronaut Helmet Visor HUD Toggle */}
         <button
           type="button"
           onClick={() => setShowVisor((prev) => !prev)}
-          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1.5 shrink-0 ${
             showVisor
               ? 'text-emerald-300 bg-emerald-950/50 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
           }`}
           title="Toggle Fullscreen Astronaut Helmet Visor HUD"
         >
-          <span>🪖 Visor</span>
+          <Eye className="w-3.5 h-3.5" />
+          <span>Visor</span>
         </button>
       </div>
 

@@ -195,7 +195,7 @@ export default function Hud({
                 }`}
                 title="Toggle metric shadow ruler on the ground"
               >
-                📏 Shadow Ruler
+                Shadow Ruler
               </button>
             )}
 
@@ -215,19 +215,19 @@ export default function Hud({
               onClick={onLookSun}
               className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
             >
-              ☀️ Look at Sun
+              Look at Sun
             </button>
             <button
               onClick={onLookEarth}
               className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
             >
-              🌍 Look at Earth
+              Look at Earth
             </button>
             <button
               onClick={onLookNorth}
               className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
             >
-              🧭 Look North
+              Look North
             </button>
           </div>
         </div>
@@ -242,14 +242,13 @@ export default function Hud({
             <div className="bg-black/85 border border-white/15 p-3.5 rounded-xl shadow-xl flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
                 <span className={safeSunEl > -0.27 ? 'text-white' : 'text-neutral-500'}>
-                  ☀️ Sun: {safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az
+                  Sun: {safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az
                 </span>
                 <span className={safeEarthEl > 0 ? 'text-neutral-200' : 'text-neutral-500'}>
-                  🌍 Earth: {safeEarthEl.toFixed(1)}° el / {safeEarthAz.toFixed(1)}° az
+                  Earth: {safeEarthEl.toFixed(1)}° el / {safeEarthAz.toFixed(1)}° az
                 </span>
               </div>
               <div className="text-[11px] font-mono text-neutral-300 border-t border-white/10 pt-1.5 flex items-center gap-2">
-                <span className="text-neutral-400">📏</span>
                 <span>{shadowText}</span>
               </div>
             </div>
@@ -257,7 +256,7 @@ export default function Hud({
             /* Orbit View: Orbital Lighting Status Card */
             <div className="bg-black/85 border border-white/12 p-3 rounded-xl shadow-lg flex flex-col gap-1 text-[11px] font-mono">
               <div className="flex items-center gap-2 text-white">
-                <span>☀️ Solar Vector:</span>
+                <span>Solar Vector:</span>
                 <span>{safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az</span>
               </div>
               <span className="text-[10px] text-neutral-400">
@@ -274,7 +273,7 @@ export default function Hud({
               onClick={() => onToggleViewMode(isAstronautView ? 'orbit' : 'astronaut')}
               className="bg-black/90 hover:bg-white hover:text-black text-white border border-white/25 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wider transition-all duration-200 cursor-pointer shadow-xl flex items-center gap-2"
             >
-              <span>{isAstronautView ? '🪐 Orbit Mast View' : '👨‍🚀 Astronaut EVA View'}</span>
+              <span>{isAstronautView ? 'Orbit Mast View' : 'Astronaut EVA View'}</span>
             </button>
           )}
         </div>
