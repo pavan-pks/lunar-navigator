@@ -7,9 +7,17 @@
 
 ## Visual Showcase
 
-| Orbital Telemetry & Targeting HUD | Ground-Level Astronaut EVA Simulation | Full-Year Opportunity Matrix & Scoring |
-| :---: | :---: | :---: |
-| ![Orbital Survey HUD](docs/screenshots/orbital_survey_hud.jpg)<br><sub>**Orbital Mission Planner**<br>Targeting reticle, solar vector, Earth LOS, and real-time telemetry HUD</sub> | ![Surface Simulation](docs/screenshots/surface_simulation.jpg)<br><sub>**Astronaut EVA Surface Simulation**<br>400m tactical patch, Artemis lander, shadow ruler, and slope heatmap</sub> | ![Opportunity Matrix](docs/screenshots/opportunity_matrix.png)<br><sub>**Full-Year Opportunity Calendar**<br>Landing window evaluation, 4-factor scoring, and live inspection</sub> |
+| 1. Polar Orbit Mission Planner & Telemetry HUD | 2. Ground-Level Astronaut EVA Simulation |
+| :---: | :---: |
+| ![Polar Orbit Survey HUD](docs/screenshots/02_orbital_survey_hud.jpg)<br><sub>**Orbital Mission Planner**<br>Interactive 3D Moon globe, targeting reticle, real-time Sun/Earth elevation, DTE link geometry, and PSR status</sub> | ![Surface Simulation](docs/screenshots/03_surface_eva_simulation.jpg)<br><sub>**Ground-Level Astronaut EVA Simulation**<br>400m tactical regolith patch, grounded Artemis lander, live Sun/Earth orientation, and metric shadow ruler</sub> |
+
+| 3. Artemis Touchdown Slope Hazard Colormap | 4. 4-Factor Weighted Suitability Index |
+| :---: | :---: |
+| ![Slope Safety Colormap](docs/screenshots/04_slope_safety_heatmap.jpg)<br><sub>**Touchdown Safety & Slope Analysis**<br>Dynamic terrain hazard colormap: &lt;6° Safe (green), 6°–15° Caution (amber), &gt;15° Hazard (red)</sub> | ![Suitability Scoring](docs/screenshots/05_suitability_score_inspection.jpg)<br><sub>**Multi-Disciplinary Suitability Index**<br>Live inspection with weighted score (Solar 35%, Night 25%, Comms 25%, Slope 15%) and letter grades</sub> |
+
+| 5. Full-Year Mission Window Matrix (2027–2028) | 6. Aerospace Workstation Entry |
+| :---: | :---: |
+| ![Opportunity Calendar Matrix](docs/screenshots/06_opportunity_calendar_matrix.jpg)<br><sub>**2027–2028 Mission Opportunity Matrix**<br>Full-year sortie viability heatmap with percentage coverage pills across all candidate sites</sub> | ![Cinematic Intro](docs/screenshots/01_hero_screen.jpg)<br><sub>**Aerospace Workstation Entry**<br>High-contrast landing interface with spatial telemetry audio and flight dynamics orientation</sub> |
 
 ---
 
@@ -46,7 +54,7 @@ Operating near the lunar south pole presents extreme physical constraints:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/mhabibkabbo/Lunar-Navigator.git
+git clone https://github.com/pavan-pks/lunar-navigator.git
 cd lunar-navigator
 ```
 
@@ -93,6 +101,8 @@ npm run preview    # Previews the production build locally
 ```
 
 ### Workflow 1: Site Selection & Target Lock
+![Polar Orbit Survey HUD](docs/screenshots/02_orbital_survey_hud.jpg)
+
 1. In the **Left HUD Sidebar**, click the **Landing Target** dropdown or select one of the candidate quick-pills (`Shackleton`, `Malapert`, `Haworth`, `Connecting Ridge`, `Nobile`).
 2. The 3D camera will smoothly pivot and lock onto the selected site with a targeting reticle.
 3. Review the site's **PSR Proximity Badge** (e.g., `PSR Adjacent: Volatile Cold Trap`) and nominal terrain slope margin ($<15^\circ$ tip-over threshold).
@@ -111,6 +121,9 @@ npm run preview    # Previews the production build locally
 3. Adjust the slider ($3\text{--}14\text{ days}$) or click a preset to stage your transit timeline into the mission plan.
 
 ### Workflow 4: 4-Factor Suitability Scoring & Opportunity Calendar
+![Opportunity Calendar Matrix](docs/screenshots/06_opportunity_calendar_matrix.jpg)
+![Suitability Scoring](docs/screenshots/05_suitability_score_inspection.jpg)
+
 1. Click the **Analysis** button in the top navigation bar.
 2. Select the **Opportunity Calendar** tab to view the full-year ($2027\text{--}2028$) matrix across candidate sites.
 3. Review the **4-Factor Suitability Score** ($0\text{--}100$) combining Solar (35%), Night Survival (25%), Earth Comms (25%), and Slope Safety (15%).
@@ -126,6 +139,9 @@ npm run preview    # Previews the production build locally
 3. Inspect the state-of-charge (SoC Wh) curve across the 14-day mission to check if reserves remain above freezing during darkness.
 
 ### Workflow 6: Ground-Level Astronaut EVA Simulation & Shadow Ruler
+![Surface Simulation](docs/screenshots/03_surface_eva_simulation.jpg)
+![Slope Safety Colormap](docs/screenshots/04_slope_safety_heatmap.jpg)
+
 1. In the Left HUD Sidebar, click **Enter Surface Simulation**.
 2. The camera smoothly descends to human eye level ($1.7\text{m}$) standing on a local $400\text{m} \times 400\text{m}$ tactical patch beside the grounded Artemis lander.
 3. Click **Sun**, **Earth**, or **North** on the top action bar to orient your visor.
