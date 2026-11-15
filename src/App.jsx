@@ -22,7 +22,6 @@ import { EdgeHudSidebars } from './components/ui/EdgeHudSidebars.jsx';
 import { ComparePanel } from './components/ui/ComparePanel.jsx';
 import { AnalysisToolsModal } from './components/ui/AnalysisToolsModal.jsx';
 import { DataAssumptionsPopover } from './components/ui/DataAssumptionsPopover.jsx';
-import { PolarMap2D } from './components/scene/PolarMap2D.jsx';
 import { CsaArtemisPanel } from './components/ui/CsaArtemisPanel.jsx';
 import { CustomCursor } from './components/ui/CustomCursor.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
