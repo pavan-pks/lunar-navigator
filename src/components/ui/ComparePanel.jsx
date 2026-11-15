@@ -84,7 +84,7 @@ function ScenarioColumn({
           value={siteId}
           disabled={lockSiteSelect}
           onChange={(e) => setSiteId(e.target.value)}
-          className={`bg-[#0a0a0a] border-b border-white/10 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-none transition appearance-none w-full pb-1 truncate ${
+          className={`bg-[#0a0a0a] border-b border-white/10 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-pointer transition appearance-none w-full pb-1 truncate ${
             lockSiteSelect ? 'opacity-70' : ''
           } ${textAlign}`}
         >
@@ -107,7 +107,7 @@ function ScenarioColumn({
             type="date"
             value={launchDate.slice(0, 10)}
             onChange={(e) => setLaunchDate(`${e.target.value}T00:00:00Z`)}
-            className="bg-transparent border-b border-white/10 text-[#f5f5f5] text-[11px] focus:outline-none cursor-none"
+            className="bg-transparent border-b border-white/10 text-[#f5f5f5] text-[11px] focus:outline-none cursor-pointer"
           />
         </div>
         <div className="flex items-center gap-1.5">
@@ -212,7 +212,7 @@ export function ComparePanel({ sites, ephem, missionDays = 14, onClose }) {
           <button
             type="button"
             onClick={() => setCompareMode('sites')}
-            className={`px-3 py-1 rounded transition cursor-none ${
+            className={`px-3 py-1 rounded transition cursor-pointer ${
               compareMode === 'sites'
                 ? 'bg-white text-black font-medium'
                 : 'text-neutral-400 hover:text-white'
@@ -223,7 +223,7 @@ export function ComparePanel({ sites, ephem, missionDays = 14, onClose }) {
           <button
             type="button"
             onClick={() => setCompareMode('dates')}
-            className={`px-3 py-1 rounded transition cursor-none ${
+            className={`px-3 py-1 rounded transition cursor-pointer ${
               compareMode === 'dates'
                 ? 'bg-white text-black font-medium'
                 : 'text-neutral-400 hover:text-white'
@@ -235,7 +235,7 @@ export function ComparePanel({ sites, ephem, missionDays = 14, onClose }) {
 
         <button
           onClick={onClose}
-          className="flex items-center gap-1.5 text-xs font-sans text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none border border-white/10 hover:border-white/30 px-3 py-1.5 rounded"
+          className="flex items-center gap-1.5 text-xs font-sans text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-pointer border border-white/10 hover:border-white/30 px-3 py-1.5 rounded"
         >
           <X size={13} />
           <span>Exit Comparison</span>
@@ -302,7 +302,7 @@ export function ComparePanel({ sites, ephem, missionDays = 14, onClose }) {
               <button
                 type="button"
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="text-white hover:opacity-80 transition cursor-none"
+                className="text-white hover:opacity-80 transition cursor-pointer"
                 aria-label={isPlaying ? 'Pause comparison' : 'Play comparison'}
               >
                 {isPlaying ? <Pause size={13} /> : <Play size={13} />}
@@ -320,7 +320,7 @@ export function ComparePanel({ sites, ephem, missionDays = 14, onClose }) {
             step={0.5}
             value={sharedTRel}
             onChange={(e) => setSharedTRel(parseFloat(e.target.value))}
-            className="w-full h-1 bg-white/20 rounded accent-white cursor-none"
+            className="w-full h-1 bg-white/20 rounded accent-white cursor-pointer"
           />
         </div>
       </div>

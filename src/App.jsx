@@ -321,7 +321,7 @@ export function App() {
 
   if (loading) {
     return (
-      <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] flex flex-col items-center justify-center p-8 space-y-4 font-sans select-none cursor-none">
+      <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] flex flex-col items-center justify-center p-8 space-y-4 font-sans select-none cursor-default">
         <CustomCursor />
         <div className="w-6 h-6 border border-white/20 border-t-white rounded-full animate-spin" />
         <p className="text-[11px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase">
@@ -338,7 +338,7 @@ export function App() {
   const { sites, ephem } = data;
 
   return (
-    <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] overflow-hidden font-sans select-none relative cursor-none">
+    <div className="h-screen w-screen bg-[#000000] text-[#f5f5f5] overflow-hidden font-sans select-none relative cursor-default">
       {/* ── Custom Crosshair Cursor ── */}
       <CustomCursor />
 
@@ -412,13 +412,13 @@ export function App() {
                   timeCtrl.pause();
                   setViewMode('surface');
                 }}
-                className="flex-1 bg-white text-black hover:bg-neutral-200 py-2.5 px-4 rounded text-xs font-sans font-medium tracking-wider uppercase transition cursor-none"
+                className="flex-1 bg-white text-black hover:bg-neutral-200 py-2.5 px-4 rounded text-xs font-sans font-medium tracking-wider uppercase transition cursor-pointer"
               >
                 Enter Surface Simulation ↘
               </button>
               <button
                 onClick={() => setShowLandingOption(false)}
-                className="text-xs text-[#a3a3a3] hover:text-white px-3 py-2 transition cursor-none"
+                className="text-xs text-[#a3a3a3] hover:text-white px-3 py-2 transition cursor-pointer"
               >
                 Stay in Orbit
               </button>
@@ -807,7 +807,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={() => timeCtrl.toggle()}
-                    className="text-[#f5f5f5] hover:opacity-70 transition cursor-none flex items-center"
+                    className="text-[#f5f5f5] hover:opacity-70 transition cursor-pointer flex items-center"
                     aria-label={timeCtrl.playing ? 'Pause' : 'Play'}
                   >
                     {timeCtrl.playing ? <Pause size={13} /> : <Play size={13} />}
@@ -816,7 +816,7 @@ export function App() {
                   <button
                     type="button"
                     onClick={cycleSpeed}
-                    className="text-[11px] font-mono tracking-wider text-[#f5f5f5] hover:text-white transition cursor-none border-b border-transparent hover:border-white/40 pb-0.5"
+                    className="text-[11px] font-mono tracking-wider text-[#f5f5f5] hover:text-white transition cursor-pointer border-b border-transparent hover:border-white/40 pb-0.5"
                     title="Cycle Simulation Speed"
                   >
                     {SIM_SPEED_OPTIONS.find(s => s.value === timeCtrl.speed)?.label || `${timeCtrl.speed}x`}
@@ -837,7 +837,7 @@ export function App() {
                       type="date"
                       value={launchDate.slice(0, 10)}
                       onChange={(e) => setLaunchDate(`${e.target.value}T00:00:00Z`)}
-                      className="bg-transparent border-b border-white/15 pb-0.5 text-[11px] text-[#f5f5f5] focus:outline-none cursor-none"
+                      className="bg-transparent border-b border-white/15 pb-0.5 text-[11px] text-[#f5f5f5] focus:outline-none cursor-pointer"
                     />
                   </div>
 
@@ -857,7 +857,7 @@ export function App() {
                       step={1}
                       value={slipDays}
                       onChange={(e) => setSlipDays(parseInt(e.target.value, 10))}
-                      className="w-14 sm:w-20 h-1 bg-white/20 rounded accent-sky-400 cursor-none"
+                      className="w-14 sm:w-20 h-1 bg-white/20 rounded accent-sky-400 cursor-pointer"
                     />
                     <span className="font-mono text-sky-300 text-[11px]">+{slipDays}d</span>
                   </div>
@@ -879,7 +879,7 @@ export function App() {
                   step={0.1}
                   value={timeCtrl.tRel}
                   onChange={(e) => timeCtrl.seek(parseFloat(e.target.value))}
-                  className="w-full h-[2px] bg-white/20 rounded appearance-none cursor-none accent-white"
+                  className="w-full h-[2px] bg-white/20 rounded appearance-none cursor-pointer accent-white"
                   aria-label="Simulation time scrubber"
                 />
               </div>

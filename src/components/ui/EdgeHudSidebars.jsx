@@ -115,7 +115,7 @@ export function EdgeHudSidebars({
                 <button
                   type="button"
                   onClick={() => onTogglePlannerMode('planner')}
-                  className={`px-2.5 py-0.5 transition cursor-none ${
+                  className={`px-2.5 py-0.5 transition cursor-pointer ${
                     plannerMode === 'planner'
                       ? 'bg-white text-black font-medium'
                       : 'text-[#a3a3a3] hover:text-white bg-transparent'
@@ -126,7 +126,7 @@ export function EdgeHudSidebars({
                 <button
                   type="button"
                   onClick={() => onTogglePlannerMode('explorer')}
-                  className={`px-2.5 py-0.5 transition cursor-none ${
+                  className={`px-2.5 py-0.5 transition cursor-pointer ${
                     plannerMode === 'explorer'
                       ? 'bg-white text-black font-medium'
                       : 'text-[#a3a3a3] hover:text-white bg-transparent'
@@ -149,7 +149,7 @@ export function EdgeHudSidebars({
                 onChange={(e) => {
                   if (e.target.value !== 'custom') onSelectSite(e.target.value);
                 }}
-                className="w-full bg-[#0a0a0a] border-b border-white/10 pb-1.5 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-none transition appearance-none truncate pr-6"
+                className="w-full bg-[#0a0a0a] border-b border-white/10 pb-1.5 text-[#f5f5f5] font-sans font-light text-sm focus:outline-none focus:border-white/40 cursor-pointer transition appearance-none truncate pr-6"
               >
                 {customSite && <option value="custom" className="bg-[#0a0a0a] text-[#f5f5f5]">{customSite.name}</option>}
                 {sites.map(s => (
@@ -168,7 +168,7 @@ export function EdgeHudSidebars({
                   key={s.id}
                   onClick={() => onSelectSite(s.id)}
                   title={s.name}
-                  className={`text-[11px] font-sans tracking-wider transition cursor-none px-2 py-0.5 rounded truncate max-w-[10rem] ${
+                  className={`text-[11px] font-sans tracking-wider transition cursor-pointer px-2 py-0.5 rounded truncate max-w-[10rem] ${
                     selectedSiteId === s.id && !customSite
                       ? 'text-[#f5f5f5] bg-white/15 border-b border-white'
                       : 'text-[#a3a3a3] hover:text-[#f5f5f5] hover:bg-white/5 border border-transparent'
@@ -182,7 +182,7 @@ export function EdgeHudSidebars({
             {/* Custom Coordinates Toggle Button */}
             <button
               onClick={() => setShowCustomCoords(v => !v)}
-              className={`text-[11px] font-sans tracking-wider transition cursor-none px-2.5 py-1.5 rounded border flex items-center justify-between w-full mt-1 ${
+              className={`text-[11px] font-sans tracking-wider transition cursor-pointer px-2.5 py-1.5 rounded border flex items-center justify-between w-full mt-1 ${
                 showCustomCoords || customSite
                   ? 'bg-sky-950/40 border-sky-400/40 text-sky-200'
                   : 'bg-white/5 border-white/10 text-[#a3a3a3] hover:text-white hover:border-white/20'
@@ -218,12 +218,12 @@ export function EdgeHudSidebars({
                     step="0.1"
                     value={customLat}
                     onChange={(e) => setCustomLat(parseFloat(e.target.value))}
-                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-none"
+                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-pointer"
                   />
                   <div className="flex justify-between text-[11px] text-neutral-400 font-mono">
-                    <button type="button" onClick={() => setCustomLat(-89.9)} className="hover:text-white cursor-none">South (-89.9°)</button>
-                    <button type="button" onClick={() => setCustomLat(0.0)} className="hover:text-white cursor-none">Equator (0°)</button>
-                    <button type="button" onClick={() => setCustomLat(90.0)} className="hover:text-white cursor-none">North (+90°)</button>
+                    <button type="button" onClick={() => setCustomLat(-89.9)} className="hover:text-white cursor-pointer">South (-89.9°)</button>
+                    <button type="button" onClick={() => setCustomLat(0.0)} className="hover:text-white cursor-pointer">Equator (0°)</button>
+                    <button type="button" onClick={() => setCustomLat(90.0)} className="hover:text-white cursor-pointer">North (+90°)</button>
                   </div>
                 </div>
 
@@ -242,12 +242,12 @@ export function EdgeHudSidebars({
                     step="0.1"
                     value={customLon}
                     onChange={(e) => setCustomLon(parseFloat(e.target.value))}
-                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-none"
+                    className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-pointer"
                   />
                   <div className="flex justify-between text-[11px] text-neutral-400 font-mono">
-                    <button type="button" onClick={() => setCustomLon(-180.0)} className="hover:text-white cursor-none">-180°</button>
-                    <button type="button" onClick={() => setCustomLon(0.0)} className="hover:text-white cursor-none">0°</button>
-                    <button type="button" onClick={() => setCustomLon(180.0)} className="hover:text-white cursor-none">+180°</button>
+                    <button type="button" onClick={() => setCustomLon(-180.0)} className="hover:text-white cursor-pointer">-180°</button>
+                    <button type="button" onClick={() => setCustomLon(0.0)} className="hover:text-white cursor-pointer">0°</button>
+                    <button type="button" onClick={() => setCustomLon(180.0)} className="hover:text-white cursor-pointer">+180°</button>
                   </div>
                 </div>
 
@@ -255,7 +255,7 @@ export function EdgeHudSidebars({
                 <button
                   type="button"
                   onClick={handleApplyCustom}
-                  className="bg-sky-600 hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded text-[11px] tracking-wider uppercase transition cursor-none text-center shadow-lg mt-0.5"
+                  className="bg-sky-600 hover:bg-sky-500 text-white font-medium py-1.5 px-3 rounded text-[11px] tracking-wider uppercase transition cursor-pointer text-center shadow-lg mt-0.5"
                 >
                   Lock Custom Target ↗
                 </button>
@@ -277,7 +277,7 @@ export function EdgeHudSidebars({
                   }
                 }}
                 disabled={isDescending}
-                className="mt-2 text-[11px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-4 py-2.5 rounded transition duration-300 cursor-none disabled:opacity-40 w-full text-center"
+                className="mt-2 text-[11px] font-sans font-light tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-4 py-2.5 rounded transition duration-300 cursor-pointer disabled:opacity-40 w-full text-center"
               >
                 {isDescending
                   ? 'Descent in Progress…'
@@ -376,21 +376,21 @@ export function EdgeHudSidebars({
               <button
                 type="button"
                 onClick={() => onOpenTool('timeline')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-none"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
               >
                 📈 Timeline
               </button>
               <button
                 type="button"
                 onClick={() => onOpenTool('battery')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-none"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
               >
                 🔋 Battery
               </button>
               <button
                 type="button"
                 onClick={() => onOpenTool('calendar')}
-                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-none"
+                className="text-[11px] font-sans px-2.5 py-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 transition cursor-pointer"
               >
                 📅 Calendar
               </button>

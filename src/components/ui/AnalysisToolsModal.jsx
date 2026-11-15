@@ -48,7 +48,7 @@ export function AnalysisToolsModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-black/80 backdrop-blur-md pointer-events-auto select-none cursor-none overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 lg:p-8 bg-black/80 backdrop-blur-md pointer-events-auto select-none cursor-default overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -72,7 +72,7 @@ export function AnalysisToolsModal({
               <button
                 type="button"
                 onClick={() => setTabOverride('timeline')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-pointer ${
                   activeTab === 'timeline'
                     ? 'bg-white text-black font-medium'
                     : 'text-neutral-400 hover:text-white'
@@ -85,7 +85,7 @@ export function AnalysisToolsModal({
               <button
                 type="button"
                 onClick={() => setTabOverride('battery')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-pointer ${
                   activeTab === 'battery'
                     ? 'bg-white text-black font-medium'
                     : 'text-neutral-400 hover:text-white'
@@ -98,7 +98,7 @@ export function AnalysisToolsModal({
               <button
                 type="button"
                 onClick={() => setTabOverride('calendar')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded transition cursor-pointer ${
                   activeTab === 'calendar'
                     ? 'bg-white text-black font-medium'
                     : 'text-neutral-400 hover:text-white'
@@ -113,7 +113,7 @@ export function AnalysisToolsModal({
             <button
               type="button"
               onClick={onClose}
-              className="text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 p-1.5 rounded transition cursor-none"
+              className="text-neutral-400 hover:text-white border border-white/10 hover:border-white/30 p-1.5 rounded transition cursor-pointer"
               aria-label="Close Analysis Tools"
             >
               <X size={15} />
