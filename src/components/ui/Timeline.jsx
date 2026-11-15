@@ -130,7 +130,7 @@ export function Timeline({
                 if (!active || !payload || !payload.length) return null;
                 const p = payload[0].payload;
                 return (
-                  <div className="bg-[#03060c]/95 border border-sky-500/30 p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.8)] font-mono text-xs text-slate-200 backdrop-blur-md">
+                  <div className="bg-[#03060c]/95 border border-sky-500/30 p-2.5 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.8)] font-mono text-xs text-slate-200">
                     <div className="text-[10px] text-slate-400 border-b border-white/10 pb-1 mb-1.5 font-semibold">
                       T+{p.t}h ({p.day}d) — {p.utc} UTC
                     </div>

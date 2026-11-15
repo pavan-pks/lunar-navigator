@@ -67,7 +67,7 @@ export default function Hud({
       <div className="absolute inset-0 p-4 sm:p-6 pointer-events-none flex flex-col justify-between overflow-hidden text-neutral-100 font-sans select-none">
         {/* Header flex block */}
         <div className="flex flex-col gap-4 pointer-events-auto max-w-2xl w-full">
-          <div className="bg-black/85 backdrop-blur-md p-4 rounded-xl border border-white/10 flex flex-col gap-1 shadow-2xl">
+          <div className="bg-black/90 p-4 rounded-xl border border-white/10 flex flex-col gap-1 shadow-2xl">
             <span className="text-[10px] font-sans tracking-[0.25em] uppercase text-neutral-400">
               Comparative Trade Study
             </span>
@@ -79,7 +79,7 @@ export default function Hud({
           {/* Side-by-side flex comparison cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
             {/* Site A Card */}
-            <div className="bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
+            <div className="bg-black/85 p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
               <span className="text-[10px] tracking-widest uppercase text-neutral-400 font-mono">
                 Site A
               </span>
@@ -94,7 +94,7 @@ export default function Hud({
             </div>
 
             {/* Site B Card */}
-            <div className="bg-black/80 backdrop-blur-md p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
+            <div className="bg-black/85 p-4 rounded-xl border border-white/15 flex flex-col gap-3 shadow-lg">
               <span className="text-[10px] tracking-widest uppercase text-neutral-400 font-mono">
                 Site B
               </span>
@@ -112,7 +112,7 @@ export default function Hud({
 
         {/* Footer info badge */}
         <div className="flex flex-row justify-end items-center pointer-events-auto">
-          <div className="bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10 text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
+          <div className="bg-black/80 px-3 py-1.5 rounded-md border border-white/10 text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
             Comparison Matrix Active
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function Hud({
           {isAstronautView && onReturnToOrbit && (
             <button
               onClick={onReturnToOrbit}
-              className="bg-black/80 hover:bg-white hover:text-black text-neutral-100 border border-white/20 px-3.5 py-2 rounded-lg text-[11px] font-sans font-medium tracking-wider uppercase backdrop-blur-md transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg"
+              className="bg-black/90 hover:bg-white hover:text-black text-neutral-100 border border-white/20 px-3.5 py-2 rounded-lg text-[11px] font-sans font-medium tracking-wider uppercase transition-all duration-200 cursor-pointer flex items-center gap-2 shadow-lg"
               title="Trigger Apollo ascent staging and return to lunar orbit"
             >
               <span>↖ Return to Orbit</span>
@@ -142,7 +142,7 @@ export default function Hud({
           )}
 
           {/* Site Telemetry Card */}
-          <div className="bg-black/75 backdrop-blur-md border border-white/12 p-3.5 rounded-xl shadow-lg flex flex-col gap-1.5">
+          <div className="bg-black/85 border border-white/12 p-3.5 rounded-xl shadow-lg flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-xs font-sans font-medium text-white tracking-wide">
@@ -188,10 +188,10 @@ export default function Hud({
             {isAstronautView && onToggleShadowRuler && (
               <button
                 onClick={onToggleShadowRuler}
-                className={`border px-2.5 py-1.5 rounded-lg text-[11px] font-sans font-medium backdrop-blur-md transition-all duration-200 cursor-pointer shadow-lg ${
+                className={`border px-2.5 py-1.5 rounded-lg text-[11px] font-sans font-medium transition-all duration-200 cursor-pointer shadow-lg ${
                   showShadowRuler
                     ? 'bg-white/20 text-white border-white/40'
-                    : 'bg-black/70 text-neutral-400 border-white/15 hover:border-white/30'
+                    : 'bg-black/80 text-neutral-400 border-white/15 hover:border-white/30'
                 }`}
                 title="Toggle metric shadow ruler on the ground"
               >
@@ -200,7 +200,7 @@ export default function Hud({
             )}
 
             {/* Illustrative Terrain Tag */}
-            <div className="bg-black/70 backdrop-blur-md border border-white/10 px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
+            <div className="bg-black/80 border border-white/10 px-2.5 py-1.5 rounded-lg text-[10px] font-mono text-neutral-400 uppercase tracking-widest">
               Illustrative Terrain
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function Hud({
       {/* ── CENTER SECTION: Astronaut Mode Quick-Look Controls ONLY ── */}
       {isAstronautView && (
         <div className="self-center pointer-events-auto flex flex-col gap-2 items-center">
-          <div className="bg-black/80 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
+          <div className="bg-black/90 border border-white/20 px-3.5 py-1.5 rounded-full shadow-2xl flex items-center gap-2">
             <button
               onClick={onLookSun}
               className="bg-transparent hover:bg-white hover:text-black text-neutral-200 border border-white/15 px-3 py-1 rounded-full text-[11px] font-sans transition-all duration-150 cursor-pointer"
@@ -239,7 +239,7 @@ export default function Hud({
         <div className="flex flex-col gap-4 max-w-md pointer-events-auto">
           {/* Surface View: Local Environmental Metrics Card */}
           {isAstronautView ? (
-            <div className="bg-black/80 backdrop-blur-md border border-white/15 p-3.5 rounded-xl shadow-xl flex flex-col gap-2">
+            <div className="bg-black/85 border border-white/15 p-3.5 rounded-xl shadow-xl flex flex-col gap-2">
               <div className="flex flex-wrap items-center gap-3 font-mono text-[11px]">
                 <span className={safeSunEl > -0.27 ? 'text-white' : 'text-neutral-500'}>
                   ☀️ Sun: {safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az
@@ -255,7 +255,7 @@ export default function Hud({
             </div>
           ) : (
             /* Orbit View: Orbital Lighting Status Card */
-            <div className="bg-black/75 backdrop-blur-md border border-white/12 p-3 rounded-xl shadow-lg flex flex-col gap-1 text-[11px] font-mono">
+            <div className="bg-black/85 border border-white/12 p-3 rounded-xl shadow-lg flex flex-col gap-1 text-[11px] font-mono">
               <div className="flex items-center gap-2 text-white">
                 <span>☀️ Solar Vector:</span>
                 <span>{safeSunEl.toFixed(1)}° el / {safeSunAz.toFixed(1)}° az</span>
@@ -272,7 +272,7 @@ export default function Hud({
           {onToggleViewMode && (
             <button
               onClick={() => onToggleViewMode(isAstronautView ? 'orbit' : 'astronaut')}
-              className="bg-black/80 hover:bg-white hover:text-black text-white border border-white/25 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wider backdrop-blur-md transition-all duration-200 cursor-pointer shadow-xl flex items-center gap-2"
+              className="bg-black/90 hover:bg-white hover:text-black text-white border border-white/25 px-4 py-2.5 rounded-xl text-xs font-sans font-medium tracking-wider transition-all duration-200 cursor-pointer shadow-xl flex items-center gap-2"
             >
               <span>{isAstronautView ? '🪐 Orbit Mast View' : '👨‍🚀 Astronaut EVA View'}</span>
             </button>

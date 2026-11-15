@@ -183,6 +183,16 @@ export function App() {
     }
   };
 
+  const handleReturnToOrbit = () => {
+    playTelemetryPing(1600, 0.08);
+    setViewMode('orbit');
+    setHasLanded(false);
+    setShowLandingOption(false);
+    if (universeRef.current?.centerMoon) {
+      universeRef.current.centerMoon();
+    }
+  };
+
   const handleResetToMacro = () => {
     playTelemetryPing(1200, 0.08);
     setSceneState('macro');
@@ -268,10 +278,7 @@ export function App() {
             sunAz={live.sunAz}
             earthEl={live.earthEl}
             earthAz={live.earthAz}
-            onReturnToOrbit={() => {
-              setViewMode('orbit');
-              setHasLanded(false);
-            }}
+            onReturnToOrbit={handleReturnToOrbit}
           />
         </div>
       )}
@@ -279,7 +286,7 @@ export function App() {
       {/* ── 1C. TOUCHDOWN SURFACE VIEW OPTION PROMPT ── */}
       <AnimatePresence>
         {showLandingOption && viewMode === 'orbit' && hasLanded && (
-          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 bg-black/90 backdrop-blur-md border border-white/20 p-5 rounded-xl shadow-2xl flex flex-col items-center gap-3 text-center pointer-events-auto max-w-md w-full mx-4">
+          <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-40 bg-black/95 border border-white/20 p-5 rounded-xl shadow-2xl flex flex-col items-center gap-3 text-center pointer-events-auto max-w-md w-full mx-4">
             <div className="flex items-center gap-2 text-xs font-sans tracking-[0.2em] text-[#f5f5f5] uppercase font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               Touchdown Confirmed · {site.name}
@@ -387,10 +394,7 @@ export function App() {
             <div className="flex items-center gap-6 text-xs font-sans tracking-wider pointer-events-auto">
               {viewMode === 'surface' ? (
                 <button
-                  onClick={() => {
-                    setViewMode('orbit');
-                    setHasLanded(false);
-                  }}
+                  onClick={handleReturnToOrbit}
                   className="text-[#f5f5f5] border-b border-white/30 hover:border-white transition cursor-none pb-0.5"
                 >
                   Return to Orbital Survey ↖
@@ -469,17 +473,14 @@ export function App() {
                 isDescending={isDescending}
                 hasLanded={hasLanded}
                 viewMode={viewMode}
-                onReturnToOrbit={() => {
-                  setViewMode('orbit');
-                  setHasLanded(false);
-                }}
+                onReturnToOrbit={handleReturnToOrbit}
               />
             ) : null}
           </AnimatePresence>
 
           {/* ── BOTTOM TIMELINE SCRUBBER & SPEED MULTIPLIER ── */}
           {!compareOpen && (
-            <div className="pointer-events-auto space-y-3 z-20 max-w-4xl mx-auto w-full p-4 rounded-xl bg-black/40 backdrop-blur-md border border-white/5">
+            <div className="pointer-events-auto space-y-3 z-20 max-w-4xl mx-auto w-full p-4 rounded-xl bg-black/80 border border-white/10 shadow-2xl">
               <div className="flex items-center justify-between text-[11px] font-sans font-light text-[#a3a3a3]">
                 {/* Play/Pause & Speed Multiplier */}
                 <div className="flex items-center gap-4">

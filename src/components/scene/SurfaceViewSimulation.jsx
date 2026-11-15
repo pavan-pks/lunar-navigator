@@ -52,7 +52,7 @@ export function SurfaceViewSimulation({
       />
 
       {/* Floating Astronaut Surface Action Bar placed on top */}
-      <div className="absolute top-4 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2 bg-black/85 backdrop-blur-md border border-white/20 px-3 py-1.5 rounded-full shadow-2xl">
+      <div className="absolute top-4 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2 bg-black/90 border border-white/20 px-3 py-1.5 rounded-full shadow-2xl">
         <button
           onClick={() => setViewMode((prev) => (prev === 'astronaut' ? 'orbit' : 'astronaut'))}
           className="border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white px-3 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-200 cursor-pointer flex items-center gap-1.5"

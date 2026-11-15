@@ -63,7 +63,7 @@ function ScenarioColumn({ label, sites, ephem, missionDays, align = 'left' }) {
   ];
 
   return (
-    <div className={`flex flex-col gap-5 p-5 bg-black/50 backdrop-blur-md border border-white/5 rounded-xl shadow-2xl overflow-y-auto scrollbar-none ${textAlign}`}>
+    <div className={`flex flex-col gap-5 p-5 bg-black/75 border border-white/10 rounded-xl shadow-2xl overflow-y-auto scrollbar-none ${textAlign}`}>
       {/* Scenario Header & Target Picker */}
       <div className="flex flex-col gap-2">
         <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">

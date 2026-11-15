@@ -342,6 +342,34 @@ function CameraDirector({
   orbitControlsRef
 }) {
   const { camera } = useThree();
+  const prevViewModeRef = useRef(viewMode);
+  const prevLandedRef = useRef(hasLanded);
+
+  // Smoothly center the Moon back when coming out of surface view or landing back to orbit view
+  useEffect(() => {
+    const wasSurfaceOrLanded = prevViewModeRef.current === 'surface' || prevLandedRef.current;
+    if (wasSurfaceOrLanded && viewMode === 'orbit' && !hasLanded && !isDescending) {
+      if (orbitControlsRef.current) {
+        gsap.to(orbitControlsRef.current.target, {
+          x: 0,
+          y: 0,
+          z: 0,
+          duration: 1.6,
+          ease: 'power2.out',
+          onUpdate: () => orbitControlsRef.current?.update(),
+        });
+      }
+      gsap.to(camera.position, {
+        x: 0,
+        y: 8,
+        z: 22,
+        duration: 1.6,
+        ease: 'power2.out',
+      });
+    }
+    prevViewModeRef.current = viewMode;
+    prevLandedRef.current = hasLanded;
+  }, [viewMode, hasLanded, isDescending, camera, orbitControlsRef]);
 
   useFrame((_, delta) => {
     if (mode === 'macro') {
@@ -386,6 +414,14 @@ function CameraDirector({
         if (orbitControlsRef.current) {
           orbitControlsRef.current.target.copy(spPos);
         }
+      }
+      return;
+    }
+
+    // Default Orbit View: keep controls target smoothly locked to Moon center (0, 0, 0)
+    if (mode === 'orbit' && viewMode === 'orbit' && !isDescending && !hasLanded) {
+      if (orbitControlsRef.current && orbitControlsRef.current.target.lengthSq() > 0.001) {
+        orbitControlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), delta * 2.5);
       }
     }
   });
@@ -788,6 +824,33 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     },
     triggerCinematicDescent,
     triggerCinematicAscent,
+    centerMoon: () => {
+      if (orbitControlsRef.current) {
+        gsap.to(orbitControlsRef.current.target, {
+          x: 0,
+          y: 0,
+          z: 0,
+          duration: 1.6,
+          ease: 'power2.out',
+          onUpdate: () => {
+            orbitControlsRef.current?.update();
+            if (invalidateRef.current) invalidateRef.current();
+          },
+        });
+        if (orbitControlsRef.current.object) {
+          gsap.to(orbitControlsRef.current.object.position, {
+            x: 0,
+            y: 8,
+            z: 22,
+            duration: 1.6,
+            ease: 'power2.out',
+            onUpdate: () => {
+              if (invalidateRef.current) invalidateRef.current();
+            },
+          });
+        }
+      }
+    },
     resetToMacro: () => {
       setThrusterActive(false);
       setIsDescending?.(false);
