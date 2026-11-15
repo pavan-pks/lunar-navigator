@@ -389,6 +389,8 @@ export function App() {
               earthEl={live.earthEl}
               earthAz={live.earthAz}
               onReturnToOrbit={handleReturnToOrbit}
+              onOpenReport={() => setShowReport(true)}
+              onOpenAnalysis={() => setAnalysisTool('timeline')}
               timeCtrl={timeCtrl}
               maxHours={maxHours}
             />

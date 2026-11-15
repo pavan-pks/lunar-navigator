@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, ArrowLeft, BarChart2, FileText } from 'lucide-react';
 import Scene3D from './Scene3D.jsx';
 import VisorHud from '../ui/VisorHud.jsx';
 
@@ -14,6 +14,8 @@ import VisorHud from '../ui/VisorHud.jsx';
  * - Dynamic Metric Shadow Ruler opposite the sun
  * - Astronaut Helmet Visor HUD Mode with heading tape, life-support telemetry & reticle
  * - Real-time Artemis Landing Slope Safety & Hazard Colormap (<6° Safe, 6°-15° Caution, >15° Hazard)
+ * - Dedicated Return to Orbit, Metrics/Analysis, and Mission Report triggers
+ * - Floating Lunar Daylight Cycle playback controller
  */
 export function SurfaceViewSimulation({
   site = { id: 'shackleton', name: 'Shackleton Crater Rim', terrainType: 'crater-rim' },
@@ -22,6 +24,8 @@ export function SurfaceViewSimulation({
   earthEl = 5.0,
   earthAz = 20.0,
   onReturnToOrbit,
+  onOpenReport,
+  onOpenAnalysis,
   quality = 'auto',
   timeCtrl = null,
   maxHours = 336,
@@ -68,48 +72,104 @@ export function SurfaceViewSimulation({
         onReturnToOrbit={onReturnToOrbit}
       />
 
-      {/* Floating Astronaut Surface Action Bar placed on top */}
-      <div className="absolute top-4 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-2 bg-black/90 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full shadow-2xl">
+      {/* ── TOP LEFT: RETURN TO ORBIT BUTTON & SITE BADGE ── */}
+      <div className="absolute top-4 sm:top-5 left-4 sm:left-6 z-30 pointer-events-auto flex items-center gap-3">
         <button
+          type="button"
+          onClick={onReturnToOrbit}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-black font-semibold text-xs tracking-wider uppercase hover:bg-neutral-200 transition-all shadow-2xl cursor-pointer"
+          title="Exit surface simulation and return to orbital survey"
+        >
+          <ArrowLeft size={13} />
+          <span>Return to Orbit</span>
+        </button>
+
+        <div className="hidden md:flex flex-col">
+          <span className="text-[10px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block leading-tight">
+            Astronaut EVA POV
+          </span>
+          <span className="text-xs font-sans text-white font-medium leading-tight truncate max-w-[14rem]">
+            {site?.name || 'Lunar Target'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── TOP RIGHT: METRICS & REPORT MODAL TRIGGERS ── */}
+      <div className="absolute top-4 sm:top-5 right-4 sm:right-6 z-30 pointer-events-auto flex items-center gap-2">
+        {onOpenAnalysis && (
+          <button
+            type="button"
+            onClick={onOpenAnalysis}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-white/20 text-neutral-300 hover:text-white hover:border-white/40 text-xs font-sans transition cursor-pointer shadow-xl"
+            title="Open quantitative timeline, battery simulator, and mission calendar"
+          >
+            <BarChart2 size={13} />
+            <span>Metrics</span>
+          </button>
+        )}
+
+        {onOpenReport && (
+          <button
+            type="button"
+            onClick={onOpenReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/85 backdrop-blur-md border border-white/20 text-neutral-300 hover:text-white hover:border-white/40 text-xs font-sans transition cursor-pointer shadow-xl"
+            title="Open printable mission report"
+          >
+            <FileText size={13} />
+            <span>Report</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── TOP CENTER: ASTRONAUT SURFACE ACTION BAR ── */}
+      <div className="absolute top-4 sm:top-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center gap-1.5 sm:gap-2 bg-black/90 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full shadow-2xl max-w-[90vw] overflow-x-auto no-scrollbar">
+        {/* Toggle between Astronaut EVA POV and Orbital Mast view */}
+        <button
+          type="button"
           onClick={() => setViewMode((prev) => (prev === 'astronaut' ? 'orbit' : 'astronaut'))}
-          className="border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white px-3 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-200 cursor-pointer flex items-center gap-1.5"
+          className="border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white px-2.5 sm:px-3 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-200 cursor-pointer flex items-center gap-1.5 shrink-0"
           title="Toggle between Astronaut EVA POV and Orbital Mast view"
         >
           <span>{viewMode === 'astronaut' ? '🪐 Orbit Mast' : '👨‍🚀 Astronaut View'}</span>
         </button>
 
-        <div className="w-px h-3.5 bg-white/20 mx-0.5" />
+        <div className="w-px h-3.5 bg-white/20 mx-0.5 shrink-0" />
 
+        {/* Quick Orientation Controls */}
         <button
+          type="button"
           onClick={() => scene3DRef.current?.lookAtSun?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
           title="Orient camera toward the Sun"
         >
           <span>☀️ Sun</span>
         </button>
 
         <button
+          type="button"
           onClick={() => scene3DRef.current?.lookAtEarth?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
           title="Orient camera toward the Earth"
         >
           <span>🌍 Earth</span>
         </button>
 
         <button
+          type="button"
           onClick={() => scene3DRef.current?.lookNorth?.()}
-          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1"
+          className="text-neutral-300 hover:text-white hover:bg-white/10 px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0"
           title="Orient camera toward Lunar True North"
         >
           <span>🧭 North</span>
         </button>
 
-        <div className="w-px h-3.5 bg-white/20 mx-0.5" />
+        <div className="w-px h-3.5 bg-white/20 mx-0.5 shrink-0" />
 
         {/* Ruler Toggle */}
         <button
+          type="button"
           onClick={() => setShowShadowRuler((prev) => !prev)}
-          className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
             showShadowRuler
               ? 'text-cyan-400 bg-cyan-950/40 border border-cyan-800/40'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
@@ -121,8 +181,9 @@ export function SurfaceViewSimulation({
 
         {/* Slope Hazard Heatmap Toggle */}
         <button
+          type="button"
           onClick={() => setShowSlopeHazard((prev) => !prev)}
-          className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
             showSlopeHazard
               ? 'text-amber-300 bg-amber-950/50 border border-amber-600/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
@@ -134,8 +195,9 @@ export function SurfaceViewSimulation({
 
         {/* Astronaut Helmet Visor HUD Toggle */}
         <button
+          type="button"
           onClick={() => setShowVisor((prev) => !prev)}
-          className={`px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 ${
+          className={`px-2 sm:px-2.5 py-1 rounded-full text-[11px] font-sans font-medium tracking-wide transition-all duration-150 cursor-pointer flex items-center gap-1 shrink-0 ${
             showVisor
               ? 'text-emerald-300 bg-emerald-950/50 border border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
               : 'text-neutral-400 hover:text-white hover:bg-white/10'
@@ -175,7 +237,7 @@ export function SurfaceViewSimulation({
         siteName={site?.name || 'Lunar Surface'}
       />
 
-      {/* Floating Bottom Lunar Cycle Playback Bar */}
+      {/* ── FLOATING BOTTOM LUNAR CYCLE PLAYBACK BAR ── */}
       {timeCtrl && (
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 pointer-events-auto max-w-xl w-[calc(100vw-2.5rem)] bg-black/90 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl shadow-2xl flex flex-col gap-2">
           <div className="flex items-center justify-between text-[11px] font-sans text-neutral-300">
