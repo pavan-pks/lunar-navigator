@@ -373,8 +373,8 @@ export function App() {
       {(sceneState === 'orbit' || viewMode === 'surface') && (
         <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-6 sm:p-10 lg:p-12">
           {/* ── TOP BAR HEADER ── */}
-          <header className="flex items-center justify-between pointer-events-auto bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4 rounded-xl -mx-4 -mt-4">
-            <div>
+          <header className="flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4 rounded-xl -mx-4 -mt-4">
+            <div className="pointer-events-auto">
               <span className="text-[10px] font-sans font-light tracking-[0.25em] text-[#a3a3a3] uppercase block">
                 {viewMode === 'surface' ? 'Astronaut EVA Surface Simulation' : 'Polar Orbit Survey'}
               </span>
@@ -384,7 +384,7 @@ export function App() {
             </div>
 
             {/* Navigation Actions */}
-            <div className="flex items-center gap-6 text-xs font-sans tracking-wider">
+            <div className="flex items-center gap-6 text-xs font-sans tracking-wider pointer-events-auto">
               {viewMode === 'surface' ? (
                 <button
                   onClick={() => {
