@@ -343,8 +343,8 @@ export function LocalSurfaceChunk({
       <InstancedBoulders count={550} />
 
       {/* 5. The Landed Spacecraft (Centered at [0, 0, 0]) */}
-      <group position={[0, 0.28, 0]}>
-        <SpacecraftModel thrusterActive={false} />
+      <group position={[0, 0.10, 0]}>
+        <SpacecraftModel thrusterActive={false} isSeparated={true} scale={0.42} />
       </group>
 
       {/* 6. The Sun (Glowing Celestial Sphere in Sky) */}

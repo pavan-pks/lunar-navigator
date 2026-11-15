@@ -501,82 +501,205 @@ function ThrusterParticles({ active = false }) {
 }
 
 /**
- * Sleek Minimalist Geometric Spacecraft.
+ * Sleek Scaled Lunar Lander Module (Descent Stage + Crew Cabin).
+ * Features gold MLI insulation foil, 4 shock-absorbing landing legs with footpads,
+ * 4 attitude RCS thruster quads, cabin observation windows, and throttleable descent engine.
  */
-export const SpacecraftModel = forwardRef(({ thrusterActive = false }, ref) => {
+export function LunarLanderModule({ thrusterActive = false, scale = 0.42 }) {
   return (
-    <group ref={ref}>
-      {/* 1. Command Module / Crew Cabin */}
-      <mesh position={[0, 0.35, 0]} castShadow>
-        <cylinderGeometry args={[0.22, 0.30, 0.38, 16]} />
-        <meshStandardMaterial color="#f5f5f5" roughness={0.3} metalness={0.2} />
+    <group scale={[scale, scale, scale]}>
+      {/* 1. Crew Cabin / Avionics Deck */}
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <cylinderGeometry args={[0.26, 0.32, 0.34, 16]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.2} />
       </mesh>
-      <mesh position={[0, 0.60, 0]} castShadow>
-        <coneGeometry args={[0.22, 0.20, 16]} />
-        <meshStandardMaterial color="#e5e5e5" roughness={0.3} metalness={0.4} />
+      {/* Cabin Roof / Docking Tunnel */}
+      <mesh position={[0, 0.66, 0]} castShadow>
+        <cylinderGeometry args={[0.14, 0.20, 0.12, 16]} />
+        <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.8} />
       </mesh>
-
-      {/* 2. Service Module */}
-      <mesh position={[0, 0.08, 0]} castShadow>
-        <cylinderGeometry args={[0.31, 0.31, 0.24, 16]} />
-        <meshStandardMaterial color="#1f1f1f" roughness={0.5} metalness={0.8} />
-      </mesh>
-
-      {/* 3. Gold thermal insulation band around descent stage */}
-      <mesh position={[0, -0.07, 0]} castShadow>
-        <cylinderGeometry args={[0.315, 0.315, 0.12, 16]} />
-        <meshStandardMaterial color="#d4af37" roughness={0.35} metalness={0.85} />
+      {/* Observation Windows */}
+      <mesh position={[0, 0.48, 0.27]} rotation={[0.2, 0, 0]}>
+        <boxGeometry args={[0.18, 0.08, 0.02]} />
+        <meshStandardMaterial color="#0284c7" roughness={0.1} metalness={0.9} />
       </mesh>
 
-      {/* 4. Main engine bell nozzle */}
-      <mesh position={[0, -0.20, 0]} castShadow>
-        <coneGeometry args={[0.14, 0.20, 16, 1, true]} />
-        <meshStandardMaterial color="#262626" roughness={0.5} metalness={0.9} side={THREE.DoubleSide} />
+      {/* 2. Descent Stage Core (Gold MLI Thermal Foil) */}
+      <mesh position={[0, 0.12, 0]} castShadow>
+        <cylinderGeometry args={[0.34, 0.34, 0.32, 8]} />
+        <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.9} />
       </mesh>
 
-      {/* 5. Four Landing Struts with Footpads */}
+      {/* 3. Four External Spherical Propellant Tanks */}
+      {[0, 1, 2, 3].map((i) => {
+        const ang = (i * Math.PI) / 2;
+        return (
+          <mesh key={i} position={[Math.cos(ang) * 0.28, 0.12, Math.sin(ang) * 0.28]} castShadow>
+            <sphereGeometry args={[0.10, 16, 16]} />
+            <meshStandardMaterial color="#d4af37" roughness={0.35} metalness={0.85} />
+          </mesh>
+        );
+      })}
+
+      {/* 4. Four RCS Reaction Control Thruster Quads (16 cold-gas nozzles) */}
+      {[0, 1, 2, 3].map((i) => {
+        const ang = (i * Math.PI) / 2 + Math.PI / 4;
+        return (
+          <group key={i} position={[Math.cos(ang) * 0.32, 0.46, Math.sin(ang) * 0.32]}>
+            <mesh>
+              <boxGeometry args={[0.04, 0.04, 0.04]} />
+              <meshStandardMaterial color="#475569" roughness={0.5} metalness={0.8} />
+            </mesh>
+            <mesh position={[Math.cos(ang) * 0.03, 0, Math.sin(ang) * 0.03]}>
+              <cylinderGeometry args={[0.012, 0.02, 0.04, 8]} />
+              <meshStandardMaterial color="#1e293b" />
+            </mesh>
+          </group>
+        );
+      })}
+
+      {/* 5. Main Descent Engine Bell Nozzle */}
+      <mesh position={[0, -0.10, 0]} castShadow>
+        <coneGeometry args={[0.16, 0.22, 16, 1, true]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* 6. Four Articulated Landing Struts with Footpads */}
       {[0, 1, 2, 3].map((i) => {
         const angle = (i * Math.PI) / 2 + Math.PI / 4;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
         return (
           <group key={i}>
-            <mesh position={[cos * 0.35, -0.16, sin * 0.35]} rotation={[sin * 0.45, 0, -cos * 0.45]} castShadow>
-              <cylinderGeometry args={[0.018, 0.018, 0.38, 8]} />
-              <meshStandardMaterial color="#d4af37" roughness={0.4} metalness={0.8} />
+            {/* Primary Diagonal Strut */}
+            <mesh position={[cos * 0.34, -0.06, sin * 0.34]} rotation={[sin * 0.48, 0, -cos * 0.48]} castShadow>
+              <cylinderGeometry args={[0.018, 0.018, 0.42, 8]} />
+              <meshStandardMaterial color="#d4af37" roughness={0.35} metalness={0.85} />
             </mesh>
-            <mesh position={[cos * 0.48, -0.28, sin * 0.48]}>
-              <cylinderGeometry args={[0.07, 0.07, 0.02, 12]} />
-              <meshStandardMaterial color="#e5e5e5" roughness={0.3} metalness={0.7} />
+            {/* Secondary Cross Brace */}
+            <mesh position={[cos * 0.24, 0.04, sin * 0.24]} rotation={[sin * 0.2, 0, -cos * 0.2]}>
+              <cylinderGeometry args={[0.012, 0.012, 0.26, 8]} />
+              <meshStandardMaterial color="#94a3b8" roughness={0.4} metalness={0.8} />
+            </mesh>
+            {/* Circular Honeycomb Footpad */}
+            <mesh position={[cos * 0.48, -0.22, sin * 0.48]}>
+              <cylinderGeometry args={[0.075, 0.075, 0.02, 12]} />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.3} metalness={0.7} />
             </mesh>
           </group>
         );
       })}
 
-      {/* 6. Four Solar Array Wings */}
+      {/* Main Throttleable Braking Exhaust Particles */}
+      <ThrusterParticles active={thrusterActive} />
+    </group>
+  );
+}
+
+/**
+ * Detachable Orbital Service / Propulsion Module (CSM / Propulsion Stage).
+ * Features thermal radiators, high-gain parabolic communications dish,
+ * and 4 large cross-shaped deployable Solar Array Wings.
+ */
+export function OrbitalServiceModule({ position = [0, 0, 0], rotation = [0, 0, 0], scale = 0.42 }) {
+  return (
+    <group position={position} rotation={rotation} scale={[scale, scale, scale]}>
+      {/* 1. Cylindrical Service Module Hull */}
+      <mesh position={[0, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.33, 0.33, 0.38, 24]} />
+        <meshStandardMaterial color="#e2e8f0" roughness={0.35} metalness={0.75} />
+      </mesh>
+
+      {/* Radiator Thermal Band */}
+      <mesh position={[0, -0.05, 0]}>
+        <cylinderGeometry args={[0.335, 0.335, 0.16, 24]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.9} />
+      </mesh>
+
+      {/* 2. Orbital Maneuvering System (OMS) Engine Bell */}
+      <mesh position={[0, -0.28, 0]} castShadow>
+        <coneGeometry args={[0.13, 0.20, 16, 1, true]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.5} metalness={0.9} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* 3. Interstage Decoupler Collar Ring with Explosive Bolts */}
+      <mesh position={[0, 0.21, 0]}>
+        <cylinderGeometry args={[0.32, 0.34, 0.06, 24]} />
+        <meshStandardMaterial color="#f59e0b" roughness={0.4} metalness={0.8} />
+      </mesh>
+
+      {/* 4. High-Gain Parabolic Communications Dish Antenna */}
+      <group position={[0.36, 0.12, 0.18]} rotation={[0.4, 0.6, 0]}>
+        {/* Support Strut */}
+        <mesh position={[-0.06, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.012, 0.012, 0.12, 8]} />
+          <meshStandardMaterial color="#64748b" />
+        </mesh>
+        {/* Parabolic Dish */}
+        <mesh>
+          <sphereGeometry args={[0.16, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.45]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.2} metalness={0.9} side={THREE.DoubleSide} />
+        </mesh>
+        {/* Feed Horn */}
+        <mesh position={[0, 0, 0.08]}>
+          <coneGeometry args={[0.02, 0.06, 8]} />
+          <meshBasicMaterial color="#38bdf8" />
+        </mesh>
+      </group>
+
+      {/* 5. Four Deployable Photovoltaic Solar Array Wings */}
       {[0, 1, 2, 3].map((i) => {
         const angle = (i * Math.PI) / 2;
         const cos = Math.cos(angle);
         const sin = Math.sin(angle);
         return (
-          <group key={i} position={[cos * 0.46, 0.16, sin * 0.46]} rotation={[0, -angle, 0.12]}>
+          <group key={i} position={[cos * 0.52, 0.04, sin * 0.52]} rotation={[0, -angle, 0.08]}>
+            {/* Hinge mount */}
+            <mesh position={[-cos * 0.12, 0, -sin * 0.12]}>
+              <boxGeometry args={[0.05, 0.04, 0.04]} />
+              <meshStandardMaterial color="#475569" />
+            </mesh>
+            {/* Solar Cell Panel with Photovoltaic Blue/Dark Silicon Grid */}
             <mesh castShadow>
-              <boxGeometry args={[0.38, 0.12, 0.012]} />
-              <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.8} />
+              <boxGeometry args={[0.48, 0.15, 0.014]} />
+              <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.85} />
             </mesh>
             <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.39, 0.13, 0.008]} />
-              <meshStandardMaterial color="#a3a3a3" roughness={0.2} metalness={0.9} />
+              <boxGeometry args={[0.49, 0.16, 0.010]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.9} />
             </mesh>
           </group>
         );
       })}
-
-      {/* 7. Active Braking Thruster Exhaust */}
-      <ThrusterParticles active={thrusterActive} />
     </group>
   );
-});
+}
+
+/**
+ * Unified Scaled Spacecraft Model with Detachable Staging.
+ * In orbit: Combined stack (Lander attached atop the Orbital Service Module).
+ * During descent & landed: Staging separates the two! The Service Module stays in orbit,
+ * while the sleek Lunar Lander descends and touches down on the surface.
+ */
+export const SpacecraftModel = forwardRef(
+  ({ thrusterActive = false, isSeparated = false, scale = 0.42 }, ref) => {
+    return (
+      <group ref={ref}>
+        {/* Lunar Lander Stage */}
+        <group position={[0, isSeparated ? 0 : 0.22, 0]}>
+          <LunarLanderModule thrusterActive={thrusterActive} scale={scale} />
+        </group>
+
+        {/* Mated Service Module (Only attached when NOT separated) */}
+        {!isSeparated && (
+          <group position={[0, -0.16, 0]}>
+            <OrbitalServiceModule scale={scale} />
+          </group>
+        )}
+      </group>
+    );
+  }
+);
 
 /**
  * Target Landing Pad Reticle indicator on the Moon sphere.
@@ -938,6 +1061,8 @@ function UniverseScene({
   const { camera, invalidate } = useThree();
   const fallbackOrbitAngleRef = useRef(0);
   const orbitAngleRef = propOrbitAngleRef || fallbackOrbitAngleRef;
+  const serviceModuleRef = useRef(null);
+  const serviceOrbitAngleRef = useRef(0);
 
   useEffect(() => {
     if (onRegisterInvalidate) onRegisterInvalidate(invalidate);
@@ -981,6 +1106,24 @@ function UniverseScene({
       const tangent = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
       const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
       spacecraftRef.current.quaternion.slerp(targetQuat, 0.15);
+    }
+
+    // Orbit motion for the separated Service/Propulsion Module (stays in lunar parking orbit)
+    if ((isDescending || hasLanded) && serviceModuleRef.current) {
+      serviceOrbitAngleRef.current += delta * 0.22;
+      const ang = serviceOrbitAngleRef.current;
+      const x = Math.cos(ang) * ORBIT_RADIUS;
+      const y = Math.sin(ang) * ORBIT_RADIUS * 0.96;
+      const z = Math.sin(ang) * ORBIT_RADIUS * 0.28;
+      serviceModuleRef.current.position.set(x, y, z);
+
+      const nextAng = ang + 0.05;
+      const nx = Math.cos(nextAng) * ORBIT_RADIUS;
+      const ny = Math.sin(nextAng) * ORBIT_RADIUS * 0.96;
+      const nz = Math.sin(nextAng) * ORBIT_RADIUS * 0.28;
+      const tangent = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
+      const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
+      serviceModuleRef.current.quaternion.slerp(targetQuat, 0.15);
     }
 
     if (onUpdateCraterScreenPos && camera) {
@@ -1060,8 +1203,20 @@ function UniverseScene({
         />
       )}
 
-      {/* 6. Spacecraft Model */}
-      <SpacecraftModel ref={spacecraftRef} thrusterActive={thrusterActive} />
+      {/* 6. Lunar Lander (Active Vehicle spiraling down to landing site or landed) */}
+      <SpacecraftModel
+        ref={spacecraftRef}
+        thrusterActive={thrusterActive}
+        isSeparated={isDescending || hasLanded}
+        scale={0.42}
+      />
+
+      {/* 6B. Separated Orbital Service / Propulsion Module (Stays in Lunar Parking Orbit) */}
+      {(isDescending || hasLanded) && (
+        <group ref={serviceModuleRef}>
+          <OrbitalServiceModule scale={0.42} />
+        </group>
+      )}
 
       {/* 7. Distant Earth Globe with NASA Blue Marble & Rayleigh Glow */}
       <DistantEarthGlobe position={earthPos} />
@@ -1143,7 +1298,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     const lon = selectedSite.lon;
     const targetPos = latLonToVector3(lat, lon, MOON_RADIUS);
     const targetNormal = targetPos.clone().normalize();
-    const touchdownPos = targetPos.clone().addScaledVector(targetNormal, 0.28);
+    const touchdownPos = targetPos.clone().addScaledVector(targetNormal, 0.10);
 
     const startPos = spacecraftRef.current.position.clone();
     const startRadius = startPos.length();
