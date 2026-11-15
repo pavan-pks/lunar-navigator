@@ -77,6 +77,9 @@ export function App() {
   // 3D On-Moon spot labels visibility
   const [showLabels, setShowLabels] = useState(true);
 
+  // Cesium-Style Tactical Lunar Coordinate Graticule Grid
+  const [showGraticule, setShowGraticule] = useState(true);
+
   // 3D Direct-to-Earth Laser / DSN Telemetry Beam
   const [showDsnBeam, setShowDsnBeam] = useState(true);
 
@@ -277,6 +280,7 @@ export function App() {
           onSelectSite={handleSelectSite}
           onSelectCustomCoord={handleSelectCustomCoord}
           showLabels={showLabels}
+          showGraticule={showGraticule}
           showDsnBeam={showDsnBeam}
           showThermalMap={showThermalMap}
           onReachedOrbit={handleReachedOrbit}
@@ -470,6 +474,17 @@ export function App() {
                 title="Toggle on-Moon 3D landmark and landing site labels"
               >
                 <span>Labels · {showLabels ? 'On' : 'Off'}</span>
+              </button>
+
+              {/* Cesium-Style Lunar Graticule Grid Toggle */}
+              <button
+                onClick={() => setShowGraticule(v => !v)}
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                  showGraticule ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
+                }`}
+                title="Toggle Cesium-style tactical lunar coordinate graticule grid"
+              >
+                <span>🌐 Grid · {showGraticule ? 'On' : 'Off'}</span>
               </button>
 
               {/* DSN Telemetry Laser Beam Toggle */}

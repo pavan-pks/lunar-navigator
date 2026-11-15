@@ -722,6 +722,108 @@ function DistantEarthGlobe({ position }) {
 }
 
 /**
+ * Cesium-style Tactical Lunar Coordinate Graticule Grid.
+ * Renders high-precision latitude parallels, longitude meridians,
+ * polar circles, and true north axis vectors.
+ */
+function LunarGraticule({ visible = true }) {
+  const graticuleLines = useMemo(() => {
+    if (!visible) return null;
+    const R = MOON_RADIUS * 1.002;
+    const segments = 120;
+    const lines = [];
+
+    // 1. Latitude Parallels
+    const latitudes = [
+      { lat: 0, color: '#38bdf8', opacity: 0.45, key: 'lat-0-eq' },        // Equator
+      { lat: 30, color: '#94a3b8', opacity: 0.20, key: 'lat-30' },
+      { lat: -30, color: '#94a3b8', opacity: 0.20, key: 'lat-m30' },
+      { lat: 60, color: '#94a3b8', opacity: 0.22, key: 'lat-60' },
+      { lat: -60, color: '#94a3b8', opacity: 0.22, key: 'lat-m60' },
+      { lat: 75, color: '#38bdf8', opacity: 0.38, key: 'lat-75-artemis' }, // Artemis / Polar
+      { lat: -75, color: '#38bdf8', opacity: 0.38, key: 'lat-m75-artemis' },
+      { lat: 80, color: '#a78bfa', opacity: 0.40, key: 'lat-80-basin' },   // South Polar Basin
+      { lat: -80, color: '#a78bfa', opacity: 0.40, key: 'lat-m80-basin' },
+      { lat: 85, color: '#c084fc', opacity: 0.32, key: 'lat-85' },
+      { lat: -85, color: '#c084fc', opacity: 0.32, key: 'lat-m85' },
+    ];
+
+    latitudes.forEach(({ lat, color, opacity, key }) => {
+      const pts = [];
+      for (let i = 0; i <= segments; i++) {
+        const lon = (i / segments) * 360 - 180;
+        pts.push(latLonToVector3(lat, lon, R));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      lines.push({ key, geo, color, opacity });
+    });
+
+    // 2. Longitude Meridians
+    const longitudes = [
+      { lon: 0, color: '#38bdf8', opacity: 0.50, key: 'lon-0-prime' },     // Prime Meridian
+      { lon: 45, color: '#94a3b8', opacity: 0.20, key: 'lon-45' },
+      { lon: -45, color: '#94a3b8', opacity: 0.20, key: 'lon-m45' },
+      { lon: 90, color: '#94a3b8', opacity: 0.25, key: 'lon-90-east' },   // East Limb
+      { lon: -90, color: '#94a3b8', opacity: 0.25, key: 'lon-m90-west' }, // West Limb
+      { lon: 135, color: '#94a3b8', opacity: 0.20, key: 'lon-135' },
+      { lon: -135, color: '#94a3b8', opacity: 0.20, key: 'lon-m135' },
+      { lon: 180, color: '#38bdf8', opacity: 0.35, key: 'lon-180-far' },   // 180° Meridian
+    ];
+
+    longitudes.forEach(({ lon, color, opacity, key }) => {
+      const pts = [];
+      const latSteps = 72;
+      for (let i = 0; i <= latSteps; i++) {
+        const lat = -90 + (i / latSteps) * 180;
+        pts.push(latLonToVector3(lat, lon, R));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      lines.push({ key, geo, color, opacity });
+    });
+
+    // 3. Lunar Spin Axis (North & South Poles)
+    const axisPts = [
+      new THREE.Vector3(0, -MOON_RADIUS * 1.25, 0),
+      new THREE.Vector3(0, MOON_RADIUS * 1.25, 0),
+    ];
+    const axisGeo = new THREE.BufferGeometry().setFromPoints(axisPts);
+    lines.push({ key: 'axis', geo: axisGeo, color: '#38bdf8', opacity: 0.55 });
+
+    return lines;
+  }, [visible]);
+
+  if (!visible || !graticuleLines) return null;
+
+  return (
+    <group>
+      {graticuleLines.map((line) => (
+        <line key={line.key} geometry={line.geo}>
+          <lineBasicMaterial
+            color={line.color}
+            transparent
+            opacity={line.opacity}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </line>
+      ))}
+
+      {/* North Pole IAU Vector Cone */}
+      <mesh position={[0, MOON_RADIUS * 1.25, 0]}>
+        <coneGeometry args={[0.07, 0.24, 12]} />
+        <meshBasicMaterial color="#38bdf8" />
+      </mesh>
+
+      {/* South Pole Vector Cone */}
+      <mesh position={[0, -MOON_RADIUS * 1.25, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.07, 0.24, 12]} />
+        <meshBasicMaterial color="#c084fc" />
+      </mesh>
+    </group>
+  );
+}
+
+/**
  * Camera Director and Tracking Rig.
  */
 function CameraDirector({
@@ -813,6 +915,7 @@ function UniverseScene({
   onSelectSite,
   onPickCustomCoord,
   showLabels = true,
+  showGraticule = true,
   showDsnBeam = true,
   showThermalMap = false,
   sunEl,
@@ -933,6 +1036,9 @@ function UniverseScene({
       {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting & LRO Diviner Thermal Map */}
       <StructuredMoon onPickCoord={onPickCustomCoord} showThermalMap={showThermalMap} />
 
+      {/* 3B. Cesium-Style Tactical Lunar Coordinate Graticule Grid */}
+      <LunarGraticule visible={showGraticule} />
+
       {/* 4. On-Moon 3D Labels for Important Spots & Landmarks */}
       {showLabels && (
         <LunarSpotLabels
@@ -987,6 +1093,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     onSelectSite,
     onSelectCustomCoord,
     showLabels = true,
+    showGraticule = true,
     showDsnBeam = true,
     showThermalMap = false,
     onReachedOrbit,
@@ -1249,30 +1356,53 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
       const targetVec = latLonToVector3(siteToFocus.lat, siteToFocus.lon, MOON_RADIUS);
       if (!Number.isFinite(targetVec.x) || !Number.isFinite(targetVec.y) || !Number.isFinite(targetVec.z)) return;
 
-      const norm = targetVec.clone().normalize();
-      const targetCamPos = norm.clone().multiplyScalar(16.5);
-      if (!Number.isFinite(targetCamPos.x) || !Number.isFinite(targetCamPos.y) || !Number.isFinite(targetCamPos.z)) return;
+      const endDir = targetVec.clone().normalize();
+      const endDist = 16.5;
 
-      gsap.killTweensOf(orbitControlsRef.current.object.position);
+      const cam = orbitControlsRef.current.object;
+      const startCamPos = cam.position.clone();
+      const startDist = Math.max(10, startCamPos.length());
+      const startDir = startCamPos.clone().normalize();
+
+      // Angular distance between current camera direction and target direction
+      const dot = Math.max(-1, Math.min(1, startDir.dot(endDir)));
+      const angleRad = Math.acos(dot);
+
+      // Rotation axis along great-circle geodesic
+      let axis = new THREE.Vector3().crossVectors(startDir, endDir);
+      if (axis.lengthSq() < 0.0001) {
+        axis = Math.abs(startDir.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+        axis.cross(startDir).normalize();
+      } else {
+        axis.normalize();
+      }
+
+      // Cesium-style high-orbital survey apex boost (higher arc for farther moves)
+      const arcAltitudeBoost = Math.max(3.8, angleRad * 4.6);
+      const flightDuration = Math.min(2.4, Math.max(1.2, angleRad * 0.95));
+
+      gsap.killTweensOf(cam.position);
       gsap.killTweensOf(orbitControlsRef.current.target);
 
-      gsap.to(orbitControlsRef.current.object.position, {
-        x: targetCamPos.x,
-        y: targetCamPos.y,
-        z: targetCamPos.z,
-        duration: 1.4,
+      const anim = { p: 0 };
+      gsap.to(anim, {
+        p: 1,
+        duration: flightDuration,
         ease: 'power2.inOut',
         onUpdate: () => {
+          const p = anim.p;
+          // Exact great-circle geodesic direction
+          const currentDir = startDir.clone().applyAxisAngle(axis, p * angleRad);
+
+          // Geodetic ballistic altitude envelope: rises to high orbit, then descends into target
+          const baseDist = startDist + (endDist - startDist) * p;
+          const currentDist = baseDist + Math.sin(Math.PI * p) * arcAltitudeBoost;
+
+          cam.position.copy(currentDir.multiplyScalar(currentDist));
+          orbitControlsRef.current?.target.set(0, 0, 0);
           orbitControlsRef.current?.update();
           if (invalidateRef.current) invalidateRef.current();
         },
-      });
-      gsap.to(orbitControlsRef.current.target, {
-        x: 0,
-        y: 0,
-        z: 0,
-        duration: 1.4,
-        ease: 'power2.inOut',
       });
     },
   }));
@@ -1312,6 +1442,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
             onSelectSite={onSelectSite}
             onPickCustomCoord={onSelectCustomCoord}
             showLabels={showLabels}
+            showGraticule={showGraticule}
             showDsnBeam={showDsnBeam}
             showThermalMap={showThermalMap}
             sunEl={sunEl}
