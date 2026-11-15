@@ -53,20 +53,32 @@ function getSpotSpriteTexture(spot, isSelected) {
   if (spriteTextureCache.has(key)) return spriteTextureCache.get(key);
 
   const canvas = document.createElement('canvas');
-  canvas.width = 384;
-  canvas.height = 96;
+  canvas.width = 440;
+  canvas.height = 110;
   const ctx = canvas.getContext('2d');
 
-  const bgAlpha = isSelected ? 0.95 : 0.78;
-  const borderColor = isSelected ? '#38bdf8' : 'rgba(255, 255, 255, 0.35)';
+  // Category Color Palette
+  const accentColor =
+    spot.category === 'artemis' ? '#00f0ff' :
+    spot.category === 'historic' ? '#fbbf24' :
+    spot.category === 'pole' ? '#c084fc' : '#94a3b8';
+
+  const categoryLabel =
+    spot.category === 'artemis' ? 'ARTEMIS CANDIDATE' :
+    spot.category === 'historic' ? 'HISTORIC MISSION' :
+    spot.category === 'pole' ? 'GEOGRAPHIC POLE' : 'LUNAR LANDMARK';
+
+  // Background Glass Pill
+  const bgAlpha = isSelected ? 0.94 : 0.82;
+  const borderColor = isSelected ? '#00f0ff' : 'rgba(255, 255, 255, 0.22)';
   const borderWidth = isSelected ? 3.5 : 1.5;
 
-  ctx.fillStyle = `rgba(10, 12, 18, ${bgAlpha})`;
-  ctx.strokeStyle = borderColor;
-  ctx.lineWidth = borderWidth;
+  ctx.save();
+  ctx.shadowColor = isSelected ? 'rgba(0, 240, 255, 0.5)' : 'rgba(0, 0, 0, 0.65)';
+  ctx.shadowBlur = isSelected ? 16 : 8;
 
-  // Draw pill
-  const x = 6, y = 6, w = 372, h = 84, r = 24;
+  // Draw sleek rounded capsule
+  const x = 8, y = 8, w = 424, h = 94, r = 20;
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.lineTo(x + w - r, y);
@@ -78,30 +90,37 @@ function getSpotSpriteTexture(spot, isSelected) {
   ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
+
+  ctx.fillStyle = isSelected ? 'rgba(6, 16, 32, 0.95)' : `rgba(10, 12, 16, ${bgAlpha})`;
   ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = borderWidth;
   ctx.stroke();
 
-  // Category Accent Dot
-  const dotColor =
-    spot.category === 'artemis' ? '#38bdf8' :
-    spot.category === 'historic' ? '#fbbf24' :
-    spot.category === 'pole' ? '#c084fc' : '#94a3b8';
-  ctx.fillStyle = dotColor;
+  // Left vertical category accent bar
+  ctx.fillStyle = isSelected ? '#00f0ff' : accentColor;
   ctx.beginPath();
-  ctx.arc(36, 48, 10, 0, Math.PI * 2);
+  ctx.rect(16, 20, 5, 68);
   ctx.fill();
 
-  // Text Title
-  ctx.fillStyle = isSelected ? '#ffffff' : '#f8fafc';
-  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText(spot.shortName || spot.name, 58, 44);
-
-  // Subtitle / Coordinates
-  ctx.fillStyle = isSelected ? '#93c5fd' : '#94a3b8';
-  ctx.font = '500 20px monospace';
+  // Top Subheader: Category Tag + Coordinates
   const latStr = `${Math.abs(spot.lat).toFixed(1)}°${spot.lat >= 0 ? 'N' : 'S'}`;
   const lonStr = `${Math.abs(spot.lon).toFixed(1)}°${spot.lon >= 0 ? 'E' : 'W'}`;
-  ctx.fillText(`${latStr}, ${lonStr}`, 58, 72);
+  ctx.font = '600 17px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace';
+  ctx.fillStyle = isSelected ? '#38bdf8' : accentColor;
+  ctx.fillText(categoryLabel, 30, 42);
+
+  ctx.font = '400 16px monospace';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+  ctx.fillText(`·  ${latStr}, ${lonStr}`, 30 + ctx.measureText(categoryLabel).width + 8, 42);
+
+  // Main Header: Site Name
+  ctx.font = 'bold 27px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.fillStyle = isSelected ? '#ffffff' : '#f1f5f9';
+  const displayName = (spot.shortName || spot.name).toUpperCase();
+  ctx.fillText(displayName, 30, 77);
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.LinearFilter;
@@ -186,7 +205,7 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
   const { pos, normal, pinTop, texture } = useMemo(() => {
     const p = latLonToVector3(landmark.lat, landmark.lon, MOON_RADIUS);
     const n = p.clone().normalize();
-    const top = p.clone().addScaledVector(n, 0.42);
+    const top = p.clone().addScaledVector(n, 0.26);
     const tex = getSpotSpriteTexture(landmark, isSelected);
     return { pos: p, normal: n, pinTop: top, texture: tex };
   }, [landmark, isSelected]);
@@ -254,7 +273,7 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
       <sprite
         ref={spriteRef}
         position={pinTop}
-        scale={[1.5, 0.38, 1]}
+        scale={[1.35, 0.34, 1]}
         onClick={(e) => {
           e.stopPropagation();
           onSelectSite?.(landmark);

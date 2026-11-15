@@ -15,14 +15,14 @@
 |---|---|---|---|---|---|---|
 | P-01 | Sandbox harness | 5 | Done | 100 | 5 | Sandbox harness with sliders, presets, simulation loop, dual-scene compare test & FPS counter |
 | P-02 | Scene skeleton (renderer, camera, resize, cleanup) | 8 | Done | 100 | 8 | WebGLRenderer, PerspectiveCamera, PCFShadowMap, ResizeObserver, on-demand invalidate(), StrictMode disposal |
-| P-03 | Terrain generator | 12 | Done | 100 | 12 | 400mx400m patch; LunarUniverseR3F: authentic 3D NASA LOLA Moon, 3D on-Moon landmark labels, and point-and-click custom targeting |
+| P-03 | Terrain generator | 12 | Done | 100 | 12 | 400mx400m patch; site-specific geological profiles and distinct real-world topography for every landing location (Shackleton, Malapert, Apollo 11, 17, 15, Tycho, Chandrayaan-3) |
 | P-04 | Lander model | 8 | Done | 100 | 8 | Procedural lunar lander in lander.js (staged DescentStage & AscentStage, Apollo-style liftoff detachment, gold MLI foil, legs, solar arrays) |
-| P-05 | Rocks and scatter | 5 | Done | 100 | 5 | Single InstancedMesh of distorted icosahedron rocks (40-250 by tier), landmark boulders, clear pad radius, cast/receive shadows |
+| P-05 | Rocks and scatter | 5 | Done | 100 | 5 | Single InstancedMesh of distorted icosahedron rocks (40-260 by tier), site-specific boulder sizes and geological albedos, clear pad radius |
 | P-06 | Sun light and shadows | 12 | Done | 100 | 12 | Harsh DirectionalLight (intensity 3.0), sub-2° grazing shadow coverage, -0.27° lunar horizon cutoff, 0.02 ambient & faint Earthshine |
 | P-07 | Sky: stars, Sun disk, Earth marker | 10 | Done | 100 | 10 | sky.js: 800-2500 stars Points with day/night dimming, emissive Sun disk (0.53° angular size), procedural canvas textured Earth (1.9°) & text sprite |
 | P-08 | Orbit camera | 5 | Done | 100 | 5 | cameraModes.js; LunarUniverseR3F: continuous orbital spiral descent (zero Moon clipping), thruster deceleration, and upright touchdown |
 | P-09 | Astronaut camera | 10 | Done | 100 | 10 | First-person surface view (fov 70, 1.7m eye height), pitch ±60° drag look, arrow keys, Look at Sun/Earth/North buttons, compass ring (R=190m), floating top action pill in SurfaceViewSimulation |
-| P-10 | HUD overlay and compass | 6 | Done | 100 | 6 | Clean macro hero menu, custom coordinate targeting drawer with sliders/inputs, 3D on-Moon labels toggle, crystal-clear HUD |
+| P-10 | HUD overlay and compass | 6 | Done | 100 | 6 | Modern aerospace glass HUD labels on 3D Moon with glowing category indicators, custom coordinates drawer, crystal-clear HUD |
 | P-11 | Quality tiers and performance (on-demand rendering) | 10 | Done | 100 | 10 | quality.js: low/med/high tier profiles, 90-frame auto benchmark probe with <24fps downgrade, IntersectionObserver & tab visibility pause |
 | P-12 | Hardening: errors, WebGL fallback, SkyDiagram, notes | 6 | Done | 100 | 6 | SkyDiagram.jsx SVG fallback, SceneErrorBoundary, webglcontextlost/restored recovery, safe prop clamping, complete notes |
 | P-13 | Shadow ruler | 3 | Done | 100 | 3 | ShadowRuler.js ground measurement line opposite Sun azimuth, 10m metric ticks, 150m cap, and distance badge sprite |

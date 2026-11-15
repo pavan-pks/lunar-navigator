@@ -61,6 +61,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     siteId = 'shackleton',
     sites = [],
     onSelectSite,
+    site = null,
     terrainType = 'plain',
     viewMode: propViewMode,
     quality = 'auto',
@@ -487,7 +488,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     }
 
     const tierConfig = getTierConfig(activeTier)
-    const terrain = buildTerrain({ siteId, terrainType, resolution: tierConfig.resolution })
+    const terrain = buildTerrain({ siteId, terrainType, site, resolution: tierConfig.resolution })
     ctx.terrainData = terrain
     ctx.heightAt = terrain.heightAt
     ctx.originPadHeight = terrain.originPadHeight
@@ -497,7 +498,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
       ctx.lander.group.position.set(0, terrain.originPadHeight, 0)
     }
 
-    const rocks = buildRocks({ siteId, quality: activeTier, heightAt: terrain.heightAt })
+    const rocks = buildRocks({ siteId, terrainType, site, quality: activeTier, heightAt: terrain.heightAt })
     ctx.rocksData = rocks
     ctx.scene.add(rocks.mesh)
 
@@ -533,7 +534,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     }
 
     ctx.invalidate()
-  }, [siteId, terrainType, activeTier, heightmapUrl])
+  }, [siteId, terrainType, site, activeTier, heightmapUrl])
 
   // If WebGL failed to initialize or context is permanently lost, render fallback SkyDiagram
   if (webglError) {

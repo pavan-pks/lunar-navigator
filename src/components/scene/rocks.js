@@ -10,14 +10,18 @@ import { hashString, createPRNG } from './noise.js'
  * @param {(x: number, z: number) => number} options.heightAt - Ground elevation lookup
  * @returns {{ mesh: THREE.InstancedMesh, dispose: () => void }}
  */
-export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt = () => 0 } = {}) {
-  const seed = hashString(`${siteId}_rocks_scatter`)
+export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt = () => 0, site = null, terrainType = 'plain' } = {}) {
+  const targetId = (site?.id || siteId || 'shackleton').toLowerCase()
+  const isMare = targetId.includes('apollo11') || targetId.includes('apollo12') || targetId.includes('tranquillitatis') || targetId.includes('procellarum')
+  const isViolent = targetId.includes('tycho') || targetId.includes('apollo17') || targetId.includes('shackleton')
+
+  const seed = hashString(`${targetId}_rocks_scatter`)
   const prng = createPRNG(seed)
 
   // Quality tier instance count
-  let count = 120
-  if (quality === 'low') count = 40
-  else if (quality === 'high') count = 250
+  let count = isMare ? 60 : 120
+  if (quality === 'low') count = isMare ? 25 : 40
+  else if (quality === 'high') count = isMare ? 130 : 260
 
   // Base distorted icosahedron for angular lunar rock silhouette
   const baseGeo = new THREE.IcosahedronGeometry(1.0, 1)
@@ -28,17 +32,18 @@ export function buildRocks({ siteId = 'shackleton', quality = 'auto', heightAt =
     const vz = posAttr.getZ(i)
 
     // Deterministic vertex jitter
-    const jx = Math.sin(vx * 14.3 + vy * 31.7 + vz * 47.1) * 0.22
-    const jy = Math.cos(vx * 29.1 + vy * 17.5 + vz * 33.3) * 0.22
-    const jz = Math.sin(vx * 37.9 + vy * 43.1 + vz * 19.7) * 0.22
+    const jx = Math.sin(vx * 14.3 + vy * 31.7 + vz * 47.1) * (isViolent ? 0.30 : 0.22)
+    const jy = Math.cos(vx * 29.1 + vy * 17.5 + vz * 33.3) * (isViolent ? 0.30 : 0.22)
+    const jz = Math.sin(vx * 37.9 + vy * 43.1 + vz * 19.7) * (isViolent ? 0.30 : 0.22)
 
     posAttr.setXYZ(i, vx + jx, vy + jy, vz + jz)
   }
   posAttr.needsUpdate = true
   baseGeo.computeVertexNormals()
 
+  const rockColor = isMare ? 0x2d3139 : isViolent ? 0x8a919e : 0x64748b
   const material = new THREE.MeshStandardMaterial({
-    color: 0x64748b,
+    color: rockColor,
     roughness: 0.95,
     metalness: 0.05,
   })

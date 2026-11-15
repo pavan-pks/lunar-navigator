@@ -36,6 +36,7 @@ export function SurfaceViewSimulation({
         ref={scene3DRef}
         siteId={site?.id || 'shackleton'}
         terrainType={site?.terrainType || 'crater-rim'}
+        site={site}
         sunEl={safeSunEl}
         sunAz={safeSunAz}
         earthEl={safeEarthEl}
