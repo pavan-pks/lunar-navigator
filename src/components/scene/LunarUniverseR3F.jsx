@@ -90,12 +90,28 @@ function getSouthPoleDisplacement(lat, lon) {
 
 /**
  * Structured Moon Mesh with Deterministic South Pole Topography and NASA textures.
+ * Features polar UV planar projection blending to eliminate equirectangular pinwheel pinching.
  */
 function StructuredMoon({ sunDir }) {
   const [colorMap, bumpMap] = useTexture([
     '/textures/nasa_moon_2k.jpg',
     '/textures/nasa_moon_bump_2k.jpg',
   ]);
+
+  useEffect(() => {
+    if (colorMap) {
+      colorMap.anisotropy = 16;
+      colorMap.wrapS = THREE.RepeatWrapping;
+      colorMap.wrapT = THREE.ClampToEdgeWrapping;
+      colorMap.needsUpdate = true;
+    }
+    if (bumpMap) {
+      bumpMap.anisotropy = 16;
+      bumpMap.wrapS = THREE.RepeatWrapping;
+      bumpMap.wrapT = THREE.ClampToEdgeWrapping;
+      bumpMap.needsUpdate = true;
+    }
+  }, [colorMap, bumpMap]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.SphereGeometry(MOON_RADIUS, 128, 128);
@@ -109,7 +125,13 @@ function StructuredMoon({ sunDir }) {
       const lat = 90 - (phi * 180) / Math.PI;
       const lon = ((Math.atan2(v.z, -v.x) * 180) / Math.PI) - 180;
 
-      const disp = getSouthPoleDisplacement(lat, lon);
+      // Smooth polar displacement falloff to prevent any star/crease distortion at the poles
+      let disp = getSouthPoleDisplacement(lat, lon);
+      if (lat < -88.5) {
+        const poleCapT = Math.min(1, Math.max(0, (lat - (-88.5)) / -1.5));
+        const poleDisp = getSouthPoleDisplacement(-89.9, 0);
+        disp = THREE.MathUtils.lerp(disp, poleDisp, poleCapT);
+      }
       if (disp !== 0) {
         const norm = v.clone().normalize();
         v.addScaledVector(norm, disp);
@@ -121,16 +143,53 @@ function StructuredMoon({ sunDir }) {
     return geo;
   }, []);
 
+  const material = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      map: colorMap,
+      bumpMap: bumpMap,
+      bumpScale: 0.05,
+      roughness: 0.94,
+      metalness: 0.02,
+    });
+
+    mat.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <uv_pars_vertex>',
+        `#include <uv_pars_vertex>
+         varying vec3 vSphereDir;`
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <uv_vertex>',
+        `#include <uv_vertex>
+         vSphereDir = normalize(position);`
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <uv_pars_fragment>',
+        `#include <uv_pars_fragment>
+         varying vec3 vSphereDir;`
+      );
+      // Seamless polar planar projection blending to fix equirectangular pinching at poles
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `#ifdef USE_MAP
+           float poleFactor = smoothstep(0.86, 0.96, abs(vSphereDir.y));
+           vec4 texColor = texture2D(map, vUv);
+           if (poleFactor > 0.0) {
+             // Sample texture using orthographic polar planar coordinates
+             vec2 polarUv = vec2(0.5 + vSphereDir.x * 0.25, 0.5 + vSphereDir.z * 0.25);
+             vec4 polarTex = texture2D(map, polarUv);
+             texColor = mix(texColor, polarTex, poleFactor);
+           }
+           diffuseColor *= texColor;
+         #endif`
+      );
+    };
+
+    return mat;
+  }, [colorMap, bumpMap]);
+
   return (
-    <mesh geometry={geometry} receiveShadow castShadow>
-      <meshStandardMaterial
-        map={colorMap}
-        bumpMap={bumpMap}
-        bumpScale={0.06}
-        roughness={0.94}
-        metalness={0.02}
-      />
-    </mesh>
+    <mesh geometry={geometry} material={material} receiveShadow castShadow />
   );
 }
 
@@ -616,7 +675,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     };
   }, [sites, selectedSiteId, customCoords]);
 
-  // Cinematic 4-Phase Orbital Deorbit, Retrograde Braking Turn & High-Arc Powered Landing
+  // Cinematic Spherical Spiral Orbital Descent & Precision Surface Alignment
   const triggerCinematicDescent = (onComplete) => {
     if (!spacecraftRef.current) return;
     setIsDescending?.(true);
@@ -627,52 +686,104 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     const targetPos = latLonToVector3(lat, lon, MOON_RADIUS + disp);
     const targetNormal = targetPos.clone().normalize();
     const touchdownPos = targetPos.clone().addScaledVector(targetNormal, 0.28);
-    const approachPos = targetPos.clone().addScaledVector(targetNormal, 1.25);
 
-    // Helpers to sample orbit trajectory
-    const getOrbitPos = (ang) =>
-      new THREE.Vector3(
-        Math.cos(ang) * ORBIT_RADIUS,
-        Math.sin(ang) * ORBIT_RADIUS * 0.96,
-        Math.sin(ang) * ORBIT_RADIUS * 0.28
-      );
+    // Initial state from current spacecraft orbit position
+    const startPos = spacecraftRef.current.position.clone();
+    const startRadius = startPos.length();
+    const targetRadius = touchdownPos.length();
 
-    const getOrbitVel = (ang) =>
-      new THREE.Vector3(
-        -Math.sin(ang) * ORBIT_RADIUS,
-        Math.cos(ang) * ORBIT_RADIUS * 0.96,
-        Math.cos(ang) * ORBIT_RADIUS * 0.28
-      ).normalize();
+    // Start spherical angles (phi: latitude -pi/2..pi/2, theta: longitude -pi..pi)
+    const startPhi = Math.asin(Math.max(-1, Math.min(1, startPos.y / startRadius)));
+    const startTheta = Math.atan2(startPos.z, startPos.x);
 
-    // Orbit parameters
-    const startAng = orbitAngleRef.current;
-    const deorbitAng = startAng + 0.38; // Coasts ~22 degrees along proper orbit
-    const deorbitPos = getOrbitPos(deorbitAng);
-    const deorbitVel = getOrbitVel(deorbitAng);
+    // Target spherical angles
+    const targetPhi = Math.asin(Math.max(-1, Math.min(1, targetNormal.y)));
+    const targetTheta = Math.atan2(targetNormal.z, targetNormal.x);
 
-    // Orientations
-    const progradeQuat = new THREE.Quaternion().setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      deorbitVel
-    );
-    // Retrograde orientation (180° attitude flip: thruster points in direction of motion to brake)
-    const retrogradeQuat = new THREE.Quaternion().setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      deorbitVel.clone().negate()
-    );
+    // Calculate angular delta with full 360° orbital spiral wrap (1.25 revolutions around the Moon)
+    let dTheta = targetTheta - startTheta;
+    while (dTheta < 0) dTheta += Math.PI * 2;
+    // Add 1 extra full spiral turn around the lunar sphere (2 * Math.PI)
+    const totalSpiralTheta = dTheta + Math.PI * 2;
+
     // Upright landing normal orientation
     const uprightQuat = new THREE.Quaternion().setFromUnitVectors(
       new THREE.Vector3(0, 1, 0),
       targetNormal
     );
 
-    // QuadraticBezierCurve3 corridor with elevated midpoint to guarantee zero Moon clipping
-    let mid = new THREE.Vector3().addVectors(deorbitPos, approachPos).multiplyScalar(0.5);
-    mid.normalize().multiplyScalar(MOON_RADIUS * 1.5);
-    const descentCurve = new THREE.QuadraticBezierCurve3(deorbitPos, mid, approachPos);
+    // Function to calculate exact point on the spiral at parameter t in [0, 1]
+    const getSpiralPoint = (t) => {
+      // Smooth interpolation for latitude and longitude
+      const currentTheta = startTheta + totalSpiralTheta * t;
+      // Smoothstep latitude transition toward the target polar rim
+      const latT = t * t * (3 - 2 * t);
+      const currentPhi = startPhi + (targetPhi - startPhi) * latT;
 
-    // Create coordinated GSAP timeline
-    const tl = gsap.timeline({
+      // Unit vector on sphere
+      const cosPhi = Math.cos(currentPhi);
+      const sinPhi = Math.sin(currentPhi);
+      const unit = new THREE.Vector3(
+        cosPhi * Math.cos(currentTheta),
+        sinPhi,
+        cosPhi * Math.sin(currentTheta)
+      );
+
+      // Smooth altitude descent: starts at orbital altitude (~6.8), smoothly reaches surface (~4.78)
+      // Radius is strictly >= 4.78 > MOON_RADIUS (4.5) at all times, making clipping impossible!
+      const altT = t < 0.75 
+        ? Math.pow(t / 0.75, 1.4) * 0.75 
+        : 0.75 + (1 - Math.pow(1 - (t - 0.75) / 0.25, 2)) * 0.25;
+      const currentRadius = startRadius + (targetRadius - startRadius) * altT;
+
+      return unit.multiplyScalar(currentRadius);
+    };
+
+    // Animate progress t from 0 to 1 with GSAP
+    const animState = { t: 0 };
+    gsap.to(animState, {
+      t: 1.0,
+      duration: 6.8,
+      ease: 'power1.inOut',
+      onStart: () => {
+        // Start spiral smoothly with engine idle
+        setThrusterActive(false);
+      },
+      onUpdate: () => {
+        if (!spacecraftRef.current) return;
+        const t = animState.t;
+
+        // Current position along the spiral around the Moon
+        const pos = getSpiralPoint(t);
+        spacecraftRef.current.position.copy(pos);
+
+        // Turn on thrusters at t > 0.35 as craft approaches the site and brakes
+        if (t > 0.35 && t < 0.98) {
+          setThrusterActive(true);
+        }
+
+        // Calculate velocity tangent along the spiral
+        const eps = 0.005;
+        const nextPos = getSpiralPoint(Math.min(1.0, t + eps));
+        const prevPos = getSpiralPoint(Math.max(0.0, t - eps));
+        const tangent = nextPos.clone().sub(prevPos).normalize();
+
+        const flightQuat = new THREE.Quaternion().setFromUnitVectors(
+          new THREE.Vector3(0, 1, 0),
+          tangent
+        );
+
+        // Near touchdown (final 25%), smoothly pitch over to align upright with the surface landing pad!
+        if (t > 0.75) {
+          const blend = (t - 0.75) / 0.25;
+          const blendSmooth = blend * blend * (3 - 2 * blend);
+          spacecraftRef.current.quaternion.copy(flightQuat).slerp(uprightQuat, blendSmooth);
+        } else {
+          spacecraftRef.current.quaternion.slerp(flightQuat, 0.3);
+        }
+
+        if (invalidateRef.current) invalidateRef.current();
+      },
       onComplete: () => {
         setThrusterActive(false);
         setIsDescending?.(false);
@@ -684,85 +795,6 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
         if (invalidateRef.current) invalidateRef.current();
         onLanderTouchdown?.();
         onComplete?.();
-      },
-    });
-
-    // ── PHASE 1: Coast along proper orbit to deorbit burn point (1.5s) ──
-    const coastState = { ang: startAng };
-    tl.to(coastState, {
-      ang: deorbitAng,
-      duration: 1.5,
-      ease: 'none',
-      onStart: () => setThrusterActive(false),
-      onUpdate: () => {
-        if (!spacecraftRef.current) return;
-        orbitAngleRef.current = coastState.ang;
-        const pos = getOrbitPos(coastState.ang);
-        const vel = getOrbitVel(coastState.ang);
-        spacecraftRef.current.position.copy(pos);
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), vel);
-        spacecraftRef.current.quaternion.copy(q);
-        if (invalidateRef.current) invalidateRef.current();
-      },
-    });
-
-    // ── PHASE 2: Retrograde Turn & Braking Burn to "stop" forward orbital velocity (1.8s) ──
-    const turnState = { progress: 0 };
-    tl.to(turnState, {
-      progress: 1.0,
-      duration: 1.8,
-      ease: 'power1.inOut',
-      onStart: () => {
-        // Ignite thrusters to brake/stop and turn
-        setThrusterActive(true);
-      },
-      onUpdate: () => {
-        if (!spacecraftRef.current) return;
-        // Smoothly rotate attitude from prograde to retrograde (180° turn)
-        spacecraftRef.current.quaternion.copy(progradeQuat).slerp(retrogradeQuat, turnState.progress);
-        // Spacecraft slows down as it approaches deorbit point
-        const drift = deorbitPos.clone().addScaledVector(deorbitVel, (1 - turnState.progress) * 0.25);
-        spacecraftRef.current.position.copy(drift);
-        if (invalidateRef.current) invalidateRef.current();
-      },
-    });
-
-    // ── PHASE 3: High-Arc Powered Descent along QuadraticBezierCurve3 (3.2s) ──
-    const arcState = { t: 0 };
-    tl.to(arcState, {
-      t: 1.0,
-      duration: 3.2,
-      ease: 'power2.inOut',
-      onStart: () => setThrusterActive(true),
-      onUpdate: () => {
-        if (!spacecraftRef.current) return;
-        const t = arcState.t;
-        const pos = descentCurve.getPoint(t);
-        spacecraftRef.current.position.copy(pos);
-
-        // Orient engine along retrograde flight tangent to continuously brake descent
-        const tangent = descentCurve.getTangent(t).normalize();
-        const flightQuat = new THREE.Quaternion().setFromUnitVectors(
-          new THREE.Vector3(0, 1, 0),
-          tangent
-        );
-        spacecraftRef.current.quaternion.slerp(flightQuat, 0.25);
-        if (invalidateRef.current) invalidateRef.current();
-      },
-    });
-
-    // ── PHASE 4: Pitchover Upright & Vertical Touchdown (1.6s) ──
-    const landingState = { p: 0 };
-    tl.to(landingState, {
-      p: 1.0,
-      duration: 1.6,
-      ease: 'power1.out',
-      onUpdate: () => {
-        if (!spacecraftRef.current) return;
-        const p = landingState.p;
-        spacecraftRef.current.position.lerpVectors(approachPos, touchdownPos, p);
-        spacecraftRef.current.quaternion.slerp(uprightQuat, 0.15 + p * 0.85);
-        if (invalidateRef.current) invalidateRef.current();
       },
     });
   };

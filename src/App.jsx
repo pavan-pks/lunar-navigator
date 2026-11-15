@@ -329,13 +329,13 @@ export function App() {
       {/* SCENE 1: MACRO HERO MENU                                                 */}
       {/* ======================================================================= */}
       {sceneState === 'macro' && (
-        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 pointer-events-none">
-          <div className="max-w-xl w-full pointer-events-auto text-center space-y-6">
+        <div className="absolute inset-0 z-20 flex flex-col justify-center items-center p-6 sm:p-10 pointer-events-none">
+          <div className="max-w-lg w-full pointer-events-auto text-center space-y-6 bg-black/85 border border-white/15 p-8 sm:p-10 rounded-3xl shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
             <span className="text-[10px] font-sans font-light tracking-[0.3em] text-[#a3a3a3] uppercase block">
               NASA Artemis · Polar Flight Dynamics
             </span>
 
-            <h1 className="text-4xl sm:text-6xl font-sans font-light text-[#f5f5f5] tracking-tight uppercase leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+            <h1 className="text-4xl sm:text-5xl font-sans font-light text-[#f5f5f5] tracking-tight uppercase leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
               Lunar Navigator
             </h1>
 
@@ -344,12 +344,14 @@ export function App() {
               communication windows at candidate lunar landing sites.
             </p>
 
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
               <button
                 onClick={handleStartMission}
-                className="text-xs font-sans tracking-[0.2em] uppercase text-[#f5f5f5] border border-white/20 hover:border-white hover:bg-white hover:text-black px-8 py-3.5 transition duration-300 cursor-none"
+                className="flex items-center justify-center gap-2.5 text-xs font-sans font-semibold tracking-[0.2em] uppercase text-black bg-white hover:bg-neutral-200 px-8 py-3.5 rounded-full transition-all duration-300 cursor-none shadow-xl hover:scale-105 active:scale-95"
+                title="Play Mission"
               >
-                Initialize Approach ↗
+                <Play size={14} className="fill-current" />
+                <span>Play</span>
               </button>
 
               <button
