@@ -15,11 +15,14 @@ export const ORBIT_RADIUS = 8.6;
  * Prime Meridian (0° lon) is aligned with the center of the NASA equirectangular texture.
  */
 export function latLonToVector3(lat, lon, radius = MOON_RADIUS) {
-  const phi = (90 - lat) * (Math.PI / 180);
-  const theta = (lon + 180) * (Math.PI / 180);
-  const x = -radius * Math.sin(phi) * Math.cos(theta);
-  const y = radius * Math.cos(phi);
-  const z = radius * Math.sin(phi) * Math.sin(theta);
+  const safeLat = Number.isFinite(Number(lat)) ? Number(lat) : -89.9;
+  const safeLon = Number.isFinite(Number(lon)) ? Number(lon) : 0.0;
+  const safeRadius = Number.isFinite(Number(radius)) ? Number(radius) : MOON_RADIUS;
+  const phi = (90 - safeLat) * (Math.PI / 180);
+  const theta = (safeLon + 180) * (Math.PI / 180);
+  const x = -safeRadius * Math.sin(phi) * Math.cos(theta);
+  const y = safeRadius * Math.cos(phi);
+  const z = safeRadius * Math.sin(phi) * Math.sin(theta);
   return new THREE.Vector3(x, y, z);
 }
 
@@ -750,12 +753,16 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
 
   const selectedSite = useMemo(() => {
     if (customCoords) return customCoords;
-    return sites.find((s) => s.id === selectedSiteId) || sites[0] || {
-      id: 'shackleton',
-      name: 'Shackleton Crater Rim',
-      lat: -89.9,
-      lon: 0.0,
-    };
+    return (
+      sites.find((s) => s.id === selectedSiteId) ||
+      LUNAR_LANDMARKS.find((lm) => lm.id === selectedSiteId) ||
+      sites[0] || {
+        id: 'shackleton',
+        name: 'Shackleton Crater Rim',
+        lat: -89.9,
+        lon: 0.0,
+      }
+    );
   }, [sites, selectedSiteId, customCoords]);
 
   // Cinematic Spherical Spiral Orbital Descent & Precision Surface Alignment
@@ -965,11 +972,27 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
       setViewMode?.('orbit');
     },
     focusSite: (targetSite) => {
-      const siteToFocus = targetSite || selectedSite;
-      if (!siteToFocus || !orbitControlsRef.current) return;
+      let siteToFocus = null;
+      if (typeof targetSite === 'object' && targetSite !== null) {
+        siteToFocus = targetSite;
+      } else if (typeof targetSite === 'string') {
+        siteToFocus =
+          sites.find((s) => s.id === targetSite) ||
+          LUNAR_LANDMARKS.find((lm) => lm.id === targetSite);
+      }
+      if (!siteToFocus) siteToFocus = selectedSite;
+      if (!siteToFocus || !Number.isFinite(Number(siteToFocus.lat)) || !Number.isFinite(Number(siteToFocus.lon))) return;
+      if (!orbitControlsRef.current?.object) return;
+
       const targetVec = latLonToVector3(siteToFocus.lat, siteToFocus.lon, MOON_RADIUS);
+      if (!Number.isFinite(targetVec.x) || !Number.isFinite(targetVec.y) || !Number.isFinite(targetVec.z)) return;
+
       const norm = targetVec.clone().normalize();
       const targetCamPos = norm.clone().multiplyScalar(16.5);
+      if (!Number.isFinite(targetCamPos.x) || !Number.isFinite(targetCamPos.y) || !Number.isFinite(targetCamPos.z)) return;
+
+      gsap.killTweensOf(orbitControlsRef.current.object.position);
+      gsap.killTweensOf(orbitControlsRef.current.target);
 
       gsap.to(orbitControlsRef.current.object.position, {
         x: targetCamPos.x,

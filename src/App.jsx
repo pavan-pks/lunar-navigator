@@ -17,6 +17,7 @@ import { CsaArtemisPanel } from './components/ui/CsaArtemisPanel.jsx';
 import { ReportModal } from './components/ui/ReportModal.jsx';
 import { CustomCursor } from './components/ui/CustomCursor.jsx';
 import { ErrorState } from './components/ui/ErrorState.jsx';
+import { LUNAR_LANDMARKS } from './lib/lunarLandmarks.js';
 
 export const SIM_SPEED_OPTIONS = [
   { value: 1, label: '1x' },
@@ -105,8 +106,8 @@ export function App() {
 
   const site = useMemo(() => {
     if (customSite) return customSite;
-    if (!data?.sites) return { id: 'shackleton', name: 'Shackleton Crater Rim', lat: -89.9, lon: 129.8, terrainType: 'crater-rim' };
-    return data.sites.find(s => s.id === selectedSiteId) || data.sites[0];
+    if (!data?.sites) return LUNAR_LANDMARKS[0] || { id: 'shackleton', name: 'Shackleton Crater Rim', lat: -89.9, lon: 129.8, terrainType: 'crater-rim' };
+    return data.sites.find(s => s.id === selectedSiteId) || LUNAR_LANDMARKS.find(lm => lm.id === selectedSiteId) || data.sites[0];
   }, [data, selectedSiteId, customSite]);
 
   const handleSelectSite = (newSite) => {
@@ -121,7 +122,8 @@ export function App() {
     } else {
       setCustomSite(null);
       setSelectedSiteId(newSite);
-      if (universeRef.current?.focusSite) universeRef.current.focusSite(newSite);
+      const siteObj = (data?.sites || []).find(s => s.id === newSite) || LUNAR_LANDMARKS.find(lm => lm.id === newSite);
+      if (universeRef.current?.focusSite) universeRef.current.focusSite(siteObj || newSite);
     }
   };
 
