@@ -4,7 +4,7 @@
  */
 
 let audioCtx = null;
-let isAudioMuted = false;
+let isAudioMuted = true;
 
 function getAudioContext() {
   if (typeof window === 'undefined') return null;

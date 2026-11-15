@@ -32,13 +32,16 @@ export function TargetingReticle({ targetName, targetCoords, craterScreenPos, is
           <div className="w-1.5 h-1.5 rounded-full bg-white/80"></div>
         </div>
 
-        {/* Minimal Understated Target Label */}
-        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
-          <div className="text-[10px] font-sans font-light tracking-[0.25em] text-[#f5f5f5] uppercase drop-shadow-sm">
+        {/* Minimal Understated Target Label with 2-line max-width and tooltip */}
+        <div
+          className="absolute -bottom-10 left-1/2 -translate-x-1/2 text-center w-max max-w-[14rem] px-2"
+          title={targetName}
+        >
+          <div className="text-[11px] font-sans font-medium tracking-[0.15em] sm:tracking-[0.25em] text-[#f5f5f5] uppercase drop-shadow-sm line-clamp-2 text-balance leading-tight">
             {targetName}
           </div>
           {targetCoords && (
-            <div className="text-[9px] font-mono font-light tracking-wider text-neutral-400 mt-0.5">
+            <div className="text-[10px] font-mono font-light tracking-wider text-neutral-400 mt-0.5">
               {targetCoords.lat > 0 ? `+${targetCoords.lat.toFixed(2)}°` : `${targetCoords.lat.toFixed(2)}°`} · {targetCoords.lon > 0 ? `+${targetCoords.lon.toFixed(2)}°` : `${targetCoords.lon.toFixed(2)}°`}
             </div>
           )}

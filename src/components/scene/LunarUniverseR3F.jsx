@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { createPRNG } from './noise.js';
 import { isPrefersReducedMotion } from '../../lib/animation.js';
+import { getTierConfig } from './quality.js';
 import { LocalSurfaceChunk } from './LocalSurfaceChunk.jsx';
 import { LUNAR_LANDMARKS } from '../../lib/lunarLandmarks.js';
 
@@ -154,7 +155,7 @@ function StructuredMoon({ onPickCoord }) {
 /**
  * 3D Landmark Label Item with horizon occlusion, surface pin, and billboard badge.
  */
-function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
+function LunarSpotLabelItem({ landmark, isSelected, onSelectSite, camDist = 22 }) {
   const { camera } = useThree();
   const spriteRef = useRef(null);
   const stemRef = useRef(null);
@@ -167,6 +168,12 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
     const tex = getSpotSpriteTexture(landmark, isSelected);
     return { pos: p, normal: n, pinTop: top, texture: tex };
   }, [landmark, isSelected]);
+
+  // Scale badge slightly smaller when zoomed out to prevent crowding
+  const badgeScale = useMemo(() => {
+    const factor = camDist > 24 ? 0.75 : (camDist > 16 ? 0.9 : 1.0);
+    return isSelected ? [1.15 * factor, 0.22 * factor, 1] : [0.95 * factor, 0.18 * factor, 1];
+  }, [camDist, isSelected]);
 
   // Stem line geometry
   const stemGeo = useMemo(() => {
@@ -231,7 +238,7 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
       <sprite
         ref={spriteRef}
         position={pinTop}
-        scale={[1.15, 0.22, 1]}
+        scale={badgeScale}
         onClick={(e) => {
           e.stopPropagation();
           onSelectSite?.(landmark);
@@ -250,16 +257,41 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite }) {
 
 /**
  * 3D Landmark Spot Labels Layer for candidate Artemis sites, Apollo landers, and craters.
+ * Features distance-based level of detail, priority capping, and scale attenuation to eliminate overlapping clutter.
  */
 function LunarSpotLabels({ landmarks, selectedSiteId, onSelectSite }) {
+  const { camera } = useThree();
+  const [camDist, setCamDist] = useState(22);
+
+  useFrame(() => {
+    const dist = camera.position.length();
+    if (Math.abs(dist - camDist) > 1.5) {
+      setCamDist(dist);
+    }
+  });
+
+  const visibleLandmarks = useMemo(() => {
+    return landmarks.filter((lm) => {
+      if (lm.id === selectedSiteId) return true;
+      if (camDist > 25) {
+        return lm.category === 'artemis' || lm.category === 'pole';
+      }
+      if (camDist > 16) {
+        return lm.category === 'artemis' || lm.category === 'pole' || lm.category === 'historic';
+      }
+      return true;
+    }).slice(0, camDist > 25 ? 7 : (camDist > 16 ? 12 : 24));
+  }, [landmarks, selectedSiteId, camDist]);
+
   return (
     <group>
-      {landmarks.map((lm) => (
+      {visibleLandmarks.map((lm) => (
         <LunarSpotLabelItem
           key={lm.id}
           landmark={lm}
           isSelected={selectedSiteId === lm.id}
           onSelectSite={onSelectSite}
+          camDist={camDist}
         />
       ))}
     </group>
@@ -897,6 +929,7 @@ function UniverseScene({
   orbitControlsRef,
   onRegisterInvalidate,
   orbitAngleRef: propOrbitAngleRef,
+  tierConfig,
 }) {
   const { camera, invalidate } = useThree();
   const fallbackOrbitAngleRef = useRef(0);
@@ -996,14 +1029,14 @@ function UniverseScene({
         rotateSpeed={0.7}
       />
 
-      <Stars radius={250} depth={80} count={3500} factor={4} saturation={0} fade speed={0.4} />
+      <Stars radius={250} depth={80} count={tierConfig?.starCount || 1500} factor={4} saturation={0} fade speed={0.4} />
 
       <directionalLight
         position={[sunDir.x * 50, sunDir.y * 50, sunDir.z * 50]}
         intensity={2.8}
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+        shadow-mapSize-width={tierConfig?.shadowMapSize || 2048}
+        shadow-mapSize-height={tierConfig?.shadowMapSize || 2048}
         shadow-camera-near={10}
         shadow-camera-far={80}
         shadow-camera-left={-10}
@@ -1102,6 +1135,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     isDescending = false,
     hasLanded = false,
     isComparing = false,
+    quality = 'auto',
     setIsDescending,
     setHasLanded,
     setViewMode,
@@ -1113,6 +1147,14 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
   const invalidateRef = useRef(null);
   const orbitAngleRef = useRef(0);
   const [thrusterActive, setThrusterActive] = useState(false);
+
+  const [activeTier, setActiveTier] = useState(quality === 'auto' ? 'medium' : quality);
+  useEffect(() => {
+    if (quality !== 'auto') {
+      setActiveTier(quality);
+    }
+  }, [quality]);
+  const tierConfig = useMemo(() => getTierConfig(activeTier), [activeTier]);
 
   const selectedSite = useMemo(() => {
     if (customCoords) return customCoords;
@@ -1469,6 +1511,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
         }}
+        dpr={[1, tierConfig.dpr]}
         camera={{
           position: viewMode === 'surface' ? [3.4, 2.0, 5.4] : [0, 8, 22],
           fov: viewMode === 'surface' ? 48 : 42,
@@ -1476,7 +1519,8 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
           far: 2500,
         }}
         gl={{
-          antialias: true,
+          antialias: tierConfig.antialias,
+          powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.9,
         }}
@@ -1513,6 +1557,7 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
             isComparing={isComparing}
             orbitControlsRef={orbitControlsRef}
             orbitAngleRef={orbitAngleRef}
+            tierConfig={tierConfig}
             onRegisterInvalidate={(inv) => {
               invalidateRef.current = inv;
             }}
