@@ -189,18 +189,26 @@ export function App() {
   const metHours = Math.floor(timeCtrl.tRel % 24);
   const metMinutes = Math.floor((timeCtrl.tRel % 1) * 60);
 
-  // Sync state to URL hash
+  // Sync state to URL hash (debounced to avoid browser history rate-limiting and frame jank)
   useEffect(() => {
     if (sceneState === 'macro') return;
-    const urlHash = buildUrlState({
-      siteId: customSite ? 'custom' : selectedSiteId,
-      launchDate,
-      slipDays,
-      tRel: Math.round(timeCtrl.tRel * 10) / 10,
-      plannerMode,
-      noIntro: true,
-    });
-    window.history.replaceState(null, '', urlHash);
+    const timer = setTimeout(() => {
+      const urlHash = buildUrlState({
+        siteId: customSite ? 'custom' : selectedSiteId,
+        launchDate,
+        slipDays,
+        tRel: Math.round(timeCtrl.tRel * 10) / 10,
+        plannerMode,
+        noIntro: true,
+      });
+      try {
+        window.history.replaceState(null, '', urlHash);
+      } catch {
+        // Guard against browser history rate-limits
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, [sceneState, selectedSiteId, customSite, launchDate, slipDays, timeCtrl.tRel, plannerMode]);
 
   const handleCopyLink = () => {

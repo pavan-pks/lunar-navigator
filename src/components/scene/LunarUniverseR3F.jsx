@@ -46,6 +46,19 @@ export function vector3ToLatLon(vec) {
   };
 }
 
+// Module-level reusable scratch objects to eliminate per-frame garbage collection and micro-stutter
+const _tempCamDir = new THREE.Vector3();
+const _tempTangent = new THREE.Vector3();
+const _tempQuat = new THREE.Quaternion();
+const _upVec = new THREE.Vector3(0, 1, 0);
+const _tempProj = new THREE.Vector3();
+const _tempCamDiff = new THREE.Vector3();
+const _tempVecA = new THREE.Vector3();
+const _tempVecB = new THREE.Vector3();
+const _macroTarget = new THREE.Vector3(0, 10, 24);
+const _compareTarget = new THREE.Vector3(0, 10, 30);
+const _originTarget = new THREE.Vector3(0, 0, 0);
+
 /**
  * Cache for 3D billboard sprite textures to avoid garbage collection spikes.
  */
@@ -186,25 +199,32 @@ function LunarSpotLabelItem({ landmark, isSelected, onSelectSite, camDist = 22 }
     return geo;
   }, [pos, pinTop]);
 
-  // Occlude spots that rotate beyond the visible lunar horizon
+  // Occlude spots that rotate beyond the visible lunar horizon (zero GC allocation)
   useFrame(() => {
     if (!spriteRef.current) return;
-    const camDir = camera.position.clone().sub(pos).normalize();
-    const dot = normal.dot(camDir);
+    _tempCamDir.subVectors(camera.position, pos).normalize();
+    const dot = normal.dot(_tempCamDir);
 
     if (dot < 0.05) {
-      spriteRef.current.visible = false;
-      if (stemRef.current) stemRef.current.visible = false;
-      if (dotRef.current) dotRef.current.visible = false;
+      if (spriteRef.current.visible) {
+        spriteRef.current.visible = false;
+        if (stemRef.current) stemRef.current.visible = false;
+        if (dotRef.current) dotRef.current.visible = false;
+      }
     } else {
-      spriteRef.current.visible = true;
-      if (stemRef.current) stemRef.current.visible = true;
-      if (dotRef.current) dotRef.current.visible = true;
+      if (!spriteRef.current.visible) {
+        spriteRef.current.visible = true;
+        if (stemRef.current) stemRef.current.visible = true;
+        if (dotRef.current) dotRef.current.visible = true;
+      }
 
       const alpha = THREE.MathUtils.clamp((dot - 0.05) / 0.15, 0, 1);
-      spriteRef.current.material.opacity = alpha * (isSelected ? 1.0 : 0.88);
-      if (stemRef.current) stemRef.current.material.opacity = alpha * 0.45;
-      if (dotRef.current) dotRef.current.material.opacity = alpha;
+      const targetOpacity = alpha * (isSelected ? 1.0 : 0.88);
+      if (Math.abs(spriteRef.current.material.opacity - targetOpacity) > 0.03) {
+        spriteRef.current.material.opacity = targetOpacity;
+        if (stemRef.current) stemRef.current.material.opacity = alpha * 0.45;
+        if (dotRef.current) dotRef.current.material.opacity = alpha;
+      }
     }
   });
 
@@ -875,24 +895,25 @@ function CameraDirector({
 
   useFrame((_, delta) => {
     if (mode === 'macro') {
-      camera.position.lerp(new THREE.Vector3(0, 10, 24), delta * 2.0);
+      camera.position.lerp(_macroTarget, delta * 2.0);
       camera.lookAt(0, 0, 0);
       return;
     }
 
     if (isComparing) {
-      camera.position.lerp(new THREE.Vector3(0, 10, 30), delta * 2.0);
+      camera.position.lerp(_compareTarget, delta * 2.0);
       if (orbitControlsRef.current) {
-        orbitControlsRef.current.target.lerp(new THREE.Vector3(0, 0, 0), delta * 2.0);
+        orbitControlsRef.current.target.lerp(_originTarget, delta * 2.0);
       }
       return;
     }
 
     if (isDescending && spacecraftRef.current && orbitControlsRef.current) {
       const spPos = spacecraftRef.current.position;
-      const spNorm = spPos.clone().normalize();
-      const desiredPos = spPos.clone().addScaledVector(spNorm, 3.8).add(new THREE.Vector3(0, 1.2, 0));
-      camera.position.lerp(desiredPos, delta * 3.0);
+      _tempVecA.copy(spPos).normalize();
+      _tempVecB.copy(spPos).addScaledVector(_tempVecA, 3.8);
+      _tempVecB.y += 1.2;
+      camera.position.lerp(_tempVecB, delta * 3.0);
       orbitControlsRef.current.target.lerp(spPos, delta * 4.0);
       orbitControlsRef.current.update();
       return;
@@ -936,6 +957,7 @@ function UniverseScene({
   const orbitAngleRef = propOrbitAngleRef || fallbackOrbitAngleRef;
   const serviceModuleRef = useRef(null);
   const serviceOrbitAngleRef = useRef(0);
+  const lastCraterPosRef = useRef(null);
 
   useEffect(() => {
     if (onRegisterInvalidate) onRegisterInvalidate(invalidate);
@@ -976,9 +998,9 @@ function UniverseScene({
       const nx = Math.cos(nextAng) * ORBIT_RADIUS;
       const ny = Math.sin(nextAng) * ORBIT_RADIUS * 0.96;
       const nz = Math.sin(nextAng) * ORBIT_RADIUS * 0.28;
-      const tangent = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
-      const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-      spacecraftRef.current.quaternion.slerp(targetQuat, 0.15);
+      _tempTangent.set(nx - x, ny - y, nz - z).normalize();
+      _tempQuat.setFromUnitVectors(_upVec, _tempTangent);
+      spacecraftRef.current.quaternion.slerp(_tempQuat, 0.15);
     }
 
     // Orbit motion for the separated Service/Propulsion Module (stays in lunar parking orbit)
@@ -994,20 +1016,31 @@ function UniverseScene({
       const nx = Math.cos(nextAng) * ORBIT_RADIUS;
       const ny = Math.sin(nextAng) * ORBIT_RADIUS * 0.96;
       const nz = Math.sin(nextAng) * ORBIT_RADIUS * 0.28;
-      const tangent = new THREE.Vector3(nx - x, ny - y, nz - z).normalize();
-      const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), tangent);
-      serviceModuleRef.current.quaternion.slerp(targetQuat, 0.15);
+      _tempTangent.set(nx - x, ny - y, nz - z).normalize();
+      _tempQuat.setFromUnitVectors(_upVec, _tempTangent);
+      serviceModuleRef.current.quaternion.slerp(_tempQuat, 0.15);
     }
 
+    // Reticle screen position update: only notify App state if position shifts > 2px
+    // to avoid re-rendering the root React component 60 times/sec.
     if (onUpdateCraterScreenPos && camera) {
-      const v = targetPos.clone().project(camera);
-      const isBehind = targetNormal.dot(camera.position.clone().sub(targetPos)) < 0;
-      if (isBehind || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2) {
-        onUpdateCraterScreenPos(null);
+      _tempProj.copy(targetPos).project(camera);
+      _tempCamDiff.subVectors(camera.position, targetPos);
+      const isBehind = targetNormal.dot(_tempCamDiff) < 0;
+      if (isBehind || Math.abs(_tempProj.x) > 1.2 || Math.abs(_tempProj.y) > 1.2) {
+        if (lastCraterPosRef.current !== null) {
+          lastCraterPosRef.current = null;
+          onUpdateCraterScreenPos(null);
+        }
       } else {
-        const x = (v.x * 0.5 + 0.5) * window.innerWidth;
-        const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
-        onUpdateCraterScreenPos({ x, y });
+        const x = (_tempProj.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-_tempProj.y * 0.5 + 0.5) * window.innerHeight;
+        const last = lastCraterPosRef.current;
+        if (!last || Math.abs(x - last.x) > 2.0 || Math.abs(y - last.y) > 2.0) {
+          const rounded = { x: Math.round(x), y: Math.round(y) };
+          lastCraterPosRef.current = rounded;
+          onUpdateCraterScreenPos(rounded);
+        }
       }
     }
   });

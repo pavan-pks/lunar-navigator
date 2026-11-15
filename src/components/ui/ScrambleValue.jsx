@@ -9,16 +9,29 @@ const CHARS = '0123456789ABCDEF+-°%h';
 export function ScrambleValue({ value, durationMs = 380, className = '' }) {
   const [displayText, setDisplayText] = useState(String(value));
   const animRef = useRef(null);
+  const lastUpdateRef = useRef(0);
   const targetStr = String(value);
 
   useEffect(() => {
-    let startTime = performance.now();
+    const now = performance.now();
+    const timeSinceLast = now - lastUpdateRef.current;
+    lastUpdateRef.current = now;
+
+    // During rapid numerical changes (timeline playback/scrubbing), update directly
+    // to avoid visual text vibrating and prevent hundreds of React RAF re-renders.
+    if (timeSinceLast < 450) {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      setDisplayText(targetStr);
+      return;
+    }
+
+    let startTime = now;
     const len = targetStr.length;
 
     if (animRef.current) cancelAnimationFrame(animRef.current);
 
-    const updateScramble = (now) => {
-      const elapsed = now - startTime;
+    const updateScramble = (currentTime) => {
+      const elapsed = currentTime - startTime;
       const progress = Math.min(1.0, elapsed / durationMs);
 
       // How many characters have locked in
