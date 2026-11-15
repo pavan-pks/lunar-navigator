@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import * as THREE from 'three';
+import { createPRNG } from './noise.js';
 import gsap from 'gsap';
 
 /**
@@ -389,15 +390,16 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
     const starCount = 4500;
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
+    const starPrng = createPRNG(7777);
     for (let i = 0; i < starCount; i++) {
-      const r = 1200 + Math.random() * 1200;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 1200 + starPrng() * 1200;
+      const theta = starPrng() * Math.PI * 2;
+      const phi = Math.acos(2 * starPrng() - 1);
       starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       starPositions[i * 3 + 2] = r * Math.cos(phi);
 
-      const val = 0.65 + Math.random() * 0.25;
+      const val = 0.65 + starPrng() * 0.25;
       starColors[i * 3] = val;
       starColors[i * 3 + 1] = val;
       starColors[i * 3 + 2] = val;
@@ -796,8 +798,9 @@ export const CinematicSpaceUniverse = forwardRef(function CinematicSpaceUniverse
         const targetCamPos = new THREE.Vector3(48, 12, 15 + s.zoomDistance);
 
         if (s.cameraShakeIntensity > 0.001) {
-          const shakeX = (Math.random() - 0.5) * s.cameraShakeIntensity * 1.8;
-          const shakeY = (Math.random() - 0.5) * s.cameraShakeIntensity * 1.8;
+          const shakeTime = Date.now() * 0.02;
+          const shakeX = Math.sin(shakeTime) * s.cameraShakeIntensity * 0.9;
+          const shakeY = Math.cos(shakeTime * 1.3) * s.cameraShakeIntensity * 0.9;
           targetCamPos.x += shakeX;
           targetCamPos.y += shakeY;
         }

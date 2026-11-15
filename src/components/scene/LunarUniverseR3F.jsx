@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Stars, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { createPRNG } from './noise.js';
 import { LocalSurfaceChunk } from './LocalSurfaceChunk.jsx';
 import { LUNAR_LANDMARKS } from '../../lib/lunarLandmarks.js';
 
@@ -85,126 +86,16 @@ function getSpotSpriteTexture(spot, isSelected) {
   return tex;
 }
 
-let cachedThermalTexture = null;
-function getDivinerThermalTexture() {
-  if (cachedThermalTexture) return cachedThermalTexture;
-  const canvas = document.createElement('canvas');
-  canvas.width = 1024;
-  canvas.height = 512;
-  const ctx = canvas.getContext('2d');
-
-  const imgData = ctx.createImageData(1024, 512);
-  const data = imgData.data;
-
-  // LRO Diviner scientific false-color cryogenic thermal colormap
-  for (let y = 0; y < 512; y++) {
-    // Latitude from +90° (y=0, North Pole) to -90° (y=511, South Pole)
-    const latDeg = 90 - (y / 512) * 180;
-    const absLat = Math.abs(latDeg);
-    const latRad = (latDeg * Math.PI) / 180;
-
-    for (let x = 0; x < 1024; x++) {
-      const idx = (y * 1024 + x) * 4;
-
-      // Base planetary thermal equilibrium temperature (K)
-      let tempK = 40 + 350 * Math.pow(Math.cos(latRad), 1.8);
-
-      // Polar Permanently Shadowed Regions (PSRs) at both poles
-      if (absLat > 75) {
-        // Deep cryogenic cold traps in crater basins (sub-40K)
-        const craterPockets = Math.sin(x * 0.12) * Math.cos(y * 0.14) + Math.sin(x * 0.28) * 0.5;
-        if (craterPockets > 0.35 || absLat > 88) {
-          tempK = 28 + Math.random() * 11; // sub-40K volatile water-ice preservation zone
-        } else {
-          tempK = 48 + (90 - absLat) * 3.5;
-        }
-      }
-
-      // Map Temperature (25K - 390K) to Diviner false-color palette
-      let r = 0, g = 0, b = 0;
-      if (tempK < 40) {
-        // Volatile Water-Ice Preservation Zone: Electric Cyan / Bright Violet
-        r = Math.floor(100 + Math.random() * 40);
-        g = 240;
-        b = 255;
-      } else if (tempK < 80) {
-        // Cryogenic shadow: Deep Violet / Indigo
-        r = 110;
-        g = 50;
-        b = 220;
-      } else if (tempK < 150) {
-        // Cold polar highlands: Ocean Blue
-        r = 20;
-        g = 120;
-        b = 230;
-      } else if (tempK < 240) {
-        // Transition mid-latitudes: Emerald / Teal
-        r = 30;
-        g = 200;
-        b = 160;
-      } else if (tempK < 320) {
-        // Warm sunlit terrain: Amber Gold
-        r = 245;
-        g = 180;
-        b = 30;
-      } else {
-        // Peak equatorial solar heating: Fiery Crimson
-        r = 240;
-        g = 60;
-        b = 40;
-      }
-
-      data[idx] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = b;
-      data[idx + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-
-  // Overlay scientific grid lines & polar boundary rings
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, 256);
-  ctx.lineTo(1024, 256);
-  ctx.stroke();
-
-  // Polar circle markers (80°S and 80°N)
-  ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath();
-  ctx.moveTo(0, 512 - (10 / 180) * 512);
-  ctx.lineTo(1024, 512 - (10 / 180) * 512);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(0, (10 / 180) * 512);
-  ctx.lineTo(1024, (10 / 180) * 512);
-  ctx.stroke();
-
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.anisotropy = 16;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  cachedThermalTexture = tex;
-  return tex;
-}
-
 /**
- * Structured Moon Mesh with authentic NASA Clementine/LOLA 2K maps.
+ * Structured Moon Mesh with authentic NASA LOLA 2K maps.
  * Uses native Three.js equirectangular UV mapping and LOLA elevation bump relief.
  * Interactive: users can click anywhere on the Moon to pinpoint custom target coordinates.
- * Supports LRO Diviner Cryogenic False-Color Heatmap overlay.
  */
-function StructuredMoon({ onPickCoord, showThermalMap = false }) {
+function StructuredMoon({ onPickCoord }) {
   const [colorMap, bumpMap] = useTexture([
     '/textures/nasa_moon_2k.jpg',
     '/textures/nasa_moon_bump_2k.jpg',
   ]);
-
-  const thermalMap = useMemo(() => {
-    return getDivinerThermalTexture();
-  }, []);
 
   useEffect(() => {
     if (colorMap) {
@@ -249,13 +140,11 @@ function StructuredMoon({ onPickCoord, showThermalMap = false }) {
       }}
     >
       <meshStandardMaterial
-        map={showThermalMap ? thermalMap : colorMap}
+        map={colorMap}
         bumpMap={bumpMap}
-        bumpScale={showThermalMap ? 0.04 : 0.08}
-        roughness={showThermalMap ? 0.8 : 0.94}
+        bumpScale={0.08}
+        roughness={0.94}
         metalness={0.0}
-        emissive={showThermalMap ? '#0c1a2e' : '#000000'}
-        emissiveIntensity={showThermalMap ? 0.35 : 0.0}
       />
     </mesh>
   );
@@ -383,15 +272,20 @@ function LunarSpotLabels({ landmarks, selectedSiteId, onSelectSite }) {
 function ThrusterParticles({ active = false }) {
   const pointsRef = useRef();
   const count = 30;
+  const prngRef = useRef(null);
+  if (!prngRef.current) {
+    prngRef.current = createPRNG(9876);
+  }
 
   const [positions, speeds] = useMemo(() => {
+    const prng = createPRNG(9876);
     const pos = new Float32Array(count * 3);
     const spd = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      pos[i * 3] = (Math.random() - 0.5) * 0.08;
-      pos[i * 3 + 1] = -0.25 - Math.random() * 0.6;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * 0.08;
-      spd[i] = 0.8 + Math.random() * 1.4;
+      pos[i * 3] = (prng() - 0.5) * 0.08;
+      pos[i * 3 + 1] = -0.25 - prng() * 0.6;
+      pos[i * 3 + 2] = (prng() - 0.5) * 0.08;
+      spd[i] = 0.8 + prng() * 1.4;
     }
     return [pos, spd];
   }, []);
@@ -400,12 +294,13 @@ function ThrusterParticles({ active = false }) {
     if (!active || !pointsRef.current) return;
     const posAttr = pointsRef.current.geometry.attributes.position;
     const arr = posAttr.array;
+    const prng = prngRef.current;
     for (let i = 0; i < count; i++) {
       arr[i * 3 + 1] -= speeds[i] * delta * 2.5;
       if (arr[i * 3 + 1] < -1.1) {
-        arr[i * 3] = (Math.random() - 0.5) * 0.08;
+        arr[i * 3] = (prng() - 0.5) * 0.08;
         arr[i * 3 + 1] = -0.25;
-        arr[i * 3 + 2] = (Math.random() - 0.5) * 0.08;
+        arr[i * 3 + 2] = (prng() - 0.5) * 0.08;
       }
     }
     posAttr.needsUpdate = true;
@@ -985,7 +880,6 @@ function UniverseScene({
   showLabels = true,
   showGraticule = true,
   showDsnBeam = true,
-  showThermalMap = false,
   sunEl,
   sunAz,
   earthEl,
@@ -1121,8 +1015,8 @@ function UniverseScene({
       <hemisphereLight args={['#e2e8f0', '#0a0a0a', 0.20]} />
       <ambientLight intensity={0.16} />
 
-      {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting & LRO Diviner Thermal Map */}
-      <StructuredMoon onPickCoord={onPickCustomCoord} showThermalMap={showThermalMap} />
+      {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting */}
+      <StructuredMoon onPickCoord={onPickCustomCoord} />
 
       {/* 3B. Cesium-Style Tactical Lunar Coordinate Graticule Grid */}
       <LunarGraticule visible={showGraticule} />
@@ -1195,7 +1089,6 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     showLabels = true,
     showGraticule = true,
     showDsnBeam = true,
-    showThermalMap = false,
     onReachedOrbit,
     onLanderTouchdown,
     onUpdateCraterScreenPos,
@@ -1596,7 +1489,6 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
             showLabels={showLabels}
             showGraticule={showGraticule}
             showDsnBeam={showDsnBeam}
-            showThermalMap={showThermalMap}
             sunEl={sunEl}
             sunAz={sunAz}
             earthEl={earthEl}

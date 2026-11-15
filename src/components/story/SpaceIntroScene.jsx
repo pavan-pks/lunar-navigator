@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { createPRNG } from '../scene/noise.js';
 
 /**
  * Convert lunar latitude and longitude to 3D sphere cartesian coordinates.
@@ -192,18 +193,19 @@ export function SpaceIntroScene({
     const starCount = 4500;
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
+    const starPrng = createPRNG(54321);
     for (let i = 0; i < starCount; i++) {
-      const r = 900 + Math.random() * 900;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 900 + starPrng() * 900;
+      const theta = starPrng() * Math.PI * 2;
+      const phi = Math.acos(2 * starPrng() - 1);
       starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       starPositions[i * 3 + 2] = r * Math.cos(phi);
 
-      const val = 0.8 + Math.random() * 0.2;
+      const val = 0.8 + starPrng() * 0.2;
       starColors[i * 3] = val;
       starColors[i * 3 + 1] = val;
-      starColors[i * 3 + 2] = val + Math.random() * 0.08;
+      starColors[i * 3 + 2] = val + starPrng() * 0.08;
     }
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { createPRNG } from './noise.js'
 
 /**
  * Creates a procedural 256x128 Earth texture using Canvas 2D.
@@ -107,11 +108,12 @@ export function buildSky({ quality = 'auto' } = {}) {
   const starGeo = new THREE.BufferGeometry()
   const starPositions = new Float32Array(starCount * 3)
   const starSphereRadius = 900
+  const prng = createPRNG(4242)
 
   for (let i = 0; i < starCount; i++) {
     // Uniform sphere sampling
-    const u = Math.random() * 2 - 1
-    const theta = Math.random() * Math.PI * 2
+    const u = prng() * 2 - 1
+    const theta = prng() * Math.PI * 2
     const r = Math.sqrt(Math.max(0, 1 - u * u)) * starSphereRadius
     starPositions[i * 3 + 0] = r * Math.cos(theta)
     starPositions[i * 3 + 1] = u * starSphereRadius

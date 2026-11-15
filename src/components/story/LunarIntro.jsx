@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { createPRNG } from '../scene/noise.js';
 import { LunarScore } from '../../lib/lunarScore.js';
 
 const CUES = {
@@ -60,10 +61,11 @@ export function LunarIntro({ onDone }) {
     // Starfield
     const starCount = 4000;
     const starPos = new Float32Array(starCount * 3);
+    const starPrng = createPRNG(12345);
     for (let i = 0; i < starCount; i++) {
-      const r = 800 + Math.random() * 800;
-      const th = Math.random() * Math.PI * 2;
-      const ph = Math.acos(2 * Math.random() - 1);
+      const r = 800 + starPrng() * 800;
+      const th = starPrng() * Math.PI * 2;
+      const ph = Math.acos(2 * starPrng() - 1);
       starPos[i * 3] = r * Math.sin(ph) * Math.cos(th);
       starPos[i * 3 + 1] = r * Math.sin(ph) * Math.sin(th);
       starPos[i * 3 + 2] = r * Math.cos(ph);

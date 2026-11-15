@@ -6,6 +6,8 @@ import { useTimeController } from './lib/useTimeController.js';
 import { getLunarTime } from './lib/lunarTime.js';
 import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/metrics.js';
+import { validateMissionInputs } from './lib/validation.js';
+import { DataAssumptionsPopover } from './components/ui/DataAssumptionsPopover.jsx';
 import { playThrustRumble, playTelemetryPing, playTargetLock, isMuted, setMuted, startSpaceAmbientMusic, stopSpaceAmbientMusic, toggleSpaceAmbientMusic } from './lib/audio.js';
 
 import { LunarUniverseR3F } from './components/scene/LunarUniverseR3F.jsx';
@@ -83,9 +85,6 @@ export function App() {
   // 3D Direct-to-Earth Laser / DSN Telemetry Beam (off by default)
   const [showDsnBeam, setShowDsnBeam] = useState(false);
 
-  // LRO Diviner Cryogenic Thermal & Water-Ice Heatmap
-  const [showThermalMap, setShowThermalMap] = useState(false);
-
   // Simulation time controller
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 24 });
 
@@ -151,11 +150,18 @@ export function App() {
     handleSelectSite(custom);
   };
 
-  const landing = landingDate(launchDate, transitDays + slipDays);
-  const startHours = useMemo(() => {
-    if (!data?.ephem) return 0;
-    return Math.max(0, hoursSince(data.ephem.startUTC, landing));
-  }, [data, landing]);
+  const missionValidation = useMemo(() => {
+    return validateMissionInputs({
+      launchDate,
+      transitDays,
+      slipDays,
+      missionDays,
+      ephem: data?.ephem
+    });
+  }, [launchDate, transitDays, slipDays, missionDays, data?.ephem]);
+
+  const landing = missionValidation.landingDate;
+  const startHours = missionValidation.clampedStartHours;
 
   // Decoupled Static Series (only recalculates when site or launch date changes — NOT on every tick)
   const series = useMemo(() => {
@@ -284,7 +290,6 @@ export function App() {
           showLabels={showLabels}
           showGraticule={showGraticule}
           showDsnBeam={showDsnBeam}
-          showThermalMap={showThermalMap}
           onReachedOrbit={handleReachedOrbit}
           onLanderTouchdown={() => {
             setHasLanded(true);
@@ -537,16 +542,10 @@ export function App() {
                 <span>📡 DSN · {showDsnBeam ? 'On' : 'Off'}</span>
               </button>
 
-              {/* LRO Diviner Water-Ice Heatmap Toggle */}
-              <button
-                onClick={() => setShowThermalMap(v => !v)}
-                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 shrink-0 ${
-                  showThermalMap ? 'text-[#a78bfa]' : 'text-[#737373] hover:text-[#a3a3a3]'
-                }`}
-                title="Toggle LRO Diviner Cryogenic Water-Ice False-Color Heatmap"
-              >
-                <span>🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
-              </button>
+              <DataAssumptionsPopover
+                ephem={data?.ephem}
+                missionValidation={missionValidation}
+              />
 
               <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none shrink-0">
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
@@ -558,25 +557,10 @@ export function App() {
             </div>
           </header>
 
-          {/* ── LRO DIVINER CRYOGENIC FALSE-COLOR THERMAL SCALE LEGEND ── */}
-          {showThermalMap && viewMode === 'orbit' && (
-            <div className="absolute top-18 left-1/2 -translate-x-1/2 z-25 pointer-events-none flex items-center gap-3 bg-black/90 border border-violet-500/40 px-4 py-1.5 rounded-full text-[10px] font-mono tracking-wider text-neutral-300 shadow-2xl backdrop-blur-md">
-              <span className="text-violet-400 font-bold">LRO DIVINER</span>
-              <span className="text-white/20">•</span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 inline-block shadow-[0_0_8px_#67e8f9]" />
-                <span className="text-cyan-200 font-medium">&lt;40K PSR Water-Ice</span>
-              </span>
-              <span className="text-white/20">•</span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block" />
-                <span>40-80K Cold Trap</span>
-              </span>
-              <span className="text-white/20">•</span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-                <span>&gt;320K Sunlit Regolith</span>
-              </span>
+          {missionValidation.isOutsideRange && (
+            <div className="mx-6 mt-2 p-2 bg-amber-950/80 border border-amber-500/50 rounded text-amber-200 text-xs font-mono flex items-center justify-between z-20">
+              <span>Warning: {missionValidation.warnings.join(' ')}</span>
+              <span className="text-[10px] text-amber-400 font-bold uppercase">Clamped to coverage</span>
             </div>
           )}
 
