@@ -57,6 +57,9 @@ export function EdgeHudSidebars({
   plannerMode = 'planner', // 'planner' | 'explorer'
   onTogglePlannerMode,
   onOpenTool, // (toolName: 'timeline' | 'battery' | 'calendar') => void
+  missionDays = 14,
+  useHorizonMask = false,
+  horizonMaskSun = 0,
 }) {
   // Live simulation variables (update as timeline moves, guarded against non-finite values)
   const safeLiveSun = Number.isFinite(live?.sunEl) ? live.sunEl : 0;
@@ -368,14 +371,26 @@ export function EdgeHudSidebars({
             <>
               {/* Live Metric 1: Current Sun Elevation */}
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-[11px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
-                  Live Sun Elevation
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
+                    Live Sun Elevation
+                  </span>
+                  {useHorizonMask && (
+                    <span
+                      className="text-[9px] font-mono px-1 rounded bg-sky-950/60 text-sky-400 border border-sky-800/50"
+                      title="Crater rim horizon mask applied at current azimuth"
+                    >
+                      Mask {horizonMaskSun >= 0 ? `+${horizonMaskSun.toFixed(1)}°` : `${horizonMaskSun.toFixed(1)}°`}
+                    </span>
+                  )}
+                </div>
                 <div className="text-2xl font-mono tabular-nums font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                   <ScrambleValue value={sunElStr} />
                 </div>
                 <span className="text-[11px] font-sans font-light text-[#737373] [overflow-wrap:anywhere]">
-                  {live.sunEl > 0 ? 'Direct Solar Illumination' : 'In Grazing Rim Shadow'}
+                  {useHorizonMask
+                    ? (live.sunEl > horizonMaskSun ? 'Direct Solar Illumination' : 'Occluded by Crater Rim')
+                    : (live.sunEl > 0 ? 'Direct Solar Illumination' : 'In Grazing Rim Shadow')}
                 </span>
               </div>
 
@@ -392,10 +407,10 @@ export function EdgeHudSidebars({
                 </span>
               </div>
 
-              {/* Aggregate Metric 3: Total 14-Day Solar Coverage */}
+              {/* Aggregate Metric 3: Total Solar Coverage */}
               <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3 min-w-0">
                 <span className="text-[11px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
-                  14-Day Solar Coverage
+                  {missionDays}-Day Solar Coverage
                 </span>
                 <div className="text-2xl font-mono tabular-nums font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                   <ScrambleValue value={totalIlluminationPct} />
@@ -495,7 +510,7 @@ export function EdgeHudSidebars({
               <div className="p-2.5 rounded bg-white/5 border border-white/10">
                 <span className="font-semibold text-white block mb-1">Overall DTE Window</span>
                 <span>
-                  Earth line-of-sight is available for <strong className="text-white">{totalCommsPct}</strong> ({stats.earthVisibleHours}h) of the 14-day sortie.
+                  Earth line-of-sight is available for <strong className="text-white">{totalCommsPct}</strong> ({stats.earthVisibleHours}h) of the {missionDays}-day sortie.
                 </span>
               </div>
             </div>
@@ -527,10 +542,10 @@ export function EdgeHudSidebars({
                 </span>
               </div>
 
-              {/* Aggregate Metric 7: Total 14-Day Comms Window */}
+              {/* Aggregate Metric 7: Total Mission Comms Window */}
               <div className="flex flex-col gap-0.5 border-t border-white/5 pt-3 min-w-0">
                 <span className="text-[11px] font-sans font-light tracking-widest text-[#a3a3a3] uppercase block">
-                  14-Day DTE Coverage
+                  {missionDays}-Day DTE Coverage
                 </span>
                 <div className="text-2xl font-mono tabular-nums font-light tracking-tight text-[#f5f5f5] drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                   <ScrambleValue value={totalCommsPct} />

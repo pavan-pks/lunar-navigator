@@ -10,6 +10,7 @@ import {
   DEFAULT_OBJECT_HEIGHT_M,
   VERDICT
 } from './config.js';
+import { getHorizonElevationMask } from './geometry.js';
 
 /**
  * Calculates landing UTC date from launch date and transit duration in days.
@@ -41,7 +42,7 @@ export function shadowLength(heightM = DEFAULT_OBJECT_HEIGHT_M, sunElDeg) {
  * 
  * series: { t: number[], sunEl: number[], sunAz: number[], earthEl: number[], earthAz: number[] }
  */
-export function computeWindowStats(series) {
+export function computeWindowStats(series, { useHorizonMask = false, site = null } = {}) {
   if (!series || !series.t || series.t.length === 0) {
     return {
       windowHours: 0,
@@ -58,13 +59,23 @@ export function computeWindowStats(series) {
     };
   }
 
-  const { t, sunEl, earthEl } = series;
+  const { t, sunEl, earthEl, sunAz = [], earthAz = [] } = series;
   const n = t.length;
   const windowHours = n > 1 ? t[n - 1] - t[0] : 0;
 
+  const checkSunlit = (idx) => {
+    const mask = useHorizonMask ? getHorizonElevationMask(site, sunAz[idx] || 0) : 0;
+    return (sunEl[idx] - mask) > SUN_UP_DEG;
+  };
+
+  const checkEarthVis = (idx) => {
+    const mask = useHorizonMask ? getHorizonElevationMask(site, earthAz[idx] || 0) : 0;
+    return (earthEl[idx] - mask) > EARTH_UP_DEG;
+  };
+
   if (windowHours === 0) {
-    const isSun = sunEl[0] > SUN_UP_DEG;
-    const isEarth = earthEl[0] > EARTH_UP_DEG;
+    const isSun = checkSunlit(0);
+    const isEarth = checkEarthVis(0);
     return {
       windowHours: 0,
       sunlitHours: 0,
@@ -101,7 +112,7 @@ export function computeWindowStats(series) {
     if (el > maxSunEl) {
       maxSunEl = el;
     }
-    if (el > SUN_UP_DEG) {
+    if (checkSunlit(i)) {
       sunlitSum += el;
       sunlitSampleCount++;
     }
@@ -109,8 +120,8 @@ export function computeWindowStats(series) {
 
   for (let i = 0; i < n - 1; i++) {
     const dt = t[i + 1] - t[i];
-    const s0 = sunEl[i] > SUN_UP_DEG;
-    const s1 = sunEl[i + 1] > SUN_UP_DEG;
+    const s0 = checkSunlit(i);
+    const s1 = checkSunlit(i + 1);
 
     // Detect sunset transition (sunlit -> dark)
     if (s0 && !s1) {
@@ -133,7 +144,7 @@ export function computeWindowStats(series) {
     }
 
     // Earth visibility duration for interval i
-    const e0 = earthEl[i] > EARTH_UP_DEG;
+    const e0 = checkEarthVis(i);
     if (e0) {
       earthVisibleHours += dt;
       currentEarthGapHours = 0;

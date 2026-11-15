@@ -10,7 +10,8 @@ import {
   sunAltAz,
   earthAltAz,
   sampleSeries,
-  valuesAt
+  valuesAt,
+  getHorizonElevationMask
 } from './geometry.js';
 
 describe('geometry.js spherical astronomy tests', () => {
@@ -153,5 +154,21 @@ describe('geometry.js spherical astronomy tests', () => {
     expect(normalize180(190)).toBe(-170);
     expect(normalize180(-190)).toBe(170);
     expect(normalize180(180)).toBe(-180);
+  });
+
+  it('computes azimuthal regional horizon elevation masks accurately for landing sites', () => {
+    // Shackleton crater rim mask profile
+    const shackletonSouthwest = getHorizonElevationMask('shackleton', 225);
+    const shackletonNortheast = getHorizonElevationMask('shackleton', 45);
+    expect(shackletonSouthwest).toBeGreaterThan(1.0);
+    expect(shackletonNortheast).toBeLessThan(0.4);
+
+    // Malapert Mountain Massif summit has exceptionally low horizon mask
+    const malapertHorizon = getHorizonElevationMask('malapert', 0);
+    expect(malapertHorizon).toBeLessThanOrEqual(0.45);
+    expect(malapertHorizon).toBeGreaterThanOrEqual(-0.15);
+
+    // Apollo 11 flat mare plain should have 0.0° mask
+    expect(getHorizonElevationMask('apollo11', 120)).toBe(0.0);
   });
 });

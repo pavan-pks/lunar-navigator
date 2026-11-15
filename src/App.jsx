@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { Play, Pause, BarChart2, FileText, ChevronDown, Compass } from 'lucide-react';
+import { Play, Pause, BarChart2, FileText, ChevronDown, Compass, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController } from './lib/useTimeController.js';
-import { sampleSeries, valuesAt, hoursSince } from './lib/geometry.js';
+import { sampleSeries, valuesAt, hoursSince, getHorizonElevationMask } from './lib/geometry.js';
 import { computeWindowStats, getVerdict, landingDate, timeToNext } from './lib/metrics.js';
 import { validateMissionInputs } from './lib/validation.js';
 import { parseUrlState, buildUrlState } from './lib/urlState.js';
@@ -85,7 +85,9 @@ export function App() {
   const [transitDays, setTransitDays] = useState(() => initialUrlState.transitDays || 4);
   const [slipDays, setSlipDays] = useState(() => initialUrlState.slipDays || 0);
   const [showTransitTooltip, setShowTransitTooltip] = useState(false);
-  const missionDays = 14;
+  const [missionDays, setMissionDays] = useState(14);
+  const [showSortieTooltip, setShowSortieTooltip] = useState(false);
+  const [useHorizonMask, setUseHorizonMask] = useState(true);
   const maxHours = missionDays * 24;
 
   // Display Mode: 'planner' (dense numbers) | 'explorer' (plain-language captions)
@@ -177,11 +179,15 @@ export function App() {
   }, [site, startHours, maxHours, data]);
 
   // Aggregate static metrics
-  const stats = useMemo(() => computeWindowStats(series), [series]);
+  const stats = useMemo(() => computeWindowStats(series, { useHorizonMask, site }), [series, useHorizonMask, site]);
   const verdict = useMemo(() => getVerdict(stats), [stats]);
 
   // Live simulation variables
   const live = useMemo(() => valuesAt(series, timeCtrl.tRel), [series, timeCtrl.tRel]);
+  const horizonMaskSun = useMemo(() => {
+    if (!useHorizonMask) return 0;
+    return getHorizonElevationMask(site, live.sunAz || 0);
+  }, [useHorizonMask, site, live.sunAz]);
   const timeToSunset = useMemo(() => timeToNext(series, timeCtrl.tRel, 'sunset'), [series, timeCtrl.tRel]);
   const timeToEarthset = useMemo(() => timeToNext(series, timeCtrl.tRel, 'earthset'), [series, timeCtrl.tRel]);
 
@@ -805,6 +811,9 @@ export function App() {
                 plannerMode={plannerMode}
                 onTogglePlannerMode={setPlannerMode}
                 onOpenTool={(toolName) => setAnalysisTool(toolName)}
+                missionDays={missionDays}
+                useHorizonMask={useHorizonMask}
+                horizonMaskSun={horizonMaskSun}
               />
             ) : null}
           </AnimatePresence>
@@ -978,6 +987,113 @@ export function App() {
                     <span className="font-mono text-sky-300 text-[11px]">+{slipDays}d</span>
                   </div>
 
+                  {/* Configurable Mission Sortie Duration with Presets */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowSortieTooltip(v => !v)}
+                      onMouseEnter={() => setShowSortieTooltip(true)}
+                      className="flex items-center gap-1 hover:text-white transition cursor-pointer text-left focus:outline-none"
+                      title="Adjust Mission Sortie Duration (3–28 days) or select presets"
+                    >
+                      <span>Sortie:</span>
+                      <span className="font-mono text-[#f5f5f5] text-[11px] underline decoration-dotted decoration-white/40">
+                        {missionDays}d
+                      </span>
+                    </button>
+
+                    {showSortieTooltip && (
+                      <div
+                        onMouseLeave={() => setShowSortieTooltip(false)}
+                        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 p-3 bg-black/95 border border-white/20 rounded-xl shadow-2xl z-50 text-[11px] font-sans text-neutral-300 pointer-events-auto backdrop-blur-xl space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                          <span className="font-medium text-white text-[11px] flex items-center gap-1.5">
+                            <Clock size={12} className="text-sky-400" />
+                            <span>Mission Sortie Duration</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-neutral-400">{missionDays * 24} hours</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-neutral-400">Duration Range:</span>
+                            <span className="font-mono text-white font-bold">{missionDays} days</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={3}
+                            max={28}
+                            step={1}
+                            value={missionDays}
+                            onChange={(e) => {
+                              const days = parseInt(e.target.value, 10);
+                              setMissionDays(days);
+                              if (timeCtrl.tRel > days * 24) timeCtrl.seek(0);
+                            }}
+                            className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="pt-1.5 border-t border-white/10 flex flex-col gap-1 text-[10px] font-mono">
+                          <span className="text-neutral-500 font-sans text-[9px] uppercase tracking-wider">Mission Presets:</span>
+                          <div className="grid grid-cols-3 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMissionDays(7);
+                                if (timeCtrl.tRel > 7 * 24) timeCtrl.seek(0);
+                              }}
+                              className={`px-1.5 py-1 rounded border text-center transition cursor-pointer ${
+                                missionDays === 7 ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              7d CLPS
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMissionDays(14);
+                                if (timeCtrl.tRel > 14 * 24) timeCtrl.seek(0);
+                              }}
+                              className={`px-1.5 py-1 rounded border text-center transition cursor-pointer ${
+                                missionDays === 14 ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              14d Artemis
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setMissionDays(28);
+                              }}
+                              className={`px-1.5 py-1 rounded border text-center transition cursor-pointer ${
+                                missionDays === 28 ? 'bg-sky-500/20 border-sky-400 text-sky-200' : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                              }`}
+                            >
+                              28d Diurnal
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Topographic Horizon Mask Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setUseHorizonMask(v => !v)}
+                    className={`px-2 py-0.5 rounded border text-[10px] font-mono transition flex items-center gap-1 cursor-pointer ${
+                      useHorizonMask
+                        ? 'bg-sky-950/40 border-sky-400/50 text-sky-300'
+                        : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                    }`}
+                    title={useHorizonMask ? 'Topographic Crater Rim Horizon Mask: ACTIVE (LOLA profile applied)' : 'Topographic Horizon Mask: OFF (Tangent plane)'}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${useHorizonMask ? 'bg-sky-400 animate-pulse' : 'bg-neutral-500'}`} />
+                    <span>Mask: {useHorizonMask ? 'ON' : 'OFF'}</span>
+                  </button>
+
                   {/* Persistent Data & Assumptions Popover */}
                   <DataAssumptionsPopover
                     ephem={ephem}
@@ -1052,6 +1168,8 @@ export function App() {
           verdict={verdict}
           launchDate={launchDate}
           transitDays={transitDays + slipDays}
+          missionDays={missionDays}
+          useHorizonMask={useHorizonMask}
         />
       </Suspense>
 

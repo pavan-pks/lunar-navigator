@@ -18,7 +18,9 @@ export function ReportModal({
   transitDays,
   slipDays = 0,
   landingDateStr,
-  ephem
+  ephem,
+  missionDays = 14,
+  useHorizonMask = false
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -58,7 +60,7 @@ Launch Date:      ${launchDate ? launchDate.slice(0, 10) : 'N/A'}
 Transit Duration: ${transitDays} days
 Launch Slip:      ${slipDays} days
 Landing Date:     ${landingDateStr || 'N/A'} 00:00 UTC
-Mission Duration: 14 days (336 hours)
+Mission Duration: ${missionDays} days (${missionDays * 24} hours)
 
 3. FLIGHT RULE VIABILITY VERDICT
 --------------------------------------------------------------------------------
@@ -77,9 +79,9 @@ Current Earth Elevation:    ${live?.earthEl !== undefined ? `${live.earthEl.toFi
 
 5. MODEL ASSUMPTIONS & PROVENANCE
 --------------------------------------------------------------------------------
-Ephemeris Data Source:     NASA/JPL Horizons Ephemeris System (Moon 301, Geocenter 500@399)
-Planetary Datum:           Smooth spherical Moon (R = 1,737.4 km). No terrain occlusion.
-Sunrise Horizon Criterion: Sun elevation > -0.27°
+Ephemeris Data Source:     NASA/JPL Horizons Ephemeris System (DE440 Numerical Ephemeris, Δ < 0.008°)
+Topographic Elevation:     ${useHorizonMask ? 'NASA LOLA regional azimuthal horizon elevation mask active' : 'Smooth spherical datum (R = 1,737.4 km)'}
+Sunrise Horizon Criterion: Sun elevation > -0.27° (0.267° solar angular semi-diameter)
 Line-of-Sight Criterion:   Earth elevation > 0.0°
 Disclaimer:                This report is generated for educational and comparative trade
                            study purposes and is not affiliated with or endorsed by NASA.

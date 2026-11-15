@@ -172,4 +172,24 @@ describe('metrics.js tests', () => {
     expect(result.pillars.comms.score).toBe(90);
     expect(result.pillars.slope.score).toBe(70);
   });
+
+  it('correctly accounts for regional horizon elevation mask when enabled', () => {
+    // 24-hour test series with grazing sun elevation +0.5°
+    // Above geometric threshold (-0.27°), but below Haworth crater rim elevation (+1.9°)
+    const t = Array.from({ length: 25 }, (_, i) => i);
+    const sunEl = Array(25).fill(0.5);
+    const sunAz = Array(25).fill(180);
+    const earthEl = Array(25).fill(5.0);
+    const earthAz = Array(25).fill(90);
+    const series = { t, sunEl, sunAz, earthEl, earthAz };
+
+    // Without mask: all 24 hours are sunlit
+    const unmasked = computeWindowStats(series, { useHorizonMask: false, site: 'haworth' });
+    expect(unmasked.sunlitHours).toBe(24);
+
+    // With mask: sun is occluded by the rim (+1.9° rim mask > +0.5° sun elevation)
+    const masked = computeWindowStats(series, { useHorizonMask: true, site: 'haworth' });
+    expect(masked.sunlitHours).toBe(0);
+    expect(masked.longestDarkHours).toBe(24);
+  });
 });
