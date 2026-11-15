@@ -44,7 +44,7 @@ export function MetricsPanel({
         <div className="grid grid-cols-2 gap-2.5 font-mono">
           <div className="bg-black/50 p-3 rounded-xl border border-white/5 shadow-xs">
             <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-              <span>SOLAR VECTOR</span>
+              <span>SOLAR POSITION</span>
               <Sun className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="flex justify-between items-baseline">
@@ -63,7 +63,7 @@ export function MetricsPanel({
 
           <div className="bg-black/50 p-3 rounded-xl border border-white/5 shadow-xs">
             <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-              <span>EARTH LOS</span>
+              <span>EARTH VISIBILITY</span>
               <Globe className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="flex justify-between items-baseline">
@@ -85,24 +85,24 @@ export function MetricsPanel({
       {/* Shadow & Horizon Proximity */}
       <div className="grid grid-cols-2 gap-2.5 font-mono text-[11px]">
         <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-          <span className="text-[10px] text-slate-400 block mb-0.5">Lander Mast Shadow ({objectHeightM}m)</span>
+          <span className="text-[10px] text-slate-400 block mb-0.5">Shadow Length ({objectHeightM}m mast)</span>
           <span className="font-bold text-slate-100 text-xs">
             {Number.isFinite(shadowM) ? `${shadowM.toFixed(1)} m` : 'Horizon Blocked'}
           </span>
           <span className="text-[9px] text-slate-500 block mt-0.5">
-            {Number.isFinite(shadowM) ? `${shadowMultiple}× mast height` : 'Sub-horizon blackout'}
+            {Number.isFinite(shadowM) ? `${shadowMultiple}× mast height` : 'Sun below horizon'}
           </span>
         </div>
 
         <div className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-          <span className="text-[10px] text-slate-400 block mb-0.5">Proximity to Occultation</span>
+          <span className="text-[10px] text-slate-400 block mb-0.5">Horizon Events</span>
           <div className="flex justify-between text-[10px] mt-0.5">
             <span className="text-slate-500">Next Sunset:</span>
-            <span className="text-slate-200 font-semibold">{timeToSunset !== null ? `${timeToSunset}h` : 'No occultation'}</span>
+            <span className="text-slate-200 font-semibold">{timeToSunset !== null ? `${timeToSunset}h` : 'Continuous Sun'}</span>
           </div>
           <div className="flex justify-between text-[10px]">
             <span className="text-slate-500">Next Earthset:</span>
-            <span className="text-emerald-400 font-semibold">{timeToEarthset !== null ? `${timeToEarthset}h` : 'Direct LOS continuous'}</span>
+            <span className="text-emerald-400 font-semibold">{timeToEarthset !== null ? `${timeToEarthset}h` : 'Continuous Line-of-Sight'}</span>
           </div>
         </div>
       </div>
@@ -111,29 +111,29 @@ export function MetricsPanel({
       {stats && (
         <div className="bg-black/30 p-3 rounded-xl border border-white/5">
           <span className="text-[10px] text-slate-400 uppercase tracking-widest font-mono block mb-2 font-semibold">
-            14-Day Cumulative Window Telemetry
+            14-Day Mission Summary
           </span>
           <div className="space-y-1.5 font-mono text-[11px]">
             <div className="flex justify-between py-1 border-b border-white/5">
-              <span className="text-slate-400">Total Solar Illumination:</span>
+              <span className="text-slate-400">Daylight Coverage:</span>
               <span className="text-slate-100 font-bold">
                 {(stats.sunlitFraction * 100).toFixed(1)}% <span className="text-slate-500 font-normal">({stats.sunlitHours}h)</span>
               </span>
             </div>
             <div className="flex justify-between py-1 border-b border-white/5">
-              <span className="text-slate-400">Peak Thermal Blackout:</span>
+              <span className="text-slate-400">Longest Continuous Night:</span>
               <span className={`font-bold ${stats.longestDarkHours > 48 ? 'text-amber-400' : 'text-slate-200'}`}>
                 {stats.longestDarkHours} hours
               </span>
             </div>
             <div className="flex justify-between py-1 border-b border-white/5">
-              <span className="text-slate-400">Solar Elevation (Peak / Mean):</span>
+              <span className="text-slate-400">Sun Elevation (Max / Avg):</span>
               <span className="text-slate-200">
                 +{stats.maxSunEl}° / +{stats.meanSunEl}°
               </span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-slate-400">Earth Direct RF Link:</span>
+              <span className="text-slate-400">Earth Line-of-Sight:</span>
               <span className="text-slate-200">
                 {(stats.earthVisibleFraction * 100).toFixed(1)}% <span className="text-slate-500 font-normal">(max gap: {stats.longestEarthGapHours}h)</span>
               </span>
@@ -146,7 +146,7 @@ export function MetricsPanel({
       {compareStats && stats && (
         <div className="p-3 bg-black/60 rounded-xl border border-white/10 space-y-1 font-mono text-[11px] shadow-inner">
           <span className="text-[10px] text-slate-400 uppercase tracking-widest block font-bold mb-1.5 flex items-center gap-1.5">
-            <span>◬</span> Trade Study Variance Delta
+            <span>Δ</span> Comparison Difference
           </span>
           {(() => {
             const darkDelta = stats.longestDarkHours - compareStats.longestDarkHours;
@@ -154,10 +154,22 @@ export function MetricsPanel({
             return (
               <>
                 <div className="flex justify-between py-0.5">
-                  <span className="text-slate-400">Thermal Blackout Delta:</span>
+                  <span className="text-slate-400">Night Duration Difference:</span>
                   <span className={`font-bold ${darkDelta > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                     {darkDelta > 0 ? `+${darkDelta.toFixed(0)}h longer darkness` : `${Math.abs(darkDelta).toFixed(0)}h shorter darkness`}
                   </span>
+                </div>
+                <div className="flex justify-between py-0.5">
+                  <span className="text-slate-400">Sunlight Difference:</span>
+                  <span className={`font-bold ${sunDelta >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {sunDelta >= 0 ? `+${sunDelta.toFixed(1)}% daylight` : `${sunDelta.toFixed(1)}% daylight`}
+                  </span>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
                 </div>
                 <div className="flex justify-between py-0.5">
                   <span className="text-slate-400">Solar Energy Delta:</span>

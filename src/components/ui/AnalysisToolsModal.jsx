@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Activity, Battery, Calendar as CalendarIcon } from 'lucide-react';
 import { Timeline } from './Timeline.jsx';
 import { BatteryPanel } from './BatteryPanel.jsx';
 import { Calendar } from './Calendar.jsx';
+import { landingDate as computeLandingDate } from '../../lib/metrics.js';
 
 /**
  * Analysis Tools Modal:
- * Quantitative engineering tools (Timeline, Battery Simulator, Calendar Matrix)
- * styled in the original minimal glass aerospace visual identity.
+ * Quantitative engineering tools (Timeline, Battery Simulator, Opportunity Calendar)
+ * styled in the site's restrained minimal glass visual identity.
  */
 export function AnalysisToolsModal({
   isOpen,
@@ -26,9 +27,14 @@ export function AnalysisToolsModal({
   transitDays,
   missionDays = 14,
   onSelectOpportunity,
+  onCompareOpportunity,
 }) {
   const [tabOverride, setTabOverride] = useState(null);
   const activeTab = tabOverride || initialTab;
+
+  const currentLanding = useMemo(() => {
+    return computeLandingDate(launchDate, transitDays);
+  }, [launchDate, transitDays]);
 
   if (!isOpen) return null;
 
@@ -105,7 +111,7 @@ export function AnalysisToolsModal({
                 }`}
               >
                 <CalendarIcon size={12} />
-                <span>Opportunity Matrix</span>
+                <span>Opportunity Calendar</span>
               </button>
             </div>
 
@@ -126,15 +132,15 @@ export function AnalysisToolsModal({
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
                   <div>
-                    <h3 className="text-xs font-mono font-medium text-white uppercase tracking-wider">
-                      Solar Elevation & Direct-to-Earth Line-of-Sight Timeline
+                    <h3 className="text-xs font-sans font-medium text-white tracking-wide">
+                      Sun Elevation & Earth Line-of-Sight Profile
                     </h3>
                     <p className="text-[11px] text-neutral-400 mt-0.5">
                       Target: {site?.name} · Flight Duration: {missionDays} days ({missionDays * 24} hours)
                     </p>
                   </div>
                   <div className="text-[11px] font-mono text-neutral-300">
-                    Sunlit: <span className="text-white font-medium">{(stats.sunlitFraction * 100).toFixed(0)}%</span> · Earth LOS: <span className="text-white font-medium">{(stats.earthVisibleFraction * 100).toFixed(0)}%</span>
+                    Daylight: <span className="text-white font-medium">{(stats.sunlitFraction * 100).toFixed(0)}%</span> · Earth Contact: <span className="text-white font-medium">{(stats.earthVisibleFraction * 100).toFixed(0)}%</span>
                   </div>
                 </div>
 
@@ -153,8 +159,8 @@ export function AnalysisToolsModal({
             {activeTab === 'battery' && (
               <div className="space-y-4">
                 <div className="border-b border-white/10 pb-3">
-                  <h3 className="text-xs font-mono font-medium text-white uppercase tracking-wider">
-                    Electrochemical Battery Charge Simulation ("Will It Survive The Night?")
+                  <h3 className="text-xs font-sans font-medium text-white tracking-wide">
+                    Lander Energy & Storage Simulator ("Will It Survive The Night?")
                   </h3>
                   <p className="text-[11px] text-neutral-400 mt-0.5">
                     Evaluates continuous darkness discharge, thermal heater maintenance draw, and survival depth-of-discharge.
@@ -175,21 +181,18 @@ export function AnalysisToolsModal({
 
             {activeTab === 'calendar' && (
               <div className="space-y-4">
-                <div className="border-b border-white/10 pb-3">
-                  <h3 className="text-xs font-mono font-medium text-white uppercase tracking-wider">
-                    Full-Year Mission Window Heatmap Matrix
-                  </h3>
-                  <p className="text-[11px] text-neutral-400 mt-0.5">
-                    Click any cell to stage that landing site and launch epoch into your mission plan.
-                  </p>
-                </div>
-
                 <Calendar
                   sites={sites}
                   ephem={ephem}
                   missionDays={missionDays}
-                  onSelectOpportunity={(scenarioKey, chosenSite, chosenDate) => {
+                  currentSite={site}
+                  currentLandingDate={currentLanding}
+                  onSelectOpportunity={(chosenSite, chosenDate) => {
                     onSelectOpportunity?.(chosenSite, chosenDate);
+                    onClose();
+                  }}
+                  onCompareOpportunity={(chosenSite, chosenDate) => {
+                    onCompareOpportunity?.(chosenSite, chosenDate);
                     onClose();
                   }}
                 />

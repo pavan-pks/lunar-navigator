@@ -912,8 +912,18 @@ export function App() {
         missionDays={missionDays}
         onSelectOpportunity={(chosenSite, chosenDate) => {
           handleSelectSite(chosenSite.id);
-          setLaunchDate(chosenDate);
+          try {
+            const landingD = new Date(chosenDate);
+            const totalTransit = transitDays + slipDays;
+            const launchD = new Date(landingD.getTime() - totalTransit * 24 * 3600 * 1000);
+            setLaunchDate(launchD.toISOString().slice(0, 10));
+          } catch {
+            setLaunchDate(chosenDate);
+          }
           setSlipDays(0);
+        }}
+        onCompareOpportunity={(chosenSite, chosenDate) => {
+          setCompareOpen(true);
         }}
       />
 

@@ -1,21 +1,60 @@
-import React, { useState, useMemo } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Calendar as CalendarIcon, Check, GitCompare, Info } from 'lucide-react';
 import { buildCalendar, getBestWindowsForSite } from '../../lib/calendarData.js';
 import { BestWindows } from './BestWindows.jsx';
+import { VerdictBadge } from './VerdictBadge.jsx';
+
+/**
+ * Format ISO date string into friendly readable month and day (e.g. "Jan 04")
+ */
+function formatShortDate(dateStr) {
+  try {
+    const d = new Date(`${dateStr}T00:00:00Z`);
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: '2-digit',
+      timeZone: 'UTC'
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
 /**
  * src/components/ui/Calendar.jsx
- * Full-year landing window calendar heatmap across all candidate sites.
+ * Full-year landing opportunity calendar heatmap across candidate sites
+ * with dynamic live inspection and clean, plain-English metrics.
  */
 export function Calendar({
-  sites,
+  sites = [],
   ephem,
   missionDays = 14,
-  onSelectOpportunity
+  currentSite = null,
+  currentLandingDate = null,
+  onSelectOpportunity,
+  onCompareOpportunity
 }) {
-  const [selectedSiteId, setSelectedSiteId] = useState(sites[0]?.id || 'shackleton');
-  const [popoverCell, setPopoverCell] = useState(null); // { site, dateStr, level, stats, x, y }
+  // Synchronize initial selected site with current active site
+  const [selectedSiteId, setSelectedSiteId] = useState(currentSite?.id || sites[0]?.id || 'shackleton');
 
+  useEffect(() => {
+    if (currentSite?.id && currentSite.id !== selectedSiteId) {
+      setSelectedSiteId(currentSite.id);
+    }
+  }, [currentSite?.id]);
+
+  // Normalized current landing date string (YYYY-MM-DD)
+  const currentLandingDateStr = useMemo(() => {
+    if (!currentLandingDate) return '';
+    try {
+      const d = typeof currentLandingDate === 'string' ? new Date(currentLandingDate) : currentLandingDate;
+      return d.toISOString().slice(0, 10);
+    } catch {
+      return '';
+    }
+  }, [currentLandingDate]);
+
+  // Compute full-year matrix data
   const calendarData = useMemo(() => {
     return buildCalendar(sites, ephem, {
       startDateStr: '2027-01-01',
@@ -25,42 +64,76 @@ export function Calendar({
     });
   }, [sites, ephem, missionDays]);
 
-  const selectedSite = sites.find(s => s.id === selectedSiteId) || sites[0];
+  const selectedSite = useMemo(() => {
+    return sites.find(s => s.id === selectedSiteId) || sites[0];
+  }, [sites, selectedSiteId]);
+
+  // Top recommended windows for selected site
   const bestWindows = useMemo(() => {
     return getBestWindowsForSite(selectedSiteId, calendarData, 3);
   }, [selectedSiteId, calendarData]);
 
+  // Currently inspected cell (defaults to top recommended window or current plan)
+  const [inspectCell, setInspectCell] = useState(null);
+
+  useEffect(() => {
+    if (bestWindows && bestWindows.length > 0 && selectedSite) {
+      const matchCurrent = bestWindows.find(w => w.dateStr === currentLandingDateStr);
+      const chosen = matchCurrent || bestWindows[0];
+      setInspectCell({
+        site: selectedSite,
+        dateStr: chosen.dateStr,
+        ...chosen
+      });
+    }
+  }, [selectedSiteId, bestWindows, currentLandingDateStr]);
+
   const handleCellClick = (site, dateStr, cellData) => {
-    setPopoverCell({ site, dateStr, ...cellData });
+    setSelectedSiteId(site.id);
+    setInspectCell({
+      site,
+      dateStr,
+      ...cellData
+    });
+  };
+
+  const handleApplyMission = (site, dateStr) => {
+    onSelectOpportunity?.(site, `${dateStr}T00:00:00Z`);
+  };
+
+  const handleCompareMission = (site, dateStr) => {
+    onCompareOpportunity?.(site, `${dateStr}T00:00:00Z`);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Overview header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-sky-500/20 pb-4">
+    <div className="space-y-5 font-sans">
+      {/* Header & Site Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
         <div>
-          <h2 className="text-xl font-display font-bold text-white flex items-center gap-2.5">
-            <span>Mission Window Opportunity Matrix</span>
-            <span className="text-xs font-mono font-normal px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/30">
-              2027 – 2028 EPHEMERIS
-            </span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-1">
-            Full-year evaluation matrix for {missionDays}-day landing sorties. Click any matrix opportunity to stage into Flight Comparison.
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="w-4 h-4 text-sky-400" />
+            <h2 className="text-sm font-sans font-medium text-white tracking-wide">
+              Landing Opportunity Calendar (2027–2028)
+            </h2>
+          </div>
+          <p className="text-[11px] text-neutral-400 mt-0.5">
+            Full-year evaluation for {missionDays}-day landing sorties. Click any window to inspect sunlight and battery safety.
           </p>
         </div>
 
-        {/* Site selector for best windows */}
-        <div className="flex items-center gap-2.5 text-xs bg-[#070b14]/80 p-1.5 rounded-xl border border-white/10 backdrop-blur-md">
-          <label htmlFor="calendar-site-inspect" className="text-slate-400 font-mono text-[11px] pl-2">Target Site:</label>
+        {/* Target Site Dropdown */}
+        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg shrink-0">
+          <label htmlFor="calendar-site-inspect" className="text-neutral-400 text-xs">
+            Site:
+          </label>
           <select
             id="calendar-site-inspect"
             value={selectedSiteId}
             onChange={(e) => setSelectedSiteId(e.target.value)}
-            className="bg-[#03060c] border border-white/10 rounded-lg px-3 py-1.5 text-slate-200 text-xs cursor-pointer focus:outline-none focus:border-sky-500 hover:border-sky-500/40 transition"
+            className="bg-transparent text-white text-xs font-medium focus:outline-none cursor-pointer"
           >
             {sites.map(s => (
-              <option key={s.id} value={s.id}>
+              <option key={s.id} value={s.id} className="bg-neutral-900 text-white">
                 {s.name} ({s.lat.toFixed(1)}° S)
               </option>
             ))}
@@ -68,88 +141,216 @@ export function Calendar({
         </div>
       </div>
 
-      {/* Top 3 Best Windows for Selected Site */}
+      {/* Top 3 Recommended Windows */}
       <BestWindows
         site={selectedSite}
         windows={bestWindows}
-        onLoadScenario={(scenarioKey, site, launchDate) => {
-          onSelectOpportunity(scenarioKey, site, launchDate);
-        }}
+        currentLandingDateStr={currentLandingDateStr}
+        onSelectWindow={handleApplyMission}
+        onCompareWindow={handleCompareMission}
       />
 
+      {/* Dynamic Selected Window Details Panel */}
+      {inspectCell && (
+        <div className="bg-black/85 border border-sky-400/30 p-4 sm:p-5 rounded-2xl shadow-2xl backdrop-blur-md space-y-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div>
+              <span className="text-[10px] font-sans text-neutral-400 uppercase tracking-widest block">
+                Selected Window Details
+              </span>
+              <div className="flex items-center gap-2.5 mt-0.5">
+                <span className="text-sm font-semibold text-white">
+                  {inspectCell.site.name} · {formatShortDate(inspectCell.dateStr)} ({inspectCell.dateStr})
+                </span>
+                <VerdictBadge verdict={{ level: inspectCell.level }} compact />
+              </div>
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleApplyMission(inspectCell.site, inspectCell.dateStr)}
+                className="px-3 py-1.5 bg-white text-black hover:bg-neutral-200 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+              >
+                <Check size={13} />
+                <span>Apply to Mission</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCompareMission(inspectCell.site, inspectCell.dateStr)}
+                className="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+              >
+                <GitCompare size={13} />
+                <span>Compare</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Simple, Non-Aggressive 3-Metric Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Daylight Coverage */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+              <span className="text-[11px] text-neutral-400 font-medium">Daylight Coverage</span>
+              <div className="mt-1">
+                <div className="text-lg font-mono text-white font-medium tabular-nums">
+                  {(inspectCell.sunlitFraction * 100).toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">
+                  {(inspectCell.sunlitFraction * 336).toFixed(0)} hours of sunlight
+                </div>
+              </div>
+            </div>
+
+            {/* Continuous Darkness */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+              <span className="text-[11px] text-neutral-400 font-medium">Longest Night</span>
+              <div className="mt-1">
+                <div className={`text-lg font-mono font-medium tabular-nums ${inspectCell.longestDarkHours > 48 ? 'text-amber-300' : 'text-white'}`}>
+                  {inspectCell.longestDarkHours} hrs
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">
+                  {inspectCell.longestDarkHours === 0
+                    ? 'No darkness; zero heater draw'
+                    : inspectCell.longestDarkHours <= 48
+                    ? 'Manageable battery reserve'
+                    : 'Requires substantial battery'}
+                </div>
+              </div>
+            </div>
+
+            {/* Earth Line-of-Sight */}
+            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+              <span className="text-[11px] text-neutral-400 font-medium">Earth Visibility</span>
+              <div className="mt-1">
+                <div className="text-lg font-mono text-emerald-400 font-medium tabular-nums">
+                  {(inspectCell.earthVisibleFraction * 100).toFixed(0)}%
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-0.5">
+                  {(inspectCell.earthVisibleFraction * 336).toFixed(0)} hours direct line-of-sight
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Heatmap Legend */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#070b14]/80 p-3 rounded-2xl border border-white/10 text-xs shadow-md">
-        <span className="text-slate-400 font-mono text-[11px] uppercase tracking-wider font-semibold">
-          Flight Rule Viability Thresholds:
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-black/70 p-3 rounded-xl border border-white/10 text-[11px] text-neutral-300">
+        <span className="font-medium text-neutral-400 flex items-center gap-1.5">
+          <Info size={13} className="text-sky-400" />
+          <span>Viability Key:</span>
         </span>
-        <div className="flex items-center gap-5 text-[11px] font-mono">
-          <span className="flex items-center gap-2 text-emerald-300">
-            <span className="w-4 h-4 rounded-md bg-emerald-500/25 border border-emerald-500/50 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(16,185,129,0.3)]">V</span>
-            Viable (Sun &gt;75%, Night &lt;48h)
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="flex items-center gap-1.5 text-emerald-300">
+            <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/30 border border-emerald-500/60 inline-block"></span>
+            <span>Viable (Sunlight &gt;75%, Night &lt;48h)</span>
           </span>
-          <span className="flex items-center gap-2 text-amber-300">
-            <span className="w-4 h-4 rounded-md bg-amber-500/25 border border-amber-500/50 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(245,158,11,0.3)]">R</span>
-            Risky (Sub-Optimal Power)
+          <span className="flex items-center gap-1.5 text-amber-300">
+            <span className="w-2.5 h-2.5 rounded-sm bg-amber-500/30 border border-amber-500/60 inline-block"></span>
+            <span>Caution (Reduced Sun or Long Night)</span>
           </span>
-          <span className="flex items-center gap-2 text-red-400">
-            <span className="w-4 h-4 rounded-md bg-red-500/20 border border-red-500/40 flex items-center justify-center font-bold text-[9px] shadow-[0_0_8px_rgba(239,68,68,0.3)]">N</span>
-            No-Go (&gt;120h Blackout)
+          <span className="flex items-center gap-1.5 text-rose-300">
+            <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/20 border border-rose-500/50 inline-block"></span>
+            <span>Not Recommended (&gt;120h Darkness)</span>
           </span>
         </div>
       </div>
 
       {/* Heatmap Grid Matrix */}
-      <div className="border border-white/10 rounded-3xl bg-[#03060c] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.8)] relative">
-        <div className="overflow-x-auto max-h-[500px]">
-          <table className="w-full border-collapse text-left font-mono text-[10px]">
-            <thead className="bg-[#070b14] sticky top-0 z-20 text-slate-400 border-b border-white/10">
+      <div className="border border-white/10 rounded-2xl bg-black/85 overflow-hidden shadow-2xl relative">
+        <div className="overflow-x-auto max-h-96 sidebar-scroll">
+          <table className="w-full border-collapse text-[11px] font-sans">
+            <thead className="sticky top-0 z-20 bg-neutral-950/95 backdrop-blur-md border-b border-white/10">
               <tr>
-                <th className="p-3 sticky left-0 bg-[#070b14] z-30 font-semibold text-slate-200 border-r border-white/10 min-w-[190px]">
-                  CANDIDATE SITE // COORDS
+                <th className="p-3 text-left font-medium text-neutral-300 sticky left-0 z-30 bg-neutral-950 min-w-44 border-r border-white/10">
+                  Landing Site
                 </th>
-                {calendarData.dates.map((dStr) => (
-                  <th key={dStr} className="p-1.5 text-center min-w-[32px] border-r border-white/5">
-                    <span className="block text-[9px] text-slate-500">{dStr.slice(5, 7)}/</span>
-                    <span className="text-slate-300 font-semibold">{dStr.slice(8, 10)}</span>
-                  </th>
-                ))}
+                <th className="p-3 text-left font-medium text-neutral-400 min-w-20 border-r border-white/10">
+                  Latitude
+                </th>
+                {calendarData.dates.map((dStr) => {
+                  const isCurrent = currentLandingDateStr === dStr;
+                  return (
+                    <th
+                      key={dStr}
+                      className={`p-2 text-center font-mono text-[10px] min-w-14 border-r border-white/5 whitespace-nowrap ${
+                        isCurrent ? 'bg-sky-950/40 text-sky-300 font-bold' : 'text-neutral-400'
+                      }`}
+                      title={dStr}
+                    >
+                      <div>{formatShortDate(dStr)}</div>
+                      {isCurrent && (
+                        <div className="text-[9px] text-sky-400 font-sans tracking-tight">Active</div>
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
               {sites.map((site) => {
-                const siteRow = calendarData.matrix[site.id] || {};
+                const isSiteSelected = site.id === selectedSiteId;
+                const rowCells = calendarData.matrix[site.id] || {};
+
                 return (
-                  <tr key={site.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                    {/* Sticky site header */}
-                    <td className="p-2.5 sticky left-0 bg-[#03060c] z-10 border-r border-white/10 font-sans font-medium text-xs text-slate-200">
-                      <div className="font-semibold text-slate-100">{site.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {site.lat.toFixed(1)}°, {site.lon.toFixed(1)}°
-                      </div>
+                  <tr
+                    key={site.id}
+                    className={`border-b border-white/5 transition-colors ${
+                      isSiteSelected ? 'bg-white/8' : 'hover:bg-white/4'
+                    }`}
+                  >
+                    {/* Sticky Site Name Column */}
+                    <td
+                      className={`p-3 font-medium sticky left-0 z-10 border-r border-white/10 cursor-pointer ${
+                        isSiteSelected
+                          ? 'bg-neutral-900 text-sky-300'
+                          : 'bg-black/90 text-neutral-200'
+                      }`}
+                      onClick={() => setSelectedSiteId(site.id)}
+                      title={`Select ${site.name}`}
+                    >
+                      <div className="truncate max-w-40">{site.name}</div>
                     </td>
 
-                    {/* Date cells */}
+                    {/* Coordinates Column */}
+                    <td className="p-3 text-neutral-400 font-mono text-[10px] border-r border-white/10 whitespace-nowrap">
+                      {site.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`}
+                    </td>
+
+                    {/* Date Opportunity Cells */}
                     {calendarData.dates.map((dStr) => {
-                      const cell = siteRow[dStr] || { level: 'risky', sunlitFraction: 0, longestDarkHours: 0 };
+                      const cell = rowCells[dStr];
+                      if (!cell) {
+                        return <td key={dStr} className="p-1 border-r border-white/5" />;
+                      }
+
                       const isV = cell.level === 'viable';
                       const isR = cell.level === 'risky';
 
-                      const cellBg = isV
-                        ? 'bg-emerald-500/25 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/50 hover:shadow-[0_0_12px_rgba(16,185,129,0.5)]'
+                      const cellStyle = isV
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/40'
                         : isR
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/40 hover:shadow-[0_0_12px_rgba(245,158,11,0.5)]'
-                        : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/30';
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/40'
+                        : 'bg-rose-500/10 text-rose-300 border-rose-500/25 hover:bg-rose-500/25';
 
-                      const letter = isV ? 'V' : isR ? 'R' : 'N';
+                      const isInspected = inspectCell && inspectCell.site.id === site.id && inspectCell.dateStr === dStr;
+                      const isCurrentPlan = currentLandingDateStr === dStr;
+
+                      const pct = Math.round(cell.sunlitFraction * 100);
 
                       return (
                         <td key={dStr} className="p-1 text-center border-r border-white/5">
                           <button
+                            type="button"
                             onClick={() => handleCellClick(site, dStr, cell)}
-                            className={`w-6.5 h-6.5 rounded-lg flex items-center justify-center font-bold border cursor-pointer transition-all duration-150 hover:scale-115 ${cellBg}`}
-                            title={`${site.name} on ${dStr}: ${cell.level.toUpperCase()} (Sunlit ${(cell.sunlitFraction * 100).toFixed(0)}%, Max Dark ${cell.longestDarkHours}h)`}
+                            className={`w-9 h-7 rounded text-[10px] font-mono font-medium border cursor-pointer transition-all flex items-center justify-center mx-auto ${cellStyle} ${
+                              isInspected ? 'ring-2 ring-sky-400 ring-offset-1 ring-offset-black' : ''
+                            } ${isCurrentPlan ? 'outline-1 outline-sky-400' : ''}`}
+                            title={`${site.name} on ${dStr}: ${(cell.sunlitFraction * 100).toFixed(0)}% Sunlight, ${cell.longestDarkHours}h Max Night, ${(cell.earthVisibleFraction * 100).toFixed(0)}% Earth Visibility (${cell.level.toUpperCase()})`}
                           >
-                            {letter}
+                            <span>{pct}%</span>
                           </button>
                         </td>
                       );
@@ -161,68 +362,6 @@ export function Calendar({
           </table>
         </div>
       </div>
-
-      {/* Selected Cell Action Popover / Drawer */}
-      {popoverCell && (
-        <div className="bg-[#050914] border border-sky-500/40 p-5 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.9)] flex flex-col sm:flex-row items-center justify-between gap-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-3">
-              <span className="font-display font-bold text-white text-base">{popoverCell.site.name}</span>
-              <span className="text-xs font-mono text-sky-400 px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/20">
-                Touchdown {popoverCell.dateStr}
-              </span>
-              <span className={`text-[10px] font-bold font-mono px-2.5 py-0.5 rounded-full uppercase ${
-                popoverCell.level === 'viable' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                popoverCell.level === 'risky' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-red-500/20 text-red-300 border border-red-500/40'
-              }`}>
-                {popoverCell.level}
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 font-mono">
-              Illuminated: <strong className="text-white">{(popoverCell.sunlitFraction * 100).toFixed(0)}%</strong> |
-              Longest darkness: <strong className="text-white">{popoverCell.longestDarkHours}h</strong> |
-              Earth Direct LOS: <strong className="text-white">{(popoverCell.earthVisibleFraction * 100).toFixed(0)}%</strong>
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                onSelectOpportunity('main', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
-                setPopoverCell(null);
-              }}
-              className="py-1.5 px-3 bg-neutral-800 hover:bg-neutral-700 text-sky-300 rounded text-xs font-mono font-medium transition-colors cursor-pointer border border-neutral-700"
-            >
-              Load into Main View
-            </button>
-            <button
-              onClick={() => {
-                onSelectOpportunity('A', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
-                setPopoverCell(null);
-              }}
-              className="py-1.5 px-3 bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-600/50 rounded text-xs font-mono transition-colors cursor-pointer"
-            >
-              Stage to Scenario Alpha
-            </button>
-            <button
-              onClick={() => {
-                onSelectOpportunity('B', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
-                setPopoverCell(null);
-              }}
-              className="py-1.5 px-3 bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-600/50 rounded text-xs font-mono transition-colors cursor-pointer"
-            >
-              Stage to Scenario Bravo
-            </button>
-            <button
-              onClick={() => setPopoverCell(null)}
-              className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded text-xs transition-colors cursor-pointer border border-neutral-700"
-              aria-label="Close"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
