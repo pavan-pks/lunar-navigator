@@ -126,18 +126,19 @@ input[type="range"]::-webkit-slider-thumb {
 /* Custom sidebar scrollbar */
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  scrollbar-color: rgba(56, 189, 248, 0.4) rgba(255, 255, 255, 0.05);
 }
 .sidebar-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 .sidebar-scroll::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(56, 189, 248, 0.35);
   border-radius: 4px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.45);
+  background: rgba(56, 189, 248, 0.6);
 }

@@ -69,6 +69,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     landerHeight = 3,
     showHud = true,
     showShadowRuler = true,
+    showSlopeHazard = false,
     heightmapUrl,
     onTierChange,
     onReturnToOrbit,
@@ -488,7 +489,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     }
 
     const tierConfig = getTierConfig(activeTier)
-    const terrain = buildTerrain({ siteId, terrainType, site, resolution: tierConfig.resolution })
+    const terrain = buildTerrain({ siteId, terrainType, site, resolution: tierConfig.resolution, showSlopeHazard })
     ctx.terrainData = terrain
     ctx.heightAt = terrain.heightAt
     ctx.originPadHeight = terrain.originPadHeight
@@ -534,7 +535,7 @@ const Scene3DInner = forwardRef(function Scene3DInner(
     }
 
     ctx.invalidate()
-  }, [siteId, terrainType, site, activeTier, heightmapUrl])
+  }, [siteId, terrainType, site, activeTier, heightmapUrl, showSlopeHazard])
 
   // If WebGL failed to initialize or context is permanently lost, render fallback SkyDiagram
   if (webglError) {

@@ -70,6 +70,13 @@
 - Terrain slope is ignored along the shadow ruler (flat ground approximation $H / \tan(\theta)$, capped at 150m) as specified; intended as a fast visual metric guide.
 - All 13 core tasks (P-01 to P-13) are 100% complete with 0 console warnings and verified performance on low/medium/high tiers. Ready for stretch goals (PS-1 LaunchAnimation, PS-2 LOLA heightmaps, PS-3 Cinematic camera path).
 
+## NASA-Grade Mission Dynamics Suite
+- Live Direct-to-Earth 3D Laser / DSN Telemetry Beam: Volumetric link from active lunar landing site to Earth marker with animated telemetry packet sparks, 1.28s light-time delay, and DSN ground station lock.
+- LRO Diviner Water-Ice & Cryogenic Thermal Heatmap: Procedural false-color texture layer on the 3D Moon sphere with sub-40K permanently shadowed regions (PSRs) at lunar poles where volatile ice survives.
+- Astronaut Helmet Visor HUD Mode: Fullscreen first-person EVA visor overlay with curved reflections, top compass heading ribbon (0°-360°), life-support gauges (O2, suit pressure, battery, water), and celestial vectors.
+- Artemis Landing Slope Safety & Hazard Heatmap: Real-time terrain slope angle colormap (<6° Safe Green, 6°-15° Caution Amber, >15° Hazard Crimson) calculated directly from vertex normals.
+- HUD Sidebar Polish: Solved viewport overflow with custom visible scrollbar, bottom clearance, and decoupled top action bar.
+
 ## Requests to the other member / human
 - None at this time.
 

@@ -35,6 +35,7 @@
 | PS-1 | LaunchAnimation (schematic) | Done | 100 | LaunchAnimation.jsx: Pure SVG/CSS Earth to Moon trajectory with rocket transit, powered descent, stage separation, and phase telemetry |
 | PS-2 | Real LOLA heightmap loader | Not started | 0 | |
 | PS-3 | Cinematic camera path | Not started | 0 | |
+| PS-4 | NASA-Grade Mission Suite | Done | 100 | Live Direct-to-Earth 3D Laser/DSN Telemetry Beam, LRO Diviner Cryogenic Water-Ice False-Color Map, Fullscreen Astronaut Visor HUD Mode, Artemis Landing Slope Safety & Hazard Heatmap (<6° Safe, 6°-15° Caution, >15° Hazard), and sidebar scrolling polish |
 
 ## Merge log
 

@@ -12,7 +12,7 @@ import { hashString, createPRNG, createNoise2D, createFBM2D } from './noise.js'
  * @param {number} [options.resolution=257] - Grid resolution (e.g. 129, 257, 385)
  * @returns {{ mesh: THREE.Mesh, heightAt: (x: number, z: number) => number, originPadHeight: number, dispose: () => void }}
  */
-export function buildTerrain({ siteId = 'shackleton', terrainType = 'plain', site = null, resolution = 257 } = {}) {
+export function buildTerrain({ siteId = 'shackleton', terrainType = 'plain', site = null, resolution = 257, showSlopeHazard = false } = {}) {
   const targetId = (site?.id || siteId || 'shackleton').toLowerCase()
   const lat = Number.isFinite(site?.lat) ? site.lat : (targetId === 'shackleton' ? -89.9 : targetId === 'malapert' ? -86.0 : targetId === 'apollo11' ? 0.67 : 0)
   const lon = Number.isFinite(site?.lon) ? site.lon : 0
@@ -294,8 +294,36 @@ export function buildTerrain({ siteId = 'shackleton', terrainType = 'plain', sit
   }
 
   posAttr.needsUpdate = true
-  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   geometry.computeVertexNormals()
+
+  // Real-time Artemis Landing Slope Safety & Hazard Colormap
+  // NASA Artemis Lunar Lander thresholds: <6° Safe Green, 6°-15° Caution Amber, >15° Hazard Crimson
+  if (showSlopeHazard) {
+    const normAttr = geometry.attributes.normal
+    for (let i = 0; i < count; i++) {
+      const ny = normAttr.getY(i)
+      const slopeDeg = Math.acos(Math.max(-1, Math.min(1, ny))) * (180 / Math.PI)
+
+      if (slopeDeg < 6.0) {
+        // Safe Landing Pad: Emerald Green (<6°)
+        colors[i * 3 + 0] = 0.10
+        colors[i * 3 + 1] = 0.88
+        colors[i * 3 + 2] = 0.35
+      } else if (slopeDeg < 15.0) {
+        // Caution Slope: Amber Gold (6° - 15°)
+        colors[i * 3 + 0] = 0.98
+        colors[i * 3 + 1] = 0.74
+        colors[i * 3 + 2] = 0.12
+      } else {
+        // Severe Hazard / Cliff: Crimson Danger (>15°)
+        colors[i * 3 + 0] = 0.94
+        colors[i * 3 + 1] = 0.14
+        colors[i * 3 + 2] = 0.18
+      }
+    }
+  }
+
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
 
   const material = new THREE.MeshStandardMaterial({
     roughness: isMare ? 0.90 : 1.0,

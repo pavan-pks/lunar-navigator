@@ -129,16 +129,126 @@ function getSpotSpriteTexture(spot, isSelected) {
   return tex;
 }
 
+let cachedThermalTexture = null;
+function getDivinerThermalTexture() {
+  if (cachedThermalTexture) return cachedThermalTexture;
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  const imgData = ctx.createImageData(1024, 512);
+  const data = imgData.data;
+
+  // LRO Diviner scientific false-color cryogenic thermal colormap
+  for (let y = 0; y < 512; y++) {
+    // Latitude from +90° (y=0, North Pole) to -90° (y=511, South Pole)
+    const latDeg = 90 - (y / 512) * 180;
+    const absLat = Math.abs(latDeg);
+    const latRad = (latDeg * Math.PI) / 180;
+
+    for (let x = 0; x < 1024; x++) {
+      const idx = (y * 1024 + x) * 4;
+
+      // Base planetary thermal equilibrium temperature (K)
+      let tempK = 40 + 350 * Math.pow(Math.cos(latRad), 1.8);
+
+      // Polar Permanently Shadowed Regions (PSRs) at both poles
+      if (absLat > 75) {
+        // Deep cryogenic cold traps in crater basins (sub-40K)
+        const craterPockets = Math.sin(x * 0.12) * Math.cos(y * 0.14) + Math.sin(x * 0.28) * 0.5;
+        if (craterPockets > 0.35 || absLat > 88) {
+          tempK = 28 + Math.random() * 11; // sub-40K volatile water-ice preservation zone
+        } else {
+          tempK = 48 + (90 - absLat) * 3.5;
+        }
+      }
+
+      // Map Temperature (25K - 390K) to Diviner false-color palette
+      let r = 0, g = 0, b = 0;
+      if (tempK < 40) {
+        // Volatile Water-Ice Preservation Zone: Electric Cyan / Bright Violet
+        r = Math.floor(100 + Math.random() * 40);
+        g = 240;
+        b = 255;
+      } else if (tempK < 80) {
+        // Cryogenic shadow: Deep Violet / Indigo
+        r = 110;
+        g = 50;
+        b = 220;
+      } else if (tempK < 150) {
+        // Cold polar highlands: Ocean Blue
+        r = 20;
+        g = 120;
+        b = 230;
+      } else if (tempK < 240) {
+        // Transition mid-latitudes: Emerald / Teal
+        r = 30;
+        g = 200;
+        b = 160;
+      } else if (tempK < 320) {
+        // Warm sunlit terrain: Amber Gold
+        r = 245;
+        g = 180;
+        b = 30;
+      } else {
+        // Peak equatorial solar heating: Fiery Crimson
+        r = 240;
+        g = 60;
+        b = 40;
+      }
+
+      data[idx] = r;
+      data[idx + 1] = g;
+      data[idx + 2] = b;
+      data[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  // Overlay scientific grid lines & polar boundary rings
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 256);
+  ctx.lineTo(1024, 256);
+  ctx.stroke();
+
+  // Polar circle markers (80°S and 80°N)
+  ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, 512 - (10 / 180) * 512);
+  ctx.lineTo(1024, 512 - (10 / 180) * 512);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, (10 / 180) * 512);
+  ctx.lineTo(1024, (10 / 180) * 512);
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.anisotropy = 16;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  cachedThermalTexture = tex;
+  return tex;
+}
+
 /**
  * Structured Moon Mesh with authentic NASA Clementine/LOLA 2K maps.
  * Uses native Three.js equirectangular UV mapping and LOLA elevation bump relief.
  * Interactive: users can click anywhere on the Moon to pinpoint custom target coordinates.
+ * Supports LRO Diviner Cryogenic False-Color Heatmap overlay.
  */
-function StructuredMoon({ onPickCoord }) {
+function StructuredMoon({ onPickCoord, showThermalMap = false }) {
   const [colorMap, bumpMap] = useTexture([
     '/textures/nasa_moon_2k.jpg',
     '/textures/nasa_moon_bump_2k.jpg',
   ]);
+
+  const thermalMap = useMemo(() => {
+    return getDivinerThermalTexture();
+  }, []);
 
   useEffect(() => {
     if (colorMap) {
@@ -183,11 +293,13 @@ function StructuredMoon({ onPickCoord }) {
       }}
     >
       <meshStandardMaterial
-        map={colorMap}
+        map={showThermalMap ? thermalMap : colorMap}
         bumpMap={bumpMap}
-        bumpScale={0.08}
-        roughness={0.94}
+        bumpScale={showThermalMap ? 0.04 : 0.08}
+        roughness={showThermalMap ? 0.8 : 0.94}
         metalness={0.0}
+        emissive={showThermalMap ? '#0c1a2e' : '#000000'}
+        emissiveIntensity={showThermalMap ? 0.35 : 0.0}
       />
     </mesh>
   );
@@ -489,6 +601,127 @@ function TargetLandingReticle({ position, normal }) {
 }
 
 /**
+ * Live Direct-to-Earth 3D Laser / DSN Telemetry Beam.
+ * Connects the active lunar landing site to Earth with traveling telemetry data packets.
+ */
+function DirectToEarthLaserBeam({ targetPos, earthPos, earthEl = 5 }) {
+  const isOccluded = earthEl <= 0;
+
+  const lineGeo = useMemo(() => {
+    return new THREE.BufferGeometry().setFromPoints([targetPos, earthPos]);
+  }, [targetPos, earthPos]);
+
+  // Telemetry Packet Sparks traveling from Moon to Earth
+  const sparksRef = useRef(null);
+  const sparkCount = 20;
+  const sparkProgress = useRef(Array.from({ length: sparkCount }, (_, i) => i / sparkCount));
+
+  const sparkGeo = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const positions = new Float32Array(sparkCount * 3);
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    return geo;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (!sparksRef.current) return;
+    const pos = sparksRef.current.geometry.attributes.position.array;
+    for (let i = 0; i < sparkCount; i++) {
+      sparkProgress.current[i] = (sparkProgress.current[i] + delta * 0.28) % 1.0;
+      const t = sparkProgress.current[i];
+      pos[i * 3 + 0] = targetPos.x + (earthPos.x - targetPos.x) * t;
+      pos[i * 3 + 1] = targetPos.y + (earthPos.y - targetPos.y) * t;
+      pos[i * 3 + 2] = targetPos.z + (earthPos.z - targetPos.z) * t;
+    }
+    sparksRef.current.geometry.attributes.position.needsUpdate = true;
+  });
+
+  return (
+    <group>
+      {/* Primary Laser Core */}
+      <line geometry={lineGeo}>
+        <lineBasicMaterial
+          color={isOccluded ? '#ef4444' : '#00f0ff'}
+          transparent
+          opacity={isOccluded ? 0.25 : 0.75}
+          blending={THREE.AdditiveBlending}
+        />
+      </line>
+
+      {/* Volumetric Halo Beam */}
+      <line geometry={lineGeo}>
+        <lineBasicMaterial
+          color={isOccluded ? '#991b1b' : '#38bdf8'}
+          transparent
+          opacity={isOccluded ? 0.12 : 0.35}
+          blending={THREE.AdditiveBlending}
+        />
+      </line>
+
+      {/* Animated Telemetry Packet Sparks */}
+      {!isOccluded && (
+        <points ref={sparksRef} geometry={sparkGeo}>
+          <pointsMaterial
+            color="#ffffff"
+            size={0.18}
+            transparent
+            opacity={0.9}
+            blending={THREE.AdditiveBlending}
+          />
+        </points>
+      )}
+    </group>
+  );
+}
+
+/**
+ * Photorealistic Distant Earth Globe with NASA Blue Marble Texture and Rayleigh Glow.
+ */
+function DistantEarthGlobe({ position }) {
+  const earthTexture = useTexture('/textures/nasa_earth_bluemarble.jpg');
+  const earthRef = useRef(null);
+
+  useEffect(() => {
+    if (earthTexture) {
+      earthTexture.colorSpace = THREE.SRGBColorSpace;
+      earthTexture.anisotropy = 16;
+    }
+  }, [earthTexture]);
+
+  useFrame((_, delta) => {
+    if (earthRef.current) {
+      earthRef.current.rotation.y += delta * 0.04;
+    }
+  });
+
+  return (
+    <group position={position}>
+      {/* Textured Earth Globe */}
+      <mesh ref={earthRef} rotation={[0.4, 0, 0]}>
+        <sphereGeometry args={[1.5, 32, 32]} />
+        <meshStandardMaterial
+          map={earthTexture}
+          roughness={0.65}
+          metalness={0.08}
+        />
+      </mesh>
+
+      {/* Atmospheric Rayleigh Halo Ring */}
+      <mesh>
+        <sphereGeometry args={[1.62, 32, 32]} />
+        <meshBasicMaterial
+          color="#38bdf8"
+          transparent
+          opacity={0.28}
+          side={THREE.BackSide}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
  * Camera Director and Tracking Rig.
  */
 function CameraDirector({
@@ -580,6 +813,8 @@ function UniverseScene({
   onSelectSite,
   onPickCustomCoord,
   showLabels = true,
+  showDsnBeam = true,
+  showThermalMap = false,
   sunEl,
   sunAz,
   earthEl,
@@ -695,8 +930,8 @@ function UniverseScene({
       <hemisphereLight args={['#e2e8f0', '#0a0a0a', 0.20]} />
       <ambientLight intensity={0.16} />
 
-      {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting */}
-      <StructuredMoon onPickCoord={onPickCustomCoord} />
+      {/* 3. Authentic NASA 2K Moon with Point-and-Click Custom Targeting & LRO Diviner Thermal Map */}
+      <StructuredMoon onPickCoord={onPickCustomCoord} showThermalMap={showThermalMap} />
 
       {/* 4. On-Moon 3D Labels for Important Spots & Landmarks */}
       {showLabels && (
@@ -710,14 +945,20 @@ function UniverseScene({
       {/* 5. Target Landing Reticle at Active Destination */}
       <TargetLandingReticle position={targetPos} normal={targetNormal} />
 
+      {/* 5B. Live Direct-to-Earth 3D Laser / DSN Telemetry Beam */}
+      {showDsnBeam && (
+        <DirectToEarthLaserBeam
+          targetPos={targetPos}
+          earthPos={earthPos}
+          earthEl={earthEl}
+        />
+      )}
+
       {/* 6. Spacecraft Model */}
       <SpacecraftModel ref={spacecraftRef} thrusterActive={thrusterActive} />
 
-      {/* 7. Distant Earth Marker */}
-      <mesh position={earthPos}>
-        <sphereGeometry args={[1.5, 32, 32]} />
-        <meshBasicMaterial color="#e2e8f0" />
-      </mesh>
+      {/* 7. Distant Earth Globe with NASA Blue Marble & Rayleigh Glow */}
+      <DistantEarthGlobe position={earthPos} />
 
       {/* 8. Camera Rig & Controller */}
       <CameraDirector
@@ -746,6 +987,8 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
     onSelectSite,
     onSelectCustomCoord,
     showLabels = true,
+    showDsnBeam = true,
+    showThermalMap = false,
     onReachedOrbit,
     onLanderTouchdown,
     onUpdateCraterScreenPos,
@@ -1069,6 +1312,8 @@ export const LunarUniverseR3F = forwardRef(function LunarUniverseR3F(
             onSelectSite={onSelectSite}
             onPickCustomCoord={onSelectCustomCoord}
             showLabels={showLabels}
+            showDsnBeam={showDsnBeam}
+            showThermalMap={showThermalMap}
             sunEl={sunEl}
             sunAz={sunAz}
             earthEl={earthEl}

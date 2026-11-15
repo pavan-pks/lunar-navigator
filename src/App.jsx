@@ -77,6 +77,12 @@ export function App() {
   // 3D On-Moon spot labels visibility
   const [showLabels, setShowLabels] = useState(true);
 
+  // 3D Direct-to-Earth Laser / DSN Telemetry Beam
+  const [showDsnBeam, setShowDsnBeam] = useState(true);
+
+  // LRO Diviner Cryogenic Thermal & Water-Ice Heatmap
+  const [showThermalMap, setShowThermalMap] = useState(false);
+
   // Simulation time controller
   const timeCtrl = useTimeController({ maxHours, initialSpeed: 24 });
 
@@ -271,6 +277,8 @@ export function App() {
           onSelectSite={handleSelectSite}
           onSelectCustomCoord={handleSelectCustomCoord}
           showLabels={showLabels}
+          showDsnBeam={showDsnBeam}
+          showThermalMap={showThermalMap}
           onReachedOrbit={handleReachedOrbit}
           onLanderTouchdown={() => {
             setHasLanded(true);
@@ -464,6 +472,28 @@ export function App() {
                 <span>Labels · {showLabels ? 'On' : 'Off'}</span>
               </button>
 
+              {/* DSN Telemetry Laser Beam Toggle */}
+              <button
+                onClick={() => setShowDsnBeam(v => !v)}
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                  showDsnBeam ? 'text-[#38bdf8]' : 'text-[#737373] hover:text-[#a3a3a3]'
+                }`}
+                title="Toggle Direct-to-Earth Telemetry Laser Beam"
+              >
+                <span>📡 DSN · {showDsnBeam ? 'On' : 'Off'}</span>
+              </button>
+
+              {/* LRO Diviner Water-Ice Heatmap Toggle */}
+              <button
+                onClick={() => setShowThermalMap(v => !v)}
+                className={`text-xs font-sans tracking-wider transition cursor-none flex items-center gap-1 ${
+                  showThermalMap ? 'text-[#a78bfa]' : 'text-[#737373] hover:text-[#a3a3a3]'
+                }`}
+                title="Toggle LRO Diviner Cryogenic Water-Ice False-Color Heatmap"
+              >
+                <span>🧊 Ice Map · {showThermalMap ? 'On' : 'Off'}</span>
+              </button>
+
               <button onClick={toggleAudio} className="text-[#a3a3a3] hover:text-[#f5f5f5] transition cursor-none">
                 {audioMuted ? 'Audio · Off' : 'Audio · On'}
               </button>
@@ -473,6 +503,28 @@ export function App() {
               </button>
             </div>
           </header>
+
+          {/* ── LRO DIVINER CRYOGENIC FALSE-COLOR THERMAL SCALE LEGEND ── */}
+          {showThermalMap && viewMode === 'orbit' && (
+            <div className="absolute top-18 left-1/2 -translate-x-1/2 z-25 pointer-events-none flex items-center gap-3 bg-black/90 border border-violet-500/40 px-4 py-1.5 rounded-full text-[10px] font-mono tracking-wider text-neutral-300 shadow-2xl backdrop-blur-md">
+              <span className="text-violet-400 font-bold">LRO DIVINER</span>
+              <span className="text-white/20">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-300 inline-block shadow-[0_0_8px_#67e8f9]" />
+                <span className="text-cyan-200 font-medium">&lt;40K PSR Water-Ice</span>
+              </span>
+              <span className="text-white/20">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-violet-500 inline-block" />
+                <span>40-80K Cold Trap</span>
+              </span>
+              <span className="text-white/20">•</span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+                <span>&gt;320K Sunlit Regolith</span>
+              </span>
+            </div>
+          )}
 
           {/* ── CONDITIONAL RENDERING: SINGLE-SITE HUD vs. COMPARISON HUD (Framer Motion) ── */}
           <AnimatePresence mode="wait">
