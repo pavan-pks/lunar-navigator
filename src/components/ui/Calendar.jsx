@@ -184,13 +184,22 @@ export function Calendar({
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => {
+                onSelectOpportunity('main', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
+                setPopoverCell(null);
+              }}
+              className="py-1.5 px-3 bg-neutral-800 hover:bg-neutral-700 text-sky-300 rounded text-xs font-mono font-medium transition-colors cursor-pointer border border-neutral-700"
+            >
+              Load into Main View
+            </button>
             <button
               onClick={() => {
                 onSelectOpportunity('A', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
                 setPopoverCell(null);
               }}
-              className="py-2 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-[0_0_15px_rgba(56,189,248,0.3)] hover:scale-102"
+              className="py-1.5 px-3 bg-sky-900/60 hover:bg-sky-800 text-sky-200 border border-sky-600/50 rounded text-xs font-mono transition-colors cursor-pointer"
             >
               Stage to Scenario Alpha
             </button>
@@ -199,13 +208,14 @@ export function Calendar({
                 onSelectOpportunity('B', popoverCell.site, `${popoverCell.dateStr}T00:00:00Z`);
                 setPopoverCell(null);
               }}
-              className="py-2 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.3)] hover:scale-102"
+              className="py-1.5 px-3 bg-amber-900/60 hover:bg-amber-800 text-amber-200 border border-amber-600/50 rounded text-xs font-mono transition-colors cursor-pointer"
             >
               Stage to Scenario Bravo
             </button>
             <button
               onClick={() => setPopoverCell(null)}
-              className="py-2 px-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white rounded-xl text-xs transition-colors cursor-pointer border border-white/10"
+              className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded text-xs transition-colors cursor-pointer border border-neutral-700"
+              aria-label="Close"
             >
               ✕
             </button>

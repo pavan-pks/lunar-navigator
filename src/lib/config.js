@@ -31,3 +31,12 @@ export const VERDICT = {
     minDarkHours: 120      // > 120 hours continuous darkness (severe cold survival risk)
   }
 };
+
+export const SIM_SPEED_OPTIONS = [
+  { value: 1, label: '1x' },
+  { value: 10, label: '10x' },
+  { value: 24, label: '24x (1h/s)' },
+  { value: 60, label: '60x' },
+  { value: 120, label: '120x' }
+];
+
