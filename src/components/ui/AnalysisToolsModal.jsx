@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Activity, Battery, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Activity, Battery, Calendar as CalendarIcon, ShieldCheck } from 'lucide-react';
 import { Timeline } from './Timeline.jsx';
 import { BatteryPanel } from './BatteryPanel.jsx';
 import { Calendar } from './Calendar.jsx';
-import { landingDate as computeLandingDate } from '../../lib/metrics.js';
+import { landingDate as computeLandingDate, computeSuitabilityScore } from '../../lib/metrics.js';
 
 /**
  * Analysis Tools Modal:
  * Quantitative engineering tools (Timeline, Battery Simulator, Opportunity Calendar)
- * styled in the site's restrained minimal glass visual identity.
+ * styled in the site's restrained minimal glass visual identity, featuring a 4-Factor
+ * Landing Suitability Index and PSR (Permanently Shadowed Region) identification.
  */
 export function AnalysisToolsModal({
   isOpen,
@@ -35,6 +36,11 @@ export function AnalysisToolsModal({
   const currentLanding = useMemo(() => {
     return computeLandingDate(launchDate, transitDays);
   }, [launchDate, transitDays]);
+
+  // Compute 4-Factor Multi-Disciplinary Suitability Index (Solar, Night, Comms, Slope)
+  const suitability = useMemo(() => {
+    return computeSuitabilityScore(stats, site);
+  }, [stats, site]);
 
   if (!isOpen) return null;
 
@@ -127,7 +133,118 @@ export function AnalysisToolsModal({
           </div>
 
           {/* Modal Body */}
-          <div className="flex-1 p-5 sm:p-6 overflow-y-auto sidebar-scroll">
+          <div className="flex-1 p-5 sm:p-6 overflow-y-auto sidebar-scroll space-y-5">
+            {/* 4-Factor Multi-Disciplinary Suitability Score Banner */}
+            <div className="p-4 rounded-xl bg-neutral-950/80 border border-white/10 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs ${
+                      suitability.totalScore >= 80
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : suitability.totalScore >= 60
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    }`}
+                  >
+                    {suitability.totalScore} / 100
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-white flex items-center gap-2">
+                      <span>{suitability.grade}</span>
+                      <span className="text-[10px] text-neutral-400 font-mono">Grade {suitability.gradeLetter}</span>
+                    </div>
+                    <div className="text-[10px] text-neutral-400">
+                      Target: {site?.name} ({site?.lat > 0 ? `+${site.lat.toFixed(1)}°` : `${site.lat.toFixed(1)}°`}, {site?.lon > 0 ? `+${site.lon.toFixed(1)}°` : `${site.lon.toFixed(1)}°`})
+                    </div>
+                  </div>
+                </div>
+
+                {/* PSR & Slope Status Tag */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {site?.isPsrAdjacent ? (
+                    <span
+                      className="px-2.5 py-1 rounded-full bg-purple-950/60 border border-purple-400/40 text-purple-300 text-[10px] font-sans font-medium"
+                      title={site.psrDetails}
+                    >
+                      PSR Adjacent: Volatile Cold Trap
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 text-[10px] font-sans">
+                      Non-PSR ({site?.terrainType || 'highland'})
+                    </span>
+                  )}
+                  <span className="text-[10px] font-mono text-neutral-400 border border-white/10 px-2 py-1 rounded bg-black/50">
+                    Slope: {site?.nominalSlopeDeg || 5.0}° (&lt;15° safe)
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Pillars Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px] font-sans">
+                {/* Pillar 1: Solar */}
+                <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="flex justify-between items-center text-[10px] text-neutral-400 mb-1">
+                    <span>Solar Illumination</span>
+                    <span className="font-mono text-neutral-500">35% wt</span>
+                  </div>
+                  <div className="flex justify-between items-baseline font-mono">
+                    <span className="text-white font-medium text-xs">{suitability.pillars?.solar?.value}</span>
+                    <span className="text-neutral-400 text-[10px]">{suitability.pillars?.solar?.score} / 100</span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1 rounded mt-1.5 overflow-hidden">
+                    <div className="bg-amber-400 h-full rounded" style={{ width: `${suitability.pillars?.solar?.score || 0}%` }} />
+                  </div>
+                </div>
+
+                {/* Pillar 2: Night Survival */}
+                <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="flex justify-between items-center text-[10px] text-neutral-400 mb-1">
+                    <span>Night Survival</span>
+                    <span className="font-mono text-neutral-500">25% wt</span>
+                  </div>
+                  <div className="flex justify-between items-baseline font-mono">
+                    <span className="text-white font-medium text-xs">{suitability.pillars?.night?.value}</span>
+                    <span className="text-neutral-400 text-[10px]">{suitability.pillars?.night?.score} / 100</span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1 rounded mt-1.5 overflow-hidden">
+                    <div className="bg-sky-400 h-full rounded" style={{ width: `${suitability.pillars?.night?.score || 0}%` }} />
+                  </div>
+                </div>
+
+                {/* Pillar 3: Earth Line-of-Sight */}
+                <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="flex justify-between items-center text-[10px] text-neutral-400 mb-1">
+                    <span>Earth Visibility</span>
+                    <span className="font-mono text-neutral-500">25% wt</span>
+                  </div>
+                  <div className="flex justify-between items-baseline font-mono">
+                    <span className="text-white font-medium text-xs">{suitability.pillars?.comms?.value}</span>
+                    <span className="text-neutral-400 text-[10px]">{suitability.pillars?.comms?.score} / 100</span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1 rounded mt-1.5 overflow-hidden">
+                    <div className="bg-emerald-400 h-full rounded" style={{ width: `${suitability.pillars?.comms?.score || 0}%` }} />
+                  </div>
+                </div>
+
+                {/* Pillar 4: Terrain Slope Safety */}
+                <div className="p-2.5 rounded-lg bg-black/40 border border-white/5">
+                  <div className="flex justify-between items-center text-[10px] text-neutral-400 mb-1">
+                    <span>Terrain Slope Safety</span>
+                    <span className="font-mono text-neutral-500">15% wt</span>
+                  </div>
+                  <div className="flex justify-between items-baseline font-mono">
+                    <span className="text-white font-medium text-xs">{suitability.pillars?.slope?.value}</span>
+                    <span className="text-neutral-400 text-[10px]">{suitability.pillars?.slope?.score} / 100</span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1 rounded mt-1.5 overflow-hidden">
+                    <div className="bg-rose-400 h-full rounded" style={{ width: `${suitability.pillars?.slope?.score || 0}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Tab View */}
             {activeTab === 'timeline' && (
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">

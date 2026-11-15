@@ -4,7 +4,8 @@ import {
   shadowLength,
   computeWindowStats,
   timeToNext,
-  getVerdict
+  getVerdict,
+  computeSuitabilityScore
 } from './metrics.js';
 import { SUN_UP_DEG, EARTH_UP_DEG } from './config.js';
 
@@ -152,5 +153,23 @@ describe('metrics.js tests', () => {
     // When no transition exists in remaining window
     const noSunset = timeToNext(series, 25, 'sunset');
     expect(noSunset).toBeNull();
+  });
+
+  it('computes 4-factor suitability score accurately', () => {
+    const stats = {
+      windowHours: 336,
+      sunlitFraction: 1.0,
+      longestDarkHours: 0,
+      earthVisibleFraction: 0.9
+    };
+    const site = { nominalSlopeDeg: 4.5 };
+    const result = computeSuitabilityScore(stats, site);
+
+    expect(result.totalScore).toBeGreaterThanOrEqual(85);
+    expect(result.gradeLetter).toBe('A');
+    expect(result.pillars.solar.score).toBe(100);
+    expect(result.pillars.night.score).toBe(100);
+    expect(result.pillars.comms.score).toBe(90);
+    expect(result.pillars.slope.score).toBe(70);
   });
 });

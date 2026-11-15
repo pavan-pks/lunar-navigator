@@ -297,3 +297,84 @@ export function getVerdict(stats) {
 
   return { level: 'risky', reasons };
 }
+
+/**
+ * Computes a rigorous 4-factor multi-disciplinary landing suitability index [0-100].
+ * Pillars:
+ * 1. Solar Illumination (35% weight): Cumulative daylight availability over mission window.
+ * 2. Night Survival (25% weight): Resistance to continuous cryogenic nocturnal blackout.
+ * 3. Earth Direct Comms (25% weight): Direct-to-Earth line-of-sight availability.
+ * 4. Terrain Slope & Safety (15% weight): Lander footpad safety margin relative to 15° tip-over limit.
+ */
+export function computeSuitabilityScore(stats, site) {
+  if (!stats) {
+    return {
+      totalScore: 0,
+      grade: 'N/A',
+      gradeLetter: 'N/A',
+      pillars: {}
+    };
+  }
+
+  // 1. Solar Score (0-100)
+  const sunPct = Math.max(0, Math.min(100, (stats.sunlitFraction ?? 0) * 100));
+  const solarScore = sunPct;
+
+  // 2. Night Survival Score (0-100)
+  const darkH = Math.max(0, stats.longestDarkHours ?? 0);
+  let nightScore = 100;
+  if (darkH === 0) {
+    nightScore = 100;
+  } else if (darkH <= 24) {
+    nightScore = 85;
+  } else if (darkH <= 48) {
+    nightScore = 70;
+  } else if (darkH <= 72) {
+    nightScore = 50;
+  } else if (darkH <= 120) {
+    nightScore = 30;
+  } else {
+    nightScore = Math.max(0, 100 - (darkH / (stats.windowHours || 336)) * 100);
+  }
+
+  // 3. Earth Comms Score (0-100)
+  const earthPct = Math.max(0, Math.min(100, (stats.earthVisibleFraction ?? 0) * 100));
+  const commScore = earthPct;
+
+  // 4. Terrain Slope Score (0-100)
+  const slope = typeof site?.nominalSlopeDeg === 'number' ? site.nominalSlopeDeg : 5.0;
+  const slopeScore = Math.max(0, Math.min(100, Math.round((1 - slope / 15.0) * 100)));
+
+  // Weighted composite score (weights sum to 1.0)
+  const totalScore = Math.round(
+    0.35 * solarScore +
+    0.25 * nightScore +
+    0.25 * commScore +
+    0.15 * slopeScore
+  );
+
+  let grade = 'Not Recommended';
+  let gradeLetter = 'C';
+  if (totalScore >= 80) {
+    grade = 'Optimal Landing Suitability';
+    gradeLetter = 'A';
+  } else if (totalScore >= 60) {
+    grade = 'Viable with Constraints';
+    gradeLetter = 'B';
+  } else {
+    grade = 'High Risk / Challenging';
+    gradeLetter = 'C';
+  }
+
+  return {
+    totalScore,
+    grade,
+    gradeLetter,
+    pillars: {
+      solar: { label: 'Solar Illumination', weight: 0.35, score: Math.round(solarScore), value: `${Math.round(sunPct)}%` },
+      night: { label: 'Night Survival', weight: 0.25, score: Math.round(nightScore), value: `${darkH}h max` },
+      comms: { label: 'Earth Line-of-Sight', weight: 0.25, score: Math.round(commScore), value: `${Math.round(earthPct)}%` },
+      slope: { label: 'Terrain Slope Safety', weight: 0.15, score: Math.round(slopeScore), value: `${slope.toFixed(1)}°` }
+    }
+  };
+}

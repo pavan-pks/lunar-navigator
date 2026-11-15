@@ -78,6 +78,7 @@ export function EdgeHudSidebars({
   const [customLon, setCustomLon] = useState(() => customSite?.lon ?? 129.8);
 
   const currentSiteName = customSite ? customSite.name : (sites.find(s => s.id === selectedSiteId)?.name || 'Target Site');
+  const activeSite = customSite || sites.find(s => s.id === selectedSiteId) || sites[0];
 
   const handleApplyCustom = () => {
     const lat = parseFloat(Number(customLat).toFixed(3));
@@ -179,6 +180,30 @@ export function EdgeHudSidebars({
                 </button>
               ))}
             </div>
+
+            {/* Site PSR & Terrain Badge */}
+            {activeSite && (
+              <div className="flex items-center gap-1.5 pt-0.5 text-[10px] font-sans min-w-0">
+                {activeSite.isPsrAdjacent ? (
+                  <span
+                    className="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-400/40 text-purple-300 font-medium shrink-0"
+                    title={activeSite.psrDetails}
+                  >
+                    PSR Adjacent
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-400 shrink-0">
+                    Non-PSR
+                  </span>
+                )}
+                <span
+                  className="text-neutral-400 truncate font-mono text-[10px]"
+                  title={activeSite.psrDetails || `Slope: ${activeSite.nominalSlopeDeg || 5.0}° (<15° safe)`}
+                >
+                  {activeSite.isPsrAdjacent ? activeSite.psrDetails : `Slope: ${activeSite.nominalSlopeDeg || 5.0}° (<15° safe)`}
+                </span>
+              </div>
+            )}
 
             {/* Custom Coordinates Toggle Button */}
             <button

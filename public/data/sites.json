@@ -8,7 +8,11 @@
     "mission": "Artemis III Candidate",
     "notes": "Connecting Ridge near Shackleton crater rim. Peaks of quasi-eternal light with grazing solar illumination.",
     "source": "NASA Moon Trek South Pole",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "Overlooks Shackleton interior PSR (<40 K volatile cold trap)",
+    "nominalSlopeDeg": 6.5
   },
   {
     "id": "malapert",
@@ -19,7 +23,11 @@
     "mission": "Artemis III Candidate",
     "notes": "Highland plateau massif (+5,000 m) offering broad, uninterrupted Earth direct-to-Earth line-of-sight.",
     "source": "LROC QuickMap",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Elevated highland plateau massif; ~18 km from cold traps",
+    "nominalSlopeDeg": 4.2
   },
   {
     "id": "haworth",
@@ -30,7 +38,11 @@
     "mission": "Permanently Shadowed Region",
     "notes": "High crater rim adjacent to deep sub-40K cold trap containing volatile water ice deposits.",
     "source": "NASA Moon Trek",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "Directly borders Haworth crater interior PSR cold traps",
+    "nominalSlopeDeg": 8.1
   },
   {
     "id": "im1",
@@ -41,7 +53,11 @@
     "mission": "CLPS Commercial Lunar Payload",
     "notes": "First commercial CLPS soft landing near Malapert A crater at high southern latitude (Feb 2024).",
     "source": "NASA CLPS Initiative",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Malapert A apron; elevated outside primary permanent shadows",
+    "nominalSlopeDeg": 4.8
   },
   {
     "id": "chandrayaan3",
@@ -52,7 +68,11 @@
     "mission": "ISRO Lunar Mission (2023)",
     "notes": "Historic high-latitude southern landing site near Manzinus C crater.",
     "source": "ISRO Chandrayaan-3",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "High-latitude southern plain; no permanent shadow (diurnal sun)",
+    "nominalSlopeDeg": 3.5
   },
   {
     "id": "nobile",
@@ -63,7 +83,11 @@
     "mission": "VIPER Candidate Region",
     "notes": "Mountainous highland plateau bordering Nobile crater selected for volatile rover exploration.",
     "source": "NASA VIPER Mission",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "VIPER exploration ridge bordering Nobile micro-cold-traps",
+    "nominalSlopeDeg": 5.5
   },
   {
     "id": "apollo11",
@@ -74,7 +98,11 @@
     "mission": "Apollo 11 Historical (1969)",
     "notes": "Equatorial baseline site demonstrating standard 14-day lunar day and 14-day lunar night cycle.",
     "source": "NASA Apollo Lunar Surface Journal",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Equatorial mare basalt plain; standard 14-day diurnal cycle",
+    "nominalSlopeDeg": 2.0
   },
   {
     "id": "apollo17",
@@ -85,7 +113,11 @@
     "mission": "Apollo 17 Historical (1972)",
     "notes": "Deep lunar valley surrounded by North and South Massifs; last human surface mission of Apollo.",
     "source": "NASA Apollo 17 Preliminary Science Report",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Taurus-Littrow valley floor surrounded by steep massifs",
+    "nominalSlopeDeg": 4.8
   },
   {
     "id": "de-gerlache",
@@ -96,7 +128,11 @@
     "mission": "Artemis III Candidate",
     "notes": "High sunlit ridge crest between Shackleton and de Gerlache craters.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "Connecting ridge spine between Shackleton and de Gerlache PSRs",
+    "nominalSlopeDeg": 8.5
   },
   {
     "id": "amundsen",
@@ -107,7 +143,11 @@
     "mission": "Artemis III Candidate",
     "notes": "Major 105km South polar impact crater with illuminated rim summits.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "Illuminated rim crest bordering deep Amundsen floor PSR",
+    "nominalSlopeDeg": 9.0
   },
   {
     "id": "faustini",
@@ -118,7 +158,11 @@
     "mission": "Permanently Shadowed Region",
     "notes": "Perpetually shadowed crater basin bounded by sunlit highlands.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "Perpetually shadowed crater basin bounded by sunlit highlands",
+    "nominalSlopeDeg": 7.8
   },
   {
     "id": "apollo12",
@@ -129,7 +173,11 @@
     "mission": "Apollo 12 (1969)",
     "notes": "Pinpoint precision landing adjacent to the Surveyor 3 robotic probe.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Equatorial Oceanus Procellarum; standard diurnal cycle",
+    "nominalSlopeDeg": 2.2
   },
   {
     "id": "apollo14",
@@ -140,7 +188,11 @@
     "mission": "Apollo 14 (1971)",
     "notes": "Fra Mauro highlands exploration and Cone crater rim geological survey.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Fra Mauro highland ridge and Cone crater slope",
+    "nominalSlopeDeg": 5.5
   },
   {
     "id": "apollo15",
@@ -151,7 +203,11 @@
     "mission": "Apollo 15 (1971)",
     "notes": "First mission deploying the Lunar Roving Vehicle alongside the deep Hadley canyon.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Hadley Rille basalt plain and Apennine front",
+    "nominalSlopeDeg": 4.5
   },
   {
     "id": "apollo16",
@@ -162,18 +218,26 @@
     "mission": "Apollo 16 (1972)",
     "notes": "Highland plateau sampling of the ancient Cayley formation and Descartes volcanic range.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Descartes highland plateau; standard diurnal cycle",
+    "nominalSlopeDeg": 4.0
   },
   {
     "id": "change4",
-    "name": "Chang'e 4 (Von Kármán / Far Side)",
+    "name": "Chang'e 4 (Von K\u00e1rm\u00e1n / Far Side)",
     "lat": -45.45,
     "lon": 177.58,
     "terrainType": "crater-rim",
     "mission": "CNSA (2019)",
     "notes": "First ever soft landing on the lunar far side inside South Pole-Aitken basin.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Von Karman crater floor on lunar far side",
+    "nominalSlopeDeg": 3.0
   },
   {
     "id": "change6",
@@ -184,7 +248,11 @@
     "mission": "CNSA (2024)",
     "notes": "First successful robotic sample return mission from the lunar far side.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Apollo basin plain on lunar far side",
+    "nominalSlopeDeg": 3.2
   },
   {
     "id": "tycho",
@@ -195,7 +263,11 @@
     "mission": "Prominent Landmark",
     "notes": "Prominent 85km impact crater with brilliant ray system extending across 1,500km.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Central peak and terraced walls; high relief",
+    "nominalSlopeDeg": 12.0
   },
   {
     "id": "copernicus",
@@ -206,7 +278,11 @@
     "mission": "Prominent Landmark",
     "notes": "Classic 93km impact crater with terraced walls and 1.2km central peak complex.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Central peak and impact terraces; steep rim",
+    "nominalSlopeDeg": 11.5
   },
   {
     "id": "tranquillitatis",
@@ -217,7 +293,11 @@
     "mission": "Prominent Landmark",
     "notes": "Broad basaltic mare plain formed by ancient flood basalt eruptions.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Smooth volcanic flood basalt mare plain",
+    "nominalSlopeDeg": 1.8
   },
   {
     "id": "procellarum",
@@ -228,7 +308,11 @@
     "mission": "Prominent Landmark",
     "notes": "The largest lunar mare, spanning over 2,500km across the western near side.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Extensive basalt plain with low relief",
+    "nominalSlopeDeg": 1.5
   },
   {
     "id": "northpole",
@@ -239,7 +323,11 @@
     "mission": "Geographic Pole",
     "notes": "Lunar geographic North Pole surrounded by deep craters Peary, Hermite, and Byrd.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": false,
+    "psrType": "none",
+    "psrDetails": "Surrounded by deep craters Peary, Hermite, and Byrd",
+    "nominalSlopeDeg": 6.0
   },
   {
     "id": "southpole",
@@ -250,6 +338,10 @@
     "mission": "Geographic Pole",
     "notes": "Lunar geographic South Pole situated directly on the rim crest of Shackleton crater.",
     "source": "NASA Lunar Reconnaissance Orbiter / LOLA",
-    "verified": true
+    "verified": true,
+    "isPsrAdjacent": true,
+    "psrType": "adjacent",
+    "psrDetails": "True South Pole on Shackleton rim flank above deep cryogenic shadow",
+    "nominalSlopeDeg": 5.0
   }
 ]

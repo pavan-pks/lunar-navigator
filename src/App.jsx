@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
-import { Play, Pause, BarChart2, FileText, ChevronDown } from 'lucide-react';
+import { Play, Pause, BarChart2, FileText, ChevronDown, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadAllData } from './lib/dataLoader.js';
 import { useTimeController } from './lib/useTimeController.js';
@@ -83,8 +83,9 @@ export function App() {
 
   // Flight dynamics & mission schedule
   const [launchDate, setLaunchDate] = useState(() => initialUrlState.launchDate || '2027-03-08T00:00:00Z');
-  const [transitDays] = useState(() => initialUrlState.transitDays || 4);
+  const [transitDays, setTransitDays] = useState(() => initialUrlState.transitDays || 4);
   const [slipDays, setSlipDays] = useState(() => initialUrlState.slipDays || 0);
+  const [showTransitTooltip, setShowTransitTooltip] = useState(false);
   const missionDays = 14;
   const maxHours = missionDays * 24;
 
@@ -845,10 +846,114 @@ export function App() {
                     />
                   </div>
 
-                  {/* Transit Days */}
-                  <div className="flex items-center gap-1.5">
-                    <span>Transit:</span>
-                    <span className="font-mono text-[#f5f5f5] text-[11px]">{transitDays}d</span>
+                  {/* Interactive Transit Days with Trajectory Flight Budget Tooltip */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowTransitTooltip(v => !v)}
+                      onMouseEnter={() => setShowTransitTooltip(true)}
+                      className="flex items-center gap-1 hover:text-white transition cursor-pointer text-left focus:outline-none"
+                      title="Click to view Trajectory Flight Budget & Δv estimates"
+                    >
+                      <span>Transit:</span>
+                      <span className="font-mono text-[#f5f5f5] text-[11px] underline decoration-dotted decoration-white/40">
+                        {transitDays}d
+                      </span>
+                    </button>
+
+                    {/* Trajectory Flight Budget Tooltip */}
+                    {showTransitTooltip && (
+                      <div
+                        onMouseLeave={() => setShowTransitTooltip(false)}
+                        className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-80 p-3.5 bg-black/95 border border-white/20 rounded-xl shadow-2xl z-50 text-[11px] font-sans text-neutral-300 pointer-events-auto backdrop-blur-xl space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                          <span className="font-medium text-white text-[11px] flex items-center gap-1.5">
+                            <Compass size={12} className="text-sky-400" />
+                            <span>Trajectory Flight Budget</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-neutral-400">Total: {transitDays + slipDays}d</span>
+                        </div>
+
+                        <div className="space-y-2 text-[10px] font-mono">
+                          {/* Profile 1: Direct Transfer */}
+                          <div
+                            className={`p-2 rounded-lg border transition ${
+                              transitDays <= 7
+                                ? 'bg-sky-950/40 border-sky-400/40 text-sky-200'
+                                : 'bg-white/5 border-white/10 text-neutral-400'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center font-bold text-white mb-0.5">
+                              <span>Direct Transfer (Apollo / Artemis)</span>
+                              <span className="text-sky-400">3–5 days</span>
+                            </div>
+                            <p className="text-[10px] text-neutral-300 font-sans leading-tight">
+                              High-energy translunar insertion (TLI) to lunar orbit.
+                            </p>
+                            <div className="flex justify-between text-[10px] text-neutral-400 mt-1 pt-1 border-t border-white/5">
+                              <span>TLI Δv ≈ 3,150 m/s</span>
+                              <span>LOI Δv ≈ 850 m/s</span>
+                              <span className="font-bold text-white">Total ≈ 4,000 m/s</span>
+                            </div>
+                          </div>
+
+                          {/* Profile 2: Low-Energy Transfer */}
+                          <div
+                            className={`p-2 rounded-lg border transition ${
+                              transitDays > 7
+                                ? 'bg-amber-950/40 border-amber-400/40 text-amber-200'
+                                : 'bg-white/5 border-white/10 text-neutral-400'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center font-bold text-white mb-0.5">
+                              <span>Low-Energy Transfer (BLT / WSB)</span>
+                              <span className="text-amber-300">90–120 days</span>
+                            </div>
+                            <p className="text-[10px] text-neutral-300 font-sans leading-tight">
+                              Sun-Earth L1/L2 Weak Stability Boundary transfer (CAPSTONE / Danuri cargo style).
+                            </p>
+                            <div className="flex justify-between text-[10px] text-neutral-400 mt-1 pt-1 border-t border-white/5">
+                              <span>Saves ~18% Δv (~750 m/s)</span>
+                              <span className="font-bold text-white">Total ≈ 3,250 m/s</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Transit Duration Slider */}
+                        <div className="pt-1.5 border-t border-white/10 space-y-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-neutral-400 font-sans">Adjust Transit Duration:</span>
+                            <span className="font-mono text-white font-bold">{transitDays} days</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={3}
+                            max={14}
+                            step={1}
+                            value={transitDays}
+                            onChange={(e) => setTransitDays(parseInt(e.target.value, 10))}
+                            className="w-full h-1 bg-white/20 rounded accent-sky-400 cursor-pointer"
+                          />
+                          <div className="flex justify-between text-[9px] text-neutral-500 font-mono">
+                            <button
+                              type="button"
+                              onClick={() => setTransitDays(4)}
+                              className="hover:text-white cursor-pointer"
+                            >
+                              Apollo Baseline (4d)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setTransitDays(7)}
+                              className="hover:text-white cursor-pointer"
+                            >
+                              Extended Insertion (7d)
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Launch Slip Slider (0 to 30 days) */}

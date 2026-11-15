@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar as CalendarIcon, Check, GitCompare, Info } from 'lucide-react';
 import { buildCalendar, getBestWindowsForSite } from '../../lib/calendarData.js';
+import { computeSuitabilityScore } from '../../lib/metrics.js';
 import { BestWindows } from './BestWindows.jsx';
 import { VerdictBadge } from './VerdictBadge.jsx';
 
@@ -151,90 +152,126 @@ export function Calendar({
       />
 
       {/* Dynamic Selected Window Details Panel */}
-      {inspectCell && (
-        <div className="bg-black/85 border border-sky-400/30 p-4 sm:p-5 rounded-2xl shadow-2xl backdrop-blur-md space-y-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
-            <div>
-              <span className="text-[10px] font-sans text-neutral-400 uppercase tracking-widest block">
-                Selected Window Details
-              </span>
-              <div className="flex items-center gap-2.5 mt-0.5">
-                <span className="text-sm font-semibold text-white">
-                  {inspectCell.site.name} · {formatShortDate(inspectCell.dateStr)} ({inspectCell.dateStr})
+      {inspectCell && (() => {
+        const cellSuitability = computeSuitabilityScore(inspectCell, inspectCell.site);
+        return (
+          <div className="bg-black/85 border border-sky-400/30 p-4 sm:p-5 rounded-2xl shadow-2xl backdrop-blur-md space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[10px] font-sans text-neutral-400 uppercase tracking-widest block">
+                  Selected Window Details
                 </span>
-                <VerdictBadge verdict={{ level: inspectCell.level }} compact />
+                <div className="flex flex-wrap items-center gap-2.5 mt-0.5">
+                  <span className="text-sm font-semibold text-white">
+                    {inspectCell.site.name} · {formatShortDate(inspectCell.dateStr)} ({inspectCell.dateStr})
+                  </span>
+                  <VerdictBadge verdict={{ level: inspectCell.level }} compact />
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                    cellSuitability.totalScore >= 80 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
+                    cellSuitability.totalScore >= 60 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                    'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  }`}>
+                    {cellSuitability.totalScore} / 100 ({cellSuitability.grade})
+                  </span>
+                  {inspectCell.site.isPsrAdjacent && (
+                    <span className="px-2 py-0.5 rounded-full bg-purple-950/60 border border-purple-400/40 text-purple-300 text-[10px] font-sans">
+                      PSR Adjacent
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleApplyMission(inspectCell.site, inspectCell.dateStr)}
+                  className="px-3 py-1.5 bg-white text-black hover:bg-neutral-200 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check size={13} />
+                  <span>Apply to Mission</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleCompareMission(inspectCell.site, inspectCell.dateStr)}
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <GitCompare size={13} />
+                  <span>Compare</span>
+                </button>
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleApplyMission(inspectCell.site, inspectCell.dateStr)}
-                className="px-3 py-1.5 bg-white text-black hover:bg-neutral-200 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
-              >
-                <Check size={13} />
-                <span>Apply to Mission</span>
-              </button>
+            {/* 4-Pillar Multi-Disciplinary Metric Breakdown */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px] font-sans">
+              {/* Daylight Coverage */}
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+                <div className="flex justify-between items-center text-[10px] text-neutral-400">
+                  <span>Daylight (35% wt)</span>
+                  <span className="font-mono text-neutral-500">{cellSuitability.pillars?.solar?.score}/100</span>
+                </div>
+                <div className="mt-1">
+                  <div className="text-base font-mono text-white font-medium tabular-nums">
+                    {(inspectCell.sunlitFraction * 100).toFixed(0)}%
+                  </div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    {(inspectCell.sunlitFraction * 336).toFixed(0)} hrs sunlight
+                  </div>
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => handleCompareMission(inspectCell.site, inspectCell.dateStr)}
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-lg text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
-              >
-                <GitCompare size={13} />
-                <span>Compare</span>
-              </button>
+              {/* Continuous Darkness */}
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+                <div className="flex justify-between items-center text-[10px] text-neutral-400">
+                  <span>Night Survival (25% wt)</span>
+                  <span className="font-mono text-neutral-500">{cellSuitability.pillars?.night?.score}/100</span>
+                </div>
+                <div className="mt-1">
+                  <div className={`text-base font-mono font-medium tabular-nums ${inspectCell.longestDarkHours > 48 ? 'text-amber-300' : 'text-white'}`}>
+                    {inspectCell.longestDarkHours} hrs
+                  </div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    {inspectCell.longestDarkHours === 0 ? 'No night (zero drain)' : `${inspectCell.longestDarkHours}h blackout`}
+                  </div>
+                </div>
+              </div>
+
+              {/* Earth Line-of-Sight */}
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+                <div className="flex justify-between items-center text-[10px] text-neutral-400">
+                  <span>Earth Visibility (25% wt)</span>
+                  <span className="font-mono text-neutral-500">{cellSuitability.pillars?.comms?.score}/100</span>
+                </div>
+                <div className="mt-1">
+                  <div className="text-base font-mono text-emerald-400 font-medium tabular-nums">
+                    {(inspectCell.earthVisibleFraction * 100).toFixed(0)}%
+                  </div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    {(inspectCell.earthVisibleFraction * 336).toFixed(0)} hrs direct line
+                  </div>
+                </div>
+              </div>
+
+              {/* Terrain Slope Safety */}
+              <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
+                <div className="flex justify-between items-center text-[10px] text-neutral-400">
+                  <span>Slope Safety (15% wt)</span>
+                  <span className="font-mono text-neutral-500">{cellSuitability.pillars?.slope?.score}/100</span>
+                </div>
+                <div className="mt-1">
+                  <div className="text-base font-mono text-white font-medium tabular-nums">
+                    {inspectCell.site.nominalSlopeDeg || 5.0}°
+                  </div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    &lt;15° safe tip margin
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Simple, Non-Aggressive 3-Metric Summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {/* Daylight Coverage */}
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
-              <span className="text-[11px] text-neutral-400 font-medium">Daylight Coverage</span>
-              <div className="mt-1">
-                <div className="text-lg font-mono text-white font-medium tabular-nums">
-                  {(inspectCell.sunlitFraction * 100).toFixed(0)}%
-                </div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">
-                  {(inspectCell.sunlitFraction * 336).toFixed(0)} hours of sunlight
-                </div>
-              </div>
-            </div>
-
-            {/* Continuous Darkness */}
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
-              <span className="text-[11px] text-neutral-400 font-medium">Longest Night</span>
-              <div className="mt-1">
-                <div className={`text-lg font-mono font-medium tabular-nums ${inspectCell.longestDarkHours > 48 ? 'text-amber-300' : 'text-white'}`}>
-                  {inspectCell.longestDarkHours} hrs
-                </div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">
-                  {inspectCell.longestDarkHours === 0
-                    ? 'No darkness; zero heater draw'
-                    : inspectCell.longestDarkHours <= 48
-                    ? 'Manageable battery reserve'
-                    : 'Requires substantial battery'}
-                </div>
-              </div>
-            </div>
-
-            {/* Earth Line-of-Sight */}
-            <div className="p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col justify-between">
-              <span className="text-[11px] text-neutral-400 font-medium">Earth Visibility</span>
-              <div className="mt-1">
-                <div className="text-lg font-mono text-emerald-400 font-medium tabular-nums">
-                  {(inspectCell.earthVisibleFraction * 100).toFixed(0)}%
-                </div>
-                <div className="text-[10px] text-neutral-400 mt-0.5">
-                  {(inspectCell.earthVisibleFraction * 336).toFixed(0)} hours direct line-of-sight
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Heatmap Legend */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-black/70 p-3 rounded-xl border border-white/10 text-[11px] text-neutral-300">
