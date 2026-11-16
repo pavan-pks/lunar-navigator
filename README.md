@@ -2,7 +2,7 @@
 
 > **NASA Space Apps Challenge 2026** — *Lunar Landing Site Navigator Challenge Entry*  
 > **Live Interactive Demo:** [https://lunar-navigator-murex.vercel.app/](https://lunar-navigator-murex.vercel.app/)
-> **Demo Video: **[https://drive.google.com/file/d/1TJ6a3oFBA_OJ8B6ODbvBl-qXP1UqshKR/view?usp=sharing](https://drive.google.com/file/d/1TJ6a3oFBA_OJ8B6ODbvBl-qXP1UqshKR/view?usp=sharing)
+> **Demo Video:** [Watch on Google Drive](https://drive.google.com/file/d/1TJ6a3oFBA_OJ8B6ODbvBl-qXP1UqshKR/view?usp=sharing)
 > An analytical flight-dynamics and mission-planning workstation for evaluating lunar south-pole landing sites, illumination windows, Direct-to-Earth communication links, battery endurance, and touchdown terrain safety across the 2027–2028 mission epochs.
 
 ---
